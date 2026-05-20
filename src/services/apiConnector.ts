@@ -3,6 +3,12 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export const axiosInstance = axios.create({});
 
+axiosInstance.interceptors.request.use((config) => {
+	const token = localStorage.getItem('token');
+	if (token) config.headers['Authorization'] = `Bearer ${token}`;
+	return config;
+}, (error) => Promise.reject(error));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const apiConnector = <TResponse = any, TBody = any, TParams = any>(
   method: string,
