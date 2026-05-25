@@ -29,12 +29,13 @@ export const getProductParts = (params?: { page?: number; limit?: number; search
 	};
 };
 
-export const createProductPart = (name: string) => {
+export const createProductPart = (name: string, partNo: string) => {
 	return async () => {
 		const toastId = toast.loading('Creating product part...');
 		try {
 			const response = await apiConnector('POST', CREATE_PRODUCT_PART_API, {
-				name: name.trim()
+				name: name.trim(),
+				partNo: partNo.trim()
 			});
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to create product part');
@@ -53,12 +54,13 @@ export const createProductPart = (name: string) => {
 	};
 };
 
-export const updateProductPart = (id: number, name: string) => {
+export const updateProductPart = (id: number, name: string, partNo: string) => {
 	return async () => {
 		const toastId = toast.loading('Updating product part...');
 		try {
 			const response = await apiConnector('PATCH', UPDATE_PRODUCT_PART_API(id), {
-				name: name.trim()
+				name: name.trim(),
+				partNo: partNo.trim()
 			});
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to update product part');

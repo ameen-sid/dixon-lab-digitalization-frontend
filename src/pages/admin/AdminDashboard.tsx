@@ -5,6 +5,9 @@ import UserManagement from './UserManagement';
 import TestTypeManagement from './TestTypeManagement';
 import TestCategoryManagement from './TestCategoryManagement';
 import TestProtocolManagement from './TestProtocolManagement';
+import ProductPartManagement from './ProductPartManagement';
+import SupplierCustomerManagement from './SupplierCustomerManagement';
+import TestingEquipmentManagement from './TestingEquipmentManagement';
 import { 
 	Shield, Database, Users, ChevronRight, Plus
 } from 'lucide-react';
@@ -227,91 +230,13 @@ export default function AdminDashboard() {
 				return <TestProtocolManagement />;
 
 			case 'product-part-names':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Product & Component Parts Register</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Add New Part
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'ARM Cortex-M4 Microcontroller', part: 'MCU-ARM-M4-64', category: 'Microprocessors', status: 'Compliant' },
-								{ name: 'Dixon Dual-layer SMT PCB base', part: 'PCB-SMT-2L-A', category: 'PCBs / Assemblies', status: 'Compliant' },
-								{ name: 'High-Frequency Solid-State Relay', part: 'REL-HF-SSR-05', category: 'Electromechanics', status: 'Under Stress Testing' }
-							].map((part, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-bold text-zinc-800">{part.name}</span>
-											<span className="text-[9px] bg-zinc-100 border border-zinc-200 text-zinc-500 font-bold px-1.5 py-0.2 rounded">{part.part}</span>
-										</div>
-										<span className="text-[10px] text-zinc-400 font-light">Class: {part.category}</span>
-									</div>
-									<span className="text-xs font-bold text-[#11236a]">{part.status}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <ProductPartManagement />;
 
 			case 'suppliers-customers':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Suppliers & Customers Registry</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Add Partner
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'Samsung Semiconductor India', type: 'Supplier (Chamber Parts)', city: 'Bengaluru', status: 'Verified' },
-								{ name: 'Tata Power Electrical Division', type: 'Customer (Calibrations)', city: 'Mumbai', status: 'Verified' },
-								{ name: 'Siemens Industrial Automation', type: 'Supplier (Relays)', city: 'New Delhi', status: 'Verified' }
-							].map((partner, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<p className="text-xs font-bold text-zinc-800">{partner.name}</p>
-										<span className="text-[10px] text-zinc-400 font-light">Sector: {partner.type} | Hq: {partner.city}</span>
-									</div>
-									<span className="text-[10px] font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full">{partner.status}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <SupplierCustomerManagement />;
 
 			case 'rd-testing-equipments':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">R&D Lab Chambers & Diagnostic Equipment</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Add Chamber
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'Ultra-Climatic Thermal Chamber', asset: 'EQ-RND-CT-01', location: 'Lab Room A1', health: 'Healthy' },
-								{ name: 'Fatigue Vibration Shaker Frame', asset: 'EQ-RND-VS-05', location: 'Lab Room B3', health: 'Healthy' },
-								{ name: 'High-Frequency Digital Analyzer', asset: 'EQ-RND-DA-09', location: 'Calibration Desk 2', health: 'Calibration Needed' }
-							].map((eq, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-bold text-zinc-800">{eq.name}</span>
-											<span className="text-[9px] bg-zinc-100 border border-zinc-200 text-zinc-500 font-bold px-1.5 py-0.2 rounded">{eq.asset}</span>
-										</div>
-										<span className="text-[10px] text-zinc-400 font-light">Location: {eq.location}</span>
-									</div>
-									<span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${eq.health === 'Healthy' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>{eq.health}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <TestingEquipmentManagement />;
 
 			default:
 				return null;

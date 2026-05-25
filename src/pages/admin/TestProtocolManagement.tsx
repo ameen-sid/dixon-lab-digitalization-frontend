@@ -288,13 +288,28 @@ export default function TestProtocolManagement() {
 								setFilterTestCategoryId(val);
 								setCurrentPage(1);
 							}}
+							disabled={filterTestTypeId === "all"}
 							options={[
 								{ value: "all", label: "All Categories" },
 								...filteredCategoriesForFilter.map((c) => ({ value: String(c.id), label: c.name }))
 							]}
-							placeholder="Filter by Category"
+							placeholder={filterTestTypeId === "all" ? "Select Test Type first" : "Filter by Category"}
 						/>
 					</div>
+
+					{(searchQuery !== "" || filterTestTypeId !== "all" || filterTestCategoryId !== "all") && (
+						<button
+							onClick={() => {
+								setSearchQuery("");
+								setFilterTestTypeId("all");
+								setFilterTestCategoryId("all");
+								setCurrentPage(1);
+							}}
+							className="text-xs font-bold text-red-650 hover:text-red-750 bg-red-50 hover:bg-red-100 border border-red-200/50 px-3.5 py-2 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shrink-0 text-red-600"
+						>
+							<XCircle className="w-3.5 h-3.5 text-red-500" /> Clear Filters
+						</button>
+					)}
 				</div>
 				<button
 					onClick={() => {
@@ -427,7 +442,7 @@ export default function TestProtocolManagement() {
 							className="mt-4 space-y-4 text-left"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Protocol Name</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Protocol Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -440,7 +455,7 @@ export default function TestProtocolManagement() {
 
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Parent Test Type</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Parent Test Type <span className="text-red-500">*</span></label>
 									<CustomSelect
 										value={selectedTestTypeId}
 										onChange={(val) => {
@@ -452,7 +467,7 @@ export default function TestProtocolManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Test Category</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Test Category <span className="text-red-500">*</span></label>
 									<CustomSelect
 										value={selectedTestCategoryId}
 										onChange={setSelectedTestCategoryId}
@@ -489,7 +504,7 @@ export default function TestProtocolManagement() {
 							</div>
 
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Test Method Details</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Test Method Details <span className="text-red-500">*</span></label>
 								<textarea
 									required
 									rows={3}
@@ -501,7 +516,7 @@ export default function TestProtocolManagement() {
 							</div>
 
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Judgement / Pass Criteria</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Judgement / Pass Criteria <span className="text-red-500">*</span></label>
 								<textarea
 									required
 									rows={3}

@@ -326,7 +326,7 @@ export default function DepartmentManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -364,7 +364,7 @@ export default function DepartmentManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required

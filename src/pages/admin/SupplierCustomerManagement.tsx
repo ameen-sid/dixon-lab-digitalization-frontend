@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Plus, Search, Edit3, Trash2, XCircle, Loader2, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, XCircle, Loader2, CheckCircle, AlertCircle, AlertTriangle, Users } from 'lucide-react';
 import Pagination from '../../components/Pagination';
-import testTypeService from '../../services/operations/testTypeService';
+import supplierCustomerService from '../../services/operations/supplierCustomerService';
 
-interface TestTypeRecord {
+interface SupplierCustomerRecord {
 	id: number;
 	name: string;
 	createdAt: string;
 }
 
-export default function TestTypeManagement() {
-	const [testTypes, setTestTypes] = useState<TestTypeRecord[]>([]);
-
+export default function SupplierCustomerManagement() {
+	const [records, setRecords] = useState<SupplierCustomerRecord[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -20,22 +19,22 @@ export default function TestTypeManagement() {
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [showEditModal, setShowEditModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
-	const [recordToDelete, setRecordToDelete] = useState<TestTypeRecord | null>(null);
+	const [recordToDelete, setRecordToDelete] = useState<SupplierCustomerRecord | null>(null);
 
-	const [typeName, setTypeName] = useState("");
+	// Form states
+	const [name, setName] = useState("");
 	const [editingId, setEditingId] = useState<number | null>(null);
-
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
 
-	const fetchTestTypes = async () => {
+	const fetchData = async () => {
 		setIsLoading(true);
 		setError(null);
 		try {
-			const data = await testTypeService.getTestTypes()();
-			setTestTypes(data);
+			const fetchedRecords = await supplierCustomerService.getSupplierCustomers()();
+			setRecords(fetchedRecords);
 		} catch (err) {
-			console.error('Error fetching test types:', err);
+			console.error('Error fetching suppliers and customers:', err);
 			setError(err instanceof Error ? err.message : 'An unexpected connection error occurred.');
 		} finally {
 			setIsLoading(false);
@@ -43,55 +42,52 @@ export default function TestTypeManagement() {
 	};
 
 	useEffect(() => {
-		fetchTestTypes();
+		fetchData();
 	}, []);
 
 	const handleAdd = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!typeName.trim()) {
-			showNotification('Please fill in the Test Type Name field.', 'error');
-			return;
-		}
+		if (!name.trim()) return showNotification('Supplier / Customer name cannot be empty', 'error');
 
 		try {
-			await testTypeService.createTestType(typeName)();
-			showNotification(`Test Type "${typeName.trim()}" created successfully!`, 'success');
+			await supplierCustomerService.createSupplierCustomer(name)();
+			showNotification(`Supplier / Customer "${name.trim()}" registered successfully!`, 'success');
 			resetForm();
-			fetchTestTypes();
+			fetchData();
 		} catch (err) {
-			showNotification(err instanceof Error ? err.message : 'Connection error creating test type.', 'error');
+			showNotification(err instanceof Error ? err.message : 'Connection error creating Supplier / Customer.', 'error');
 		}
 	};
 
-	const handleEdit = (record: TestTypeRecord) => {
+	const handleEdit = (record: SupplierCustomerRecord) => {
 		setEditingId(record.id);
-		setTypeName(record.name);
+		setName(record.name);
 		setShowEditModal(true);
 	};
 
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!typeName.trim() || editingId === null) return;
+		if (!name.trim() || editingId === null) return;
 
 		try {
-			await testTypeService.updateTestType(editingId, typeName)();
-			showNotification(`Test Type "${typeName.trim()}" updated successfully!`, 'success');
+			await supplierCustomerService.updateSupplierCustomer(editingId, name)();
+			showNotification(`Supplier / Customer updated successfully!`, 'success');
 			resetForm();
-			fetchTestTypes();
+			fetchData();
 		} catch (err) {
-			showNotification(err instanceof Error ? err.message : 'Connection error updating test type.', 'error');
+			showNotification(err instanceof Error ? err.message : 'Connection error updating Supplier / Customer.', 'error');
 		}
 	};
 
 	const handleDelete = async (id: number) => {
 		try {
-			await testTypeService.deleteTestType(id)();
-			showNotification('Test Type deleted successfully.', 'success');
+			await supplierCustomerService.deleteSupplierCustomer(id)();
+			showNotification('Supplier / Customer deleted successfully.', 'success');
 			setShowDeleteModal(false);
 			setRecordToDelete(null);
-			fetchTestTypes();
+			fetchData();
 		} catch (err) {
-			showNotification(err instanceof Error ? err.message : 'Connection error deleting test type.', 'error');
+			showNotification(err instanceof Error ? err.message : 'Connection error deleting Supplier / Customer.', 'error');
 		}
 	};
 
@@ -106,14 +102,14 @@ export default function TestTypeManagement() {
 	};
 
 	const resetForm = () => {
-		setTypeName("");
+		setName("");
 		setEditingId(null);
 		setShowAddModal(false);
 		setShowEditModal(false);
 	};
 
-	const filteredRecords = testTypes.filter((t) =>
-		t.name.toLowerCase().includes(searchQuery.toLowerCase())
+	const filteredRecords = records.filter(
+		(r) => r.name.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
 	const maxPage = Math.ceil(filteredRecords.length / itemsPerPage);
@@ -143,25 +139,25 @@ export default function TestTypeManagement() {
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Test Types</p>
+					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Suppliers / Customers</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
 							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
 						) : (
-							testTypes.length
+							records.length
 						)}
 					</h3>
 				</div>
 			</div>
 
 			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
-				<div className="relative w-full sm:w-80">
+				<div className="relative w-full sm:w-80 shrink-0">
 					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
 						<Search className="w-4 h-4" />
 					</span>
 					<input
 						type="text"
-						placeholder="Search by test type name..."
+						placeholder="Search by supplier or customer name..."
 						value={searchQuery}
 						onChange={(e) => {
 							setSearchQuery(e.target.value);
@@ -170,32 +166,30 @@ export default function TestTypeManagement() {
 						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
 					/>
 				</div>
-				<div className="w-full sm:w-auto flex flex-row gap-3">
-					<button
-						onClick={() => {
-							resetForm();
-							setShowAddModal(true);
-						}}
-						className="w-full sm:w-auto bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none"
-					>
-						<Plus className="w-4 h-4" /> Add Test Type
-					</button>
-				</div>
+				<button
+					onClick={() => {
+						resetForm();
+						setShowAddModal(true);
+					}}
+					className="w-full sm:w-auto bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none shrink-0"
+				>
+					<Plus className="w-4 h-4" /> Add Supplier / Customer
+				</button>
 			</div>
 
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden">
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
 						<Loader2 className="w-8 h-8 text-[#11236a] animate-spin" />
-						<p className="text-xs text-zinc-450 font-light">Loading test types registry from DB...</p>
+						<p className="text-xs text-zinc-450 font-light">Loading supplier and customer registry...</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">
 						<table className="w-full text-left border-collapse">
 							<thead>
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
-									<th className="py-4 px-6">Test Type ID</th>
-									<th className="py-4 px-6">Test Type Name</th>
+									<th className="py-4 px-6">Supplier / Customer ID</th>
+									<th className="py-4 px-6">Supplier / Customer Name</th>
 									<th className="py-4 px-6 text-right">Actions</th>
 								</tr>
 							</thead>
@@ -205,7 +199,7 @@ export default function TestTypeManagement() {
 										<td
 											colSpan={3}
 											className="py-8 text-center text-zinc-400 font-light"
-										> No registered test types found.</td>
+										> No registered suppliers or customers found.</td>
 									</tr>
 								) : (
 									paginatedRecords.map((item) => (
@@ -213,17 +207,11 @@ export default function TestTypeManagement() {
 											key={item.id}
 											className="hover:bg-zinc-50/50 transition-colors"
 										>
-											<td className="py-4 px-6 text-zinc-500 font-mono">
-												#{item.id}
-											</td>
-											<td className="py-4 px-6">
-												<p className="font-bold text-[#11236a] text-sm">{item.name}</p>
-											</td>
-											<td className="py-4 px-6 text-right space-x-2">
+											<td className="py-4 px-6 font-mono text-zinc-400 text-xs">#{item.id}</td>
+											<td className="py-4 px-6 font-bold text-zinc-800">{item.name}</td>
+											<td className="py-4 px-6 text-right space-x-2 shrink-0">
 												<button
-													onClick={() =>
-														handleEdit(item)
-													}
+													onClick={() => handleEdit(item)}
 													className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 p-1.5 rounded-lg border-none outline-none cursor-pointer transition-all inline-flex items-center justify-center"
 													title="Edit"
 												>
@@ -255,7 +243,7 @@ export default function TestTypeManagement() {
 								setItemsPerPage(limit);
 								setCurrentPage(1);
 							}}
-							itemNamePlural="test types"
+							itemNamePlural="suppliers / customers"
 						/>
 					</div>
 				)}
@@ -263,7 +251,7 @@ export default function TestTypeManagement() {
 
 			{showAddModal && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
+					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowAddModal(false)}
 							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
@@ -271,28 +259,28 @@ export default function TestTypeManagement() {
 							<XCircle className="w-4 h-4" />
 						</button>
 						<h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-							<Layers className="w-5 h-5 text-[#11236a]" /> Add Test Type
+							<Users className="w-5 h-5 text-[#11236a]" /> Add Supplier / Customer
 						</h3>
 						<form
 							onSubmit={handleAdd}
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Test Type Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
-									placeholder="e.g. Environmental Stress Screening (ESS)"
-									value={typeName}
-									onChange={(e) => setTypeName(e.target.value)}
-									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
+									placeholder="e.g. Samsung Semiconductor India"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
 								/>
 							</div>
 							<button
 								type="submit"
 								className="w-full bg-[#11236a] text-white text-xs font-bold py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all border-none outline-none cursor-pointer"
 							>
-								Submit Test Type
+								Add Supplier / Customer
 							</button>
 						</form>
 					</div>
@@ -301,28 +289,28 @@ export default function TestTypeManagement() {
 
 			{showEditModal && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
+					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowEditModal(false)}
 							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
-						<h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-							<Edit3 className="w-5 h-5 text-[#11236a]" /> Edit Test Type
+						<h3 className="text-base font-bold text-zinc-950 flex items-center gap-2">
+							<Edit3 className="w-5 h-5 text-[#11236a]" /> Edit Supplier / Customer Info
 						</h3>
 						<form
 							onSubmit={handleUpdate}
-							className="mt-4 space-y-4"
+							className="mt-4 space-y-4 text-left"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Test Type Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name</label>
 								<input
 									type="text"
 									required
-									value={typeName}
-									onChange={(e) => setTypeName(e.target.value)}
-									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
 								/>
 							</div>
 							<button
@@ -348,19 +336,22 @@ export default function TestTypeManagement() {
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
+
 						<div className="flex items-center gap-3 text-red-650">
 							<div className="w-10 h-10 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center shrink-0">
 								<AlertTriangle className="w-5 h-5 text-red-600" />
 							</div>
-							<h3 className="text-base font-bold text-zinc-900">Delete Test Type</h3>
+							<h3 className="text-base font-bold text-zinc-900">Delete Supplier / Customer</h3>
 						</div>
 
 						<div className="mt-4 space-y-4">
-							<p className="text-xs text-zinc-500 font-light leading-relaxed">Are you sure you want to permanently delete the test type{" "}
-								<strong className="font-bold text-zinc-800">"{recordToDelete.name}"</strong>
-								?
+							<p className="text-xs text-zinc-500 font-light leading-relaxed">
+								Are you sure you want to permanently delete the supplier / customer entry for{" "}
+								<strong className="font-bold text-zinc-800">"{recordToDelete.name}"</strong>?
 							</p>
-							<p className="text-[11px] text-red-500 font-semibold bg-red-50/50 border border-red-150 rounded-xl p-3 leading-normal">Warning: This action is irreversible. All categories, protocols, and test plans mapped to this test type will also be affected.</p>
+							<p className="text-[11px] text-red-500 font-semibold bg-red-50/50 border border-red-150 rounded-xl p-3 leading-normal">
+								Warning: This action is irreversible. The record will be permanently deleted from the database.
+							</p>
 							<div className="flex gap-3 justify-end pt-2">
 								<button
 									type="button"
@@ -368,7 +359,7 @@ export default function TestTypeManagement() {
 										setShowDeleteModal(false);
 										setRecordToDelete(null);
 									}}
-									className="px-4 py-2 border border-zinc-200 text-zinc-500 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-555 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
 								>
 									Cancel
 								</button>

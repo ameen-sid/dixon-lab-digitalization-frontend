@@ -376,6 +376,20 @@ export default function UserManagement() {
 							className="w-full sm:w-48"
 						/>
 					</div>
+
+					{(userSearch !== "" || selectedRoleFilter !== "All" || selectedDeptFilter !== "All") && (
+						<button
+							onClick={() => {
+								setUserSearch("");
+								setSelectedRoleFilter("All");
+								setSelectedDeptFilter("All");
+								setCurrentPage(1);
+							}}
+							className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/50 px-3.5 py-2 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
+						>
+							<XCircle className="w-3.5 h-3.5 text-red-500" /> Clear Filters
+						</button>
+					)}
 				</div>
 				<button
 					onClick={() => {
@@ -490,7 +504,7 @@ export default function UserManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Full Name</label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Full Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -502,7 +516,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Username (UID)</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Username (UID) <span className="text-red-500">*</span></label>
 									<input
 										type="text"
 										required
@@ -513,7 +527,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Password (Secret)</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Password (Secret) <span className="text-red-500">*</span></label>
 									<input
 										type="password"
 										required
@@ -526,7 +540,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Role Assignment</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Role Assignment <span className="text-red-500">*</span></label>
 									<CustomSelect
 										value={usrRole}
 										onChange={setUsrRole}
@@ -542,7 +556,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name</label>
+									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name {!["Admin", "CEO"].includes(mapUIToBackendRole(usrRole)) && <span className="text-red-500">*</span>}</label>
 									<CustomSelect
 										value={usrDeptId}
 										onChange={setUsrDeptId}
