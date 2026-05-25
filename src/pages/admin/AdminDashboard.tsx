@@ -9,11 +9,166 @@ import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import { 
-	Shield, Database, Users, ChevronRight, Plus
+	Shield, Database, Users, ChevronRight, Plus, RotateCw, Activity, Wrench
 } from 'lucide-react';
 
 export default function AdminDashboard() {
 	const [activeTab, setActiveTab] = useState('departments-management'); // Set default to Departments Management
+
+	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>(() => {
+		const initial: { [key: string]: boolean } = {};
+		for (let p = 1; p <= 14; p++) {
+			for (let s = 1; s <= 10; s++) {
+				initial[`${p}-${s}`] = p !== 5; // P5 occupied by default (false), others available (true)
+			}
+		}
+		return initial;
+	});
+
+	const toggleSlot = (p: number, s: number) => {
+		setPlatformSlots(prev => ({
+			...prev,
+			[`${p}-${s}`]: !prev[`${p}-${s}`]
+		}));
+	};
+
+	const resetSlots = () => {
+		const initial: { [key: string]: boolean } = {};
+		for (let p = 1; p <= 14; p++) {
+			for (let s = 1; s <= 10; s++) {
+				initial[`${p}-${s}`] = p !== 5;
+			}
+		}
+		setPlatformSlots(initial);
+	};
+
+	const availableCount = Object.values(platformSlots).filter(v => v === true).length;
+	const occupiedCount = Object.values(platformSlots).filter(v => v === false).length;
+
+	const [equipmentTelemetry, setEquipmentTelemetry] = useState([
+		{
+			id: 'TC-01',
+			name: 'Thermal Shock Chamber',
+			class: 'Thermal Stress Testing',
+			status: 'UNDER_TEST',
+			metric: 'Temp: -40°C to +150°C',
+			capacity: 75,
+			slots: [false, false, false, false, false, false, true, true] // true = available, false = occupied
+		},
+		{
+			id: 'VS-02',
+			name: 'Vibration Shaker Table',
+			class: 'Mechanical Fatigue Stress',
+			status: 'AVAILABLE',
+			metric: 'Freq: 10Hz - 2000Hz',
+			capacity: 0,
+			slots: [true, true, true, true, true, true, true, true]
+		},
+		{
+			id: 'OSC-03',
+			name: 'NABL High-Freq Oscilloscope',
+			class: 'Signal Calibration',
+			status: 'MAINTENANCE',
+			metric: 'BW: 4 GHz Bandwidth',
+			capacity: 0,
+			slots: [false, false, false, false, false, false, false, false]
+		},
+		{
+			id: 'CC-04',
+			name: 'Climate Walk-in Chamber',
+			class: 'Humidity & Environment',
+			status: 'UNDER_TEST',
+			metric: 'Humidity: 95% RH',
+			capacity: 62,
+			slots: [false, false, false, false, false, true, true, true]
+		}
+	]);
+
+	const toggleEquipmentSlot = (eqIndex: number, slotIndex: number) => {
+		setEquipmentTelemetry(prev => {
+			const updated = [...prev].map(item => ({...item, slots: [...item.slots]}));
+			const slots = updated[eqIndex].slots;
+			slots[slotIndex] = !slots[slotIndex];
+			
+			// Recalculate capacity based on occupied slots
+			const totalSlots = slots.length;
+			const occupiedCount = slots.filter(s => !s).length;
+			const newCapacity = Math.round((occupiedCount / totalSlots) * 100);
+			
+			updated[eqIndex] = {
+				...updated[eqIndex],
+				slots,
+				capacity: newCapacity
+			};
+			
+			if (updated[eqIndex].status !== 'MAINTENANCE') {
+				updated[eqIndex].status = occupiedCount > 0 ? 'UNDER_TEST' : 'AVAILABLE';
+			}
+			
+			return updated;
+		});
+	};
+
+	const changeEquipmentStatus = (eqIndex: number, newStatus: string) => {
+		setEquipmentTelemetry(prev => {
+			const updated = prev.map((item, idx) => {
+				if (idx === eqIndex) {
+					return {
+						...item,
+						status: newStatus,
+						capacity: newStatus === 'MAINTENANCE' ? 0 : item.capacity
+					};
+				}
+				return item;
+			});
+			return updated;
+		});
+	};
+
+	const resetEquipmentTelemetry = () => {
+		setEquipmentTelemetry([
+			{
+				id: 'TC-01',
+				name: 'Thermal Shock Chamber',
+				class: 'Thermal Stress Testing',
+				status: 'UNDER_TEST',
+				metric: 'Temp: -40°C to +150°C',
+				capacity: 75,
+				slots: [false, false, false, false, false, false, true, true]
+			},
+			{
+				id: 'VS-02',
+				name: 'Vibration Shaker Table',
+				class: 'Mechanical Fatigue Stress',
+				status: 'AVAILABLE',
+				capacity: 0,
+				metric: 'Freq: 10Hz - 2000Hz',
+				slots: [true, true, true, true, true, true, true, true]
+			},
+			{
+				id: 'OSC-03',
+				name: 'NABL High-Freq Oscilloscope',
+				class: 'Signal Calibration',
+				status: 'MAINTENANCE',
+				capacity: 0,
+				metric: 'BW: 4 GHz Bandwidth',
+				slots: [false, false, false, false, false, false, false, false]
+			},
+			{
+				id: 'CC-04',
+				name: 'Climate Walk-in Chamber',
+				class: 'Humidity & Environment',
+				status: 'UNDER_TEST',
+				capacity: 62,
+				metric: 'Humidity: 95% RH',
+				slots: [false, false, false, false, false, true, true, true]
+			}
+		]);
+	};
+
+	const availableEq = equipmentTelemetry.filter(e => e.status === 'AVAILABLE').length;
+	const underTestEq = equipmentTelemetry.filter(e => e.status === 'UNDER_TEST').length;
+	const maintenanceEq = equipmentTelemetry.filter(e => e.status === 'MAINTENANCE').length;
 
 	// Dynamic tab header texts
 	const getTabHeaders = () => {
@@ -133,83 +288,200 @@ export default function AdminDashboard() {
 			case 'platform-availability':
 				return (
 					<div className="space-y-6">
-						{/* Availability Grid */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{/* Services Uptime Status */}
-							<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-								<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-									<h3 className="text-sm font-bold text-zinc-800">Node Availability</h3>
-									<span className="bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full px-2 py-0.5 text-[10px] font-bold">100% Online</span>
-								</div>
-								<div className="mt-5 space-y-4">
-									{[
-										{ name: 'Core API Gateway', uptime: '99.98%', ping: '4ms' },
-										{ name: 'Identity Provider (JWT)', uptime: '100%', ping: '2ms' },
-										{ name: 'MS SQL Database Pool', uptime: '99.99%', ping: '12ms' },
-										{ name: 'NABL Telemetry Service', uptime: '99.95%', ping: '15ms' }
-									].map((node, i) => (
-										<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3 last:border-0 last:pb-0">
-											<div>
-												<p className="text-xs font-bold text-zinc-800">{node.name}</p>
-												<span className="text-[10px] text-zinc-400 font-light">Latency: {node.ping}</span>
-											</div>
-											<span className="text-xs font-semibold text-emerald-600">{node.uptime} Uptime</span>
-										</div>
-									))}
-								</div>
-							</div>
-
-							{/* Server Telemetry Performance Charts */}
-							<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-								<div className="flex items-center justify-between">
-									<h3 className="text-sm font-bold text-zinc-800">Server Latency (Avg)</h3>
-									<span className="text-[10px] text-zinc-400 font-bold">Live Monitor</span>
-								</div>
-								<div className="w-full h-44 mt-6">
-									<svg className="w-full h-full overflow-visible" viewBox="0 0 500 150" preserveAspectRatio="none">
-										<line x1="0" y1="37.5" x2="500" y2="37.5" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-										<line x1="0" y1="75" x2="500" y2="75" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-										<line x1="0" y1="112.5" x2="500" y2="112.5" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
-										<path d="M0,100 C100,100 120,40 180,60 C250,80 300,30 360,30 C420,30 460,90 500,90 L500,150 L0,150 Z" fill="#11236a" fillOpacity="0.05" />
-										<path d="M0,100 C100,100 120,40 180,60 C250,80 300,30 360,30 C420,30 460,90 500,90" fill="none" stroke="#11236a" strokeWidth="2" strokeLinecap="round" />
-									</svg>
-									<div className="flex justify-between text-[10px] text-zinc-400 font-medium px-1 mt-2">
-										<span>12:00</span>
-										<span>12:10</span>
-										<span>12:20</span>
+						{/* Header Card with Metrics */}
+						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
+								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+									Platform Live Tracking
+								</h2>
+								<div className="flex items-center gap-4">
+									<div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50/70 border border-emerald-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+										AVAILABLE: {availableCount}
+									</div>
+									<div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs bg-rose-50/70 border border-rose-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+										OCCUPIED/RESERVED: {occupiedCount}
 									</div>
 								</div>
 							</div>
+							<button
+								onClick={resetSlots}
+								title="Reset telemetry view"
+								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none active:scale-95 border-none shrink-0"
+							>
+								<RotateCw className="w-4 h-4" />
+							</button>
+						</div>
+
+						{/* Interactive Platform 14-Grid */}
+						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+							{Array.from({ length: 14 }, (_, i) => {
+								const pNum = i + 1;
+								return (
+									<div key={pNum} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+										{/* Card Header */}
+										<div className="bg-[#11236a] flex items-center justify-between px-3 py-2 shrink-0">
+											<span className="text-white text-xs font-extrabold tracking-wide">S{pNum}</span>
+											<span className="text-zinc-400 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
+										</div>
+										{/* Card Body Grid */}
+										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
+											{Array.from({ length: 10 }, (_, j) => {
+												const sNum = j + 1;
+												const isAvailable = platformSlots[`${pNum}-${sNum}`];
+												return (
+													<button
+														key={sNum}
+														onClick={() => toggleSlot(pNum, sNum)}
+														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border outline-none cursor-pointer active:scale-95 ${
+															isAvailable
+																? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 text-emerald-700 hover:border-emerald-250'
+																: 'bg-rose-50/70 hover:bg-rose-100/70 border-rose-150 text-rose-700 hover:border-rose-250'
+														}`}
+													>
+														<span className="text-[11px] font-extrabold">{sNum}</span>
+														<span className={`w-1.5 h-1.5 rounded-full mt-1 transition-all ${
+															isAvailable
+																? 'bg-emerald-500 group-hover:scale-125'
+																: 'bg-rose-500 group-hover:scale-125'
+														}`} />
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								);
+							})}
 						</div>
 					</div>
 				);
 
 			case 'equipment-availability':
 				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Stress Chambers & Calibration Availability</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Add Equipment
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'SMT Thermal Shock Chamber', type: 'Thermal Stress', status: 'Available', percent: '100%', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-								{ name: 'Vibration Safety Shaker Table', type: 'Mechanical Stress', status: 'Occupied', percent: '45%', color: 'text-amber-600 bg-amber-50 border-amber-100' },
-								{ name: 'NABL High-Frequency Oscilloscope', type: 'Signal Calibration', status: 'Maintenance', percent: '0%', color: 'text-rose-600 bg-rose-50 border-rose-100' }
-							].map((eq, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<p className="text-xs font-bold text-zinc-800">{eq.name}</p>
-										<span className="text-[10px] text-zinc-400 font-light">Class: {eq.type}</span>
+					<div className="space-y-6">
+						{/* Header Card with Metrics */}
+						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
+								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+									Testing Equipment Availability
+								</h2>
+								<div className="flex items-center gap-4">
+									<div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50/70 border border-emerald-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+										READY/IDLE: {availableEq}
 									</div>
-									<div className="flex items-center gap-4">
-										<span className={`text-[10px] font-bold px-2 py-0.5 border rounded-full uppercase tracking-wider ${eq.color}`}>{eq.status}</span>
-										<span className="text-xs font-bold text-zinc-500">{eq.percent} Capacity</span>
+									<div className="flex items-center gap-1.5 text-indigo-600 font-bold text-xs bg-indigo-50/70 border border-indigo-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+										RUNNING TEST: {underTestEq}
+									</div>
+									<div className="flex items-center gap-1.5 text-amber-600 font-bold text-xs bg-amber-50/70 border border-amber-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+										MAINTENANCE: {maintenanceEq}
 									</div>
 								</div>
-							))}
+							</div>
+							<button
+								onClick={resetEquipmentTelemetry}
+								title="Reset chamber states"
+								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none active:scale-95 border-none shrink-0"
+							>
+								<RotateCw className="w-4 h-4" />
+							</button>
+						</div>
+
+						{/* Equipment Telemetry Cards Grid */}
+						<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+							{equipmentTelemetry.map((eq, eqIdx) => {
+								return (
+									<div key={eq.id} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+										{/* Card Header */}
+										<div className="bg-[#11236a] flex items-center justify-between px-4 py-2.5 shrink-0">
+											<div className="flex items-center gap-2">
+												<Activity className="w-3.5 h-3.5 text-white shrink-0" />
+												<span className="text-white text-xs font-extrabold tracking-wide">{eq.id}</span>
+											</div>
+											<select
+												value={eq.status}
+												onChange={(e) => changeEquipmentStatus(eqIdx, e.target.value)}
+												className="bg-white/10 hover:bg-white/20 border-none outline-none rounded text-white text-[10px] font-bold px-2 py-0.5 cursor-pointer leading-none"
+											>
+												<option value="AVAILABLE" className="text-zinc-800 font-medium">Ready/Idle</option>
+												<option value="UNDER_TEST" className="text-zinc-800 font-medium">Running Test</option>
+												<option value="MAINTENANCE" className="text-zinc-800 font-medium">Maintenance</option>
+											</select>
+										</div>
+
+										{/* Card Body */}
+										<div className="p-4 flex-grow flex flex-col justify-between bg-[#f8fafc]/30">
+											<div>
+												<h4 className="text-xs font-bold text-zinc-950 truncate leading-tight">{eq.name}</h4>
+												<p className="text-[10px] text-zinc-400 font-medium mt-0.5">{eq.class}</p>
+
+												{/* Metrics Stats Box */}
+												<div className="border border-zinc-150 bg-zinc-50/50 rounded-xl p-3 my-3.5 flex flex-col gap-2">
+													<div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+														<span>Telemetry Metric</span>
+														<span className="text-zinc-700 font-mono font-extrabold">{eq.metric}</span>
+													</div>
+													<div className="space-y-1">
+														<div className="flex justify-between text-[10px] text-zinc-400 font-bold uppercase">
+															<span>Chamber Load</span>
+															<span className={eq.status === 'MAINTENANCE' ? 'text-rose-600 font-extrabold' : 'text-zinc-850 font-extrabold'}>
+																{eq.status === 'MAINTENANCE' ? 'OFFLINE' : `${eq.capacity}%`}
+															</span>
+														</div>
+														<div className="w-full bg-zinc-200 rounded-full h-1.5 overflow-hidden">
+															<div 
+																className={`h-full transition-all duration-500 rounded-full ${
+																	eq.status === 'MAINTENANCE' 
+																		? 'bg-rose-500' 
+																		: eq.status === 'AVAILABLE' 
+																			? 'bg-emerald-500' 
+																			: 'bg-indigo-600'
+																}`}
+																style={{ width: `${eq.status === 'MAINTENANCE' ? 100 : eq.capacity}%` }}
+															/>
+														</div>
+													</div>
+												</div>
+											</div>
+
+											{/* Telemetry Points (Slots Grid) */}
+											<div>
+												<p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1.5">Telemetry Slots (Click to toggle)</p>
+												<div className="grid grid-cols-4 gap-1.5">
+													{eq.slots.map((isSlotAvailable, slotIdx) => {
+														return (
+															<button
+																key={slotIdx}
+																onClick={() => toggleEquipmentSlot(eqIdx, slotIdx)}
+																disabled={eq.status === 'MAINTENANCE'}
+																className={`group p-1.5 rounded-lg border outline-none text-center flex flex-col items-center justify-center transition-all ${
+																	eq.status === 'MAINTENANCE'
+																		? 'bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed'
+																		: isSlotAvailable
+																			? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 hover:border-emerald-250 text-emerald-700 cursor-pointer active:scale-95'
+																			: 'bg-indigo-50/50 hover:bg-indigo-100/50 border-indigo-100 hover:border-indigo-250 text-indigo-700 cursor-pointer active:scale-95'
+																}`}
+															>
+																<span className="text-[10px] font-extrabold">{slotIdx + 1}</span>
+																<span className={`w-1 h-1 rounded-full mt-0.5 transition-all ${
+																	eq.status === 'MAINTENANCE'
+																		? 'bg-zinc-400'
+																		: isSlotAvailable
+																			? 'bg-emerald-500 group-hover:scale-125'
+																			: 'bg-indigo-500 group-hover:scale-125'
+																}`} />
+															</button>
+														);
+													})}
+												</div>
+											</div>
+										</div>
+									</div>
+								);
+							})}
 						</div>
 					</div>
 				);
