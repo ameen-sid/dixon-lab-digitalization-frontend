@@ -58,6 +58,9 @@ export default function TestProtocolManagement() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
 
+	const [filterTestTypeId, setFilterTestTypeId] = useState<string>("all");
+	const [filterTestCategoryId, setFilterTestCategoryId] = useState<string>("all");
+
 	const fetchData = async () => {
 		setIsLoading(true);
 		setError(null);
@@ -185,13 +188,28 @@ export default function TestProtocolManagement() {
 		setShowEditModal(false);
 	};
 
-	const filteredRecords = protocols.filter(
-		(p) =>
+	// Filter categories for the page filter dropdown based on selected filterTestTypeId
+	const filteredCategoriesForFilter = categories.filter(
+		(cat) => filterTestTypeId === "all" || cat.testTypeId === Number(filterTestTypeId)
+	);
+
+	const filteredRecords = protocols.filter((p) => {
+		const matchesSearch =
 			p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			p.productType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			p.testType?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			p.testCategory?.name.toLowerCase().includes(searchQuery.toLowerCase())
-	);
+			(p.testType?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(p.testCategory?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+
+		const matchesTestType =
+			filterTestTypeId === "all" ||
+			p.testTypeId === Number(filterTestTypeId);
+
+		const matchesTestCategory =
+			filterTestCategoryId === "all" ||
+			p.testCategoryId === Number(filterTestCategoryId);
+
+		return matchesSearch && matchesTestType && matchesTestCategory;
+	});
 
 	const maxPage = Math.ceil(filteredRecords.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
@@ -231,33 +249,62 @@ export default function TestProtocolManagement() {
 				</div>
 			</div>
 
-			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
-				<div className="relative w-full sm:w-80">
-					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-						<Search className="w-4 h-4" />
-					</span>
-					<input
-						type="text"
-						placeholder="Search by protocol, category, type or product..."
-						value={searchQuery}
-						onChange={(e) => {
-							setSearchQuery(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
-					/>
+			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+				<div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
+					<div className="relative w-full sm:w-80 shrink-0">
+						<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+							<Search className="w-4 h-4" />
+						</span>
+						<input
+							type="text"
+							placeholder="Search by protocol, method or product..."
+							value={searchQuery}
+							onChange={(e) => {
+								setSearchQuery(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
+						/>
+					</div>
+					<div className="w-full sm:w-48">
+						<CustomSelect
+							value={filterTestTypeId}
+							onChange={(val) => {
+								setFilterTestTypeId(val);
+								setFilterTestCategoryId("all"); // Reset category filter when type changes
+								setCurrentPage(1);
+							}}
+							options={[
+								{ value: "all", label: "All Test Types" },
+								...testTypes.map((t) => ({ value: String(t.id), label: t.name }))
+							]}
+							placeholder="Filter by Test Type"
+						/>
+					</div>
+					<div className="w-full sm:w-48">
+						<CustomSelect
+							value={filterTestCategoryId}
+							onChange={(val) => {
+								setFilterTestCategoryId(val);
+								setCurrentPage(1);
+							}}
+							options={[
+								{ value: "all", label: "All Categories" },
+								...filteredCategoriesForFilter.map((c) => ({ value: String(c.id), label: c.name }))
+							]}
+							placeholder="Filter by Category"
+						/>
+					</div>
 				</div>
-				<div className="w-full sm:w-auto flex flex-row gap-3">
-					<button
-						onClick={() => {
-							resetForm();
-							setShowAddModal(true);
-						}}
-						className="w-full sm:w-auto bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none"
-					>
-						<Plus className="w-4 h-4" /> Create Protocol
-					</button>
-				</div>
+				<button
+					onClick={() => {
+						resetForm();
+						setShowAddModal(true);
+					}}
+					className="w-full lg:w-auto bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none shrink-0"
+				>
+					<Plus className="w-4 h-4" /> Create Protocol
+				</button>
 			</div>
 
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden">
@@ -588,7 +635,7 @@ export default function TestProtocolManagement() {
 
 			{showViewModal && selectedProtocolForView && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-					<div className="bg-white border border-zinc-200 rounded-3xl max-w-2xl w-full shadow-2xl p-6 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+					<div className="bg-white border border-zinc-200 rounded-3xl max-w-2xl w-full shadow-2xl p-6 relative overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar">
 						<button
 							onClick={() => {
 								setShowViewModal(false);
@@ -643,7 +690,7 @@ export default function TestProtocolManagement() {
 										<div className="w-1.5 h-1.5 bg-[#11236a] rounded-full" />
 										Test Method Details
 									</h4>
-									<div className="bg-[#f8fafc] border border-zinc-100 rounded-xl p-3 text-xs text-zinc-700 leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
+									<div className="bg-[#f8fafc] border border-zinc-100 rounded-xl p-3 text-xs text-zinc-700 leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto no-scrollbar">
 										{selectedProtocolForView.testMethod}
 									</div>
 								</div>
@@ -653,7 +700,7 @@ export default function TestProtocolManagement() {
 										<div className="w-1.5 h-1.5 bg-emerald-600 rounded-full" />
 										Judgement / Pass Criteria
 									</h4>
-									<div className="bg-[#f8fafc] border border-[#d1fae5]/40 rounded-xl p-3 text-xs text-zinc-700 leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
+									<div className="bg-[#f8fafc] border border-[#d1fae5]/40 rounded-xl p-3 text-xs text-zinc-700 leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto no-scrollbar">
 										{selectedProtocolForView.judgementCriteria}
 									</div>
 								</div>
