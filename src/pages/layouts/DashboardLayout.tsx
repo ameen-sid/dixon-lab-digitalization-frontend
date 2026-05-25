@@ -26,8 +26,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 
 	return (
 		<div className="h-screen w-screen overflow-hidden bg-[#eef2f6] text-zinc-800 flex flex-row relative">
-			<aside className={`h-full bg-white shrink-0 flex flex-col justify-between z-20 shadow-sm border-r border-zinc-200 overflow-y-auto no-scrollbar transition-all duration-300 ${isCollapsed ? 'w-20 p-4' : 'w-72 p-6'}`}>
-				<div className="flex flex-col gap-6">
+			<aside className={`h-full bg-white shrink-0 flex flex-col justify-between z-20 shadow-sm border-r border-zinc-200 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-20 p-4' : 'w-72 p-6'}`}>
+				<div className="flex flex-col gap-6 min-h-0 flex-1">
 					<div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
 						{!isCollapsed && <img src="/logo.png" alt="Dixon Logo" className="h-14 w-75 object-contain" />}
 						<button 
@@ -41,7 +41,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 						</button>
 					</div>
 					
-					<nav className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-1 no-scrollbar">
+					<nav className="flex flex-col gap-4 overflow-y-auto flex-1 pr-1 no-scrollbar">
 						{user.role === 'Admin' ? (
 							<>
 								{[
@@ -155,7 +155,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 				</div>
 
 				{/* Bottom Section: User profile */}
-				<div className="flex flex-col gap-4 mt-6">
+				<div className="flex flex-col gap-4 mt-6 shrink-0">
 					<div className="border-t border-zinc-200/80 pt-4 flex flex-col gap-3">
 						<div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
 							<div className="w-9 h-9 bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 shadow-inner shrink-0">
