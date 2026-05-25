@@ -29,3 +29,19 @@ export const testTypeEndpoints = {
 	UPDATE_TEST_TYPE_API: (id: string | number) => BASE_URL + `/test-types/${id}`,
 	DELETE_TEST_TYPE_API: (id: string | number) => BASE_URL + `/test-types/${id}`,
 };
+
+// Test Category Endpoints
+export const testCategoryEndpoints = {
+	GET_TEST_CATEGORIES_API: BASE_URL + '/test-categories',
+	CREATE_TEST_CATEGORY_API: BASE_URL + '/test-categories',
+	UPDATE_TEST_CATEGORY_API: (id: string | number) => BASE_URL + `/test-categories/${id}`,
+	DELETE_TEST_CATEGORY_API: (id: string | number) => BASE_URL + `/test-categories/${id}`,
+};
+
+// Test Protocol Endpoints
+export const testProtocolEndpoints = {
+	GET_TEST_PROTOCOLS_API: BASE_URL + '/test-protocols',
+	CREATE_TEST_PROTOCOL_API: BASE_URL + '/test-protocols',
+	UPDATE_TEST_PROTOCOL_API: (id: string | number) => BASE_URL + `/test-protocols/${id}`,
+	DELETE_TEST_PROTOCOL_API: (id: string | number) => BASE_URL + `/test-protocols/${id}`,
+};
