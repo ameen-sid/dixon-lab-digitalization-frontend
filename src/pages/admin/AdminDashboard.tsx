@@ -2,6 +2,9 @@ import { useState } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import DepartmentManagement from './DepartmentManagement';
 import UserManagement from './UserManagement';
+import TestTypeManagement from './TestTypeManagement';
+import TestCategoryManagement from './TestCategoryManagement';
+import TestProtocolManagement from './TestProtocolManagement';
 import { 
 	Shield, Database, Users, ChevronRight, Plus
 } from 'lucide-react';
@@ -215,94 +218,13 @@ export default function AdminDashboard() {
 				return <UserManagement />;
 
 			case 'test-types-management':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Diagnostic Stress Mappings</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> New Test Type
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'Thermal Cycling Fatigue', code: 'TC-FAT', duration: '48 Hours', standard: 'IEC 60068-2-14' },
-								{ name: 'High-G Shock Mechanical Run', code: 'MECH-SHK', duration: '4 Hours', standard: 'MIL-STD-810H' },
-								{ name: 'High-Voltage Insulation Sweep', code: 'ELEC-INS', duration: '30 Minutes', standard: 'IS 13252' }
-							].map((t, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-bold text-zinc-800">{t.name}</span>
-											<span className="text-[9px] bg-[#11236a]/5 border border-[#11236a]/15 text-[#11236a] font-bold px-1.5 py-0.2 rounded">{t.code}</span>
-										</div>
-										<span className="text-[10px] text-zinc-400 font-light">Compliance Directive: {t.standard}</span>
-									</div>
-									<span className="text-xs font-bold text-zinc-500">{t.duration}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <TestTypeManagement />;
 
 			case 'test-category-management':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Compliance & Stress Classifications</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Add Category
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'Safety & Shock Testing', code: 'SAFE-NABL', count: '14 Procedures' },
-								{ name: 'Environmental Heat Stress', code: 'ENV-STRESS', count: '28 Procedures' },
-								{ name: 'Electromagnetic Calibration', code: 'EMI-CAL', count: '8 Procedures' }
-							].map((cat, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-bold text-zinc-800">{cat.name}</span>
-											<span className="text-[9px] bg-zinc-100 border border-zinc-200 text-zinc-500 font-bold px-1.5 py-0.2 rounded">{cat.code}</span>
-										</div>
-										<span className="text-[10px] text-zinc-400 font-light">Calibration Standard Class A</span>
-									</div>
-									<span className="text-xs font-bold text-zinc-500">{cat.count}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <TestCategoryManagement />;
 
 			case 'test-protocols-management':
-				return (
-					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm">
-						<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
-							<h3 className="text-sm font-bold text-zinc-800">Standard Calibration Protocols</h3>
-							<button className="bg-[#11236a] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none">
-								<Plus className="w-3.5 h-3.5" /> Create Protocol
-							</button>
-						</div>
-						<div className="mt-5 space-y-4">
-							{[
-								{ name: 'Dixon MIL-STD reliability sweep', code: 'DX-MIL-102', revision: 'Rev 4.2', author: 'Dr. Anita Roy' },
-								{ name: 'SMT Thermocouple stress plan', code: 'DX-THERM-88', revision: 'Rev 1.0', author: 'Aditya Gupta' },
-								{ name: 'Consumer Safe-Adjudicate guidelines', code: 'DX-SAFE-09', revision: 'Rev 3.5', author: 'Sunita Sharma' }
-							].map((p, i) => (
-								<div key={i} className="flex items-center justify-between border-b border-zinc-50 pb-3.5 last:border-0 last:pb-0">
-									<div>
-										<div className="flex items-center gap-2">
-											<span className="text-xs font-bold text-zinc-800">{p.name}</span>
-											<span className="text-[9px] bg-[#11236a]/5 border border-[#11236a]/15 text-[#11236a] font-bold px-1.5 py-0.2 rounded">{p.code}</span>
-										</div>
-										<span className="text-[10px] text-zinc-400 font-light">Drafted by: {p.author}</span>
-									</div>
-									<span className="text-xs font-bold text-[#11236a]">{p.revision}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				);
+				return <TestProtocolManagement />;
 
 			case 'product-part-names':
 				return (
