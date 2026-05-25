@@ -45,3 +45,27 @@ export const testProtocolEndpoints = {
 	UPDATE_TEST_PROTOCOL_API: (id: string | number) => BASE_URL + `/test-protocols/${id}`,
 	DELETE_TEST_PROTOCOL_API: (id: string | number) => BASE_URL + `/test-protocols/${id}`,
 };
+
+// Product Part Endpoints
+export const productPartEndpoints = {
+	GET_PRODUCT_PARTS_API: BASE_URL + '/product-parts',
+	CREATE_PRODUCT_PART_API: BASE_URL + '/product-parts',
+	UPDATE_PRODUCT_PART_API: (id: string | number) => BASE_URL + `/product-parts/${id}`,
+	DELETE_PRODUCT_PART_API: (id: string | number) => BASE_URL + `/product-parts/${id}`,
+};
+
+// Supplier Customer Endpoints
+export const supplierCustomerEndpoints = {
+	GET_SUPPLIER_CUSTOMERS_API: BASE_URL + '/supplier-customers',
+	CREATE_SUPPLIER_CUSTOMER_API: BASE_URL + '/supplier-customers',
+	UPDATE_SUPPLIER_CUSTOMER_API: (id: string | number) => BASE_URL + `/supplier-customers/${id}`,
+	DELETE_SUPPLIER_CUSTOMER_API: (id: string | number) => BASE_URL + `/supplier-customers/${id}`,
+};
+
+// Testing Equipment Endpoints
+export const testingEquipmentEndpoints = {
+	GET_TESTING_EQUIPMENTS_API: BASE_URL + '/testing-equipments',
+	CREATE_TESTING_EQUIPMENT_API: BASE_URL + '/testing-equipments',
+	UPDATE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
+	DELETE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
+};
