@@ -234,7 +234,7 @@ export default function TestingEquipmentManagement() {
 					}}
 					className="w-full lg:w-auto bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#0c1a52] transition-all border-none outline-none shrink-0"
 				>
-					<Plus className="w-4 h-4" /> Register Chamber / Asset
+					<Plus className="w-4 h-4" /> Register Equipment
 				</button>
 			</div>
 
@@ -339,14 +339,14 @@ export default function TestingEquipmentManagement() {
 							<XCircle className="w-4 h-4" />
 						</button>
 						<h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-							<Cpu className="w-5 h-5 text-[#11236a]" /> Register Testing Asset
+							<Cpu className="w-5 h-5 text-[#11236a]" /> Register Testing Equipment
 						</h3>
 						<form
 							onSubmit={handleAdd}
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Asset Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Equipment Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
