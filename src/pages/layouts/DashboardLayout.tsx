@@ -103,52 +103,41 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 							</>
 						) : (
 							<>
-								<div className="flex flex-col gap-1">
-									{!isCollapsed && <div className="px-3 mb-2 text-[9px] text-zinc-400 font-bold uppercase tracking-widest">Navigation</div>}
-									<a 
-										href="#dashboard" 
-										title="Dashboard"
-										className={`flex items-center gap-3 rounded-xl bg-zinc-100 text-zinc-800 text-xs font-semibold transition-all ${
-											isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'
-										}`}
-									>
-										<svg className="w-4 h-4 text-zinc-800 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-											<rect x="3" y="3" width="7" height="9" rx="1" />
-											<rect x="14" y="3" width="7" height="5" rx="1" />
-											<rect x="14" y="12" width="7" height="9" rx="1" />
-											<rect x="3" y="16" width="7" height="5" rx="1" />
-										</svg>
-										{!isCollapsed && <span>Dashboard</span>}
-									</a>
-									<a 
-										href="#cms" 
-										title="CMS"
-										className={`flex items-center gap-3 rounded-xl hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800 text-xs font-semibold transition-all ${
-											isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'
-										}`}
-									>
-										<svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-											<line x1="4" y1="22" x2="4" y2="15" />
-										</svg>
-										{!isCollapsed && <span>CMS</span>}
-									</a>
-									<a 
-										href="#forms" 
-										title="Forms"
-										className={`flex items-center gap-3 rounded-xl hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800 text-xs font-semibold transition-all ${
-											isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'
-										}`}
-									>
-										<svg className="w-4 h-4 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-											<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-											<polyline points="14 2 14 8 20 8" />
-											<line x1="16" y1="13" x2="8" y2="13" />
-											<line x1="16" y1="17" x2="8" y2="17" />
-										</svg>
-										{!isCollapsed && <span>Forms</span>}
-									</a>
-								</div>
+								{[
+									{
+										category: 'Requester Hub',
+										items: [
+											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
+											{ id: 'my-requests', label: 'My Requests', icon: FileText },
+											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
+										]
+									}
+								].map((cat, groupIdx) => (
+									<div key={groupIdx} className="flex flex-col gap-1">
+										{!isCollapsed && (
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-none">
+												{cat.category}
+											</div>
+										)}
+										{cat.items.map((item) => {
+											const Icon = item.icon;
+											const isActive = activeTab === item.id || 
+												(item.id === 'my-requests' && (activeTab === 'new-request' || activeTab === 'view-request-details')) ||
+												(item.id === 'capa-management' && (activeTab === 'new-capa' || activeTab === 'view-capa-details'));
+											return (
+												<button
+													key={item.id}
+													onClick={() => onTabChange?.(item.id)}
+													title={item.label}
+													className={`flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-semibold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800'}`}
+												>
+													<Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'}`} />
+													{!isCollapsed && <span className="truncate">{item.label}</span>}
+												</button>
+											);
+										})}
+									</div>
+								))}
 							</>
 						)}
 					</nav>
