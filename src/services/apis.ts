@@ -69,3 +69,11 @@ export const testingEquipmentEndpoints = {
 	UPDATE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
 	DELETE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
 };
+
+// Test Request Endpoints
+export const testRequestEndpoints = {
+	GET_TEST_REQUESTS_API: BASE_URL + '/test-requests',
+	CREATE_TEST_REQUEST_API: BASE_URL + '/test-requests',
+	GET_TEST_REQUEST_DETAILS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
+	UPDATE_TEST_REQUEST_STATUS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
+};
