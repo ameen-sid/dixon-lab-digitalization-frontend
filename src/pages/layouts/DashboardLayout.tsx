@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, title, activeTab, onTabChange }: DashboardLayoutProps) {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	
 	const userStr = localStorage.getItem('user');
@@ -22,6 +23,28 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		const action = logout();
 		await action();
 		navigate('/');
+	};
+
+	const path = location.pathname;
+	let derivedActiveTab = activeTab;
+	if (user.role.toLowerCase() === 'requester') {
+		if (path.includes('/requester/my-requests') || path.includes('/requester/requests/new') || path.includes('/requester/requests/track')) {
+			derivedActiveTab = 'my-requests';
+		} else if (path.includes('/requester/capa') || path.includes('/requester/capa/new') || path.includes('/requester/capa/details')) {
+			derivedActiveTab = 'capa-management';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
+	}
+
+	const handleTabClick = (itemId: string) => {
+		if (user.role.toLowerCase() === 'requester') {
+			if (itemId === 'dashboard') navigate('/requester/dashboard');
+			else if (itemId === 'my-requests') navigate('/requester/my-requests');
+			else if (itemId === 'capa-management') navigate('/requester/capa');
+		} else {
+			onTabChange?.(itemId);
+		}
 	};
 
 	return (
@@ -85,11 +108,11 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										)}
 										{cat.items.map((item) => {
 											const Icon = item.icon;
-											const isActive = activeTab === item.id;
+											const isActive = derivedActiveTab === item.id;
 											return (
 												<button
 													key={item.id}
-													onClick={() => onTabChange?.(item.id)}
+													onClick={() => handleTabClick(item.id)}
 													title={item.label}
 													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
 												>
@@ -121,13 +144,13 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										)}
 										{cat.items.map((item) => {
 											const Icon = item.icon;
-											const isActive = activeTab === item.id || 
-												(item.id === 'my-requests' && (activeTab === 'new-request' || activeTab === 'view-request-details')) ||
-												(item.id === 'capa-management' && (activeTab === 'new-capa' || activeTab === 'view-capa-details'));
+											const isActive = derivedActiveTab === item.id || 
+												(item.id === 'my-requests' && (derivedActiveTab === 'new-request' || derivedActiveTab === 'view-request-details')) ||
+												(item.id === 'capa-management' && (derivedActiveTab === 'new-capa' || derivedActiveTab === 'view-capa-details'));
 											return (
 												<button
 													key={item.id}
-													onClick={() => onTabChange?.(item.id)}
+													onClick={() => handleTabClick(item.id)}
 													title={item.label}
 													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
 												>
