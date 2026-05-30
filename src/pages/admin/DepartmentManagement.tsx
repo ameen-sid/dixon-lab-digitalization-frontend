@@ -169,22 +169,22 @@ export default function DepartmentManagement() {
 				</div>
 			)}
 
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Departments</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Total Departments</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-650" />
 						) : (
 							departments.length
 						)}
 					</h3>
 				</div>
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Active Staff Assigned</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Active Staff Assigned</p>
 					<h3 className="text-2xl font-bold text-[#11236a] mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-650" />
 						) : (
 							departments.reduce(
 								(acc, curr) => acc + curr.count,
@@ -194,15 +194,11 @@ export default function DepartmentManagement() {
 						Members
 					</h3>
 				</div>
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Certifications</p>
-					<h3 className="text-2xl font-bold text-emerald-600 mt-1">NABL Certified</h3>
-				</div>
 			</div>
 
 			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
 				<div className="relative w-full sm:w-80">
-					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
 						<Search className="w-4 h-4" />
 					</span>
 					<input
@@ -213,7 +209,7 @@ export default function DepartmentManagement() {
 							setDeptSearch(e.target.value);
 							setCurrentPage(1);
 						}}
-						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
+						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-500 outline-none focus:border-[#11236a] transition-all font-light"
 					/>
 				</div>
 				<div className="w-full sm:w-auto flex flex-row gap-3">
@@ -233,13 +229,13 @@ export default function DepartmentManagement() {
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
 						<Loader2 className="w-8 h-8 text-[#11236a] animate-spin" />
-						<p className="text-xs text-zinc-450 font-light">Loading departments registry from Dixon DB...</p>
+						<p className="text-xs text-zinc-600 font-light">Loading departments registry from Dixon DB...</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">
 						<table className="w-full text-left border-collapse">
 							<thead>
-								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
+								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Department Name</th>
 									<th className="py-4 px-6">Staff Count</th>
 									<th className="py-4 px-6 text-right">Actions</th>
@@ -250,7 +246,7 @@ export default function DepartmentManagement() {
 									<tr>
 										<td
 											colSpan={3}
-											className="py-8 text-center text-zinc-400 font-light"
+											className="py-8 text-center text-zinc-600 font-light"
 										> No registered departments found in full-stack registry.</td>
 									</tr>
 								) : (
@@ -262,8 +258,8 @@ export default function DepartmentManagement() {
 											<td className="py-4 px-6">
 												<p className="font-bold text-[#11236a] text-sm">{dept.name}</p>
 											</td>
-											<td className="py-4 px-6 text-zinc-500 font-mono">
-												<span className="bg-zinc-100 px-2 py-0.5 rounded text-[10px]">{dept.count} Members</span>
+											<td className="py-4 px-6 text-zinc-700">
+												<span className="bg-zinc-100 px-2 py-0.5 rounded text-[10px] font-bold">{dept.count} Members</span>
 											</td>
 											<td className="py-4 px-6 text-right space-x-2">
 												<button
@@ -314,7 +310,7 @@ export default function DepartmentManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
 						<button
 							onClick={() => setShowAddDeptModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -326,7 +322,7 @@ export default function DepartmentManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -352,7 +348,7 @@ export default function DepartmentManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
 						<button
 							onClick={() => setShowEditDeptModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -364,7 +360,7 @@ export default function DepartmentManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Department Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -392,7 +388,7 @@ export default function DepartmentManagement() {
 								setShowDeleteDeptModal(false);
 								setDeptToDelete(null);
 							}}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -404,7 +400,7 @@ export default function DepartmentManagement() {
 						</div>
 
 						<div className="mt-4 space-y-4">
-							<p className="text-xs text-zinc-500 font-light leading-relaxed">Are you sure you want to permanently delete the department{" "}
+							<p className="text-xs text-zinc-700 font-medium leading-relaxed">Are you sure you want to permanently delete the department{" "}
 								<strong className="font-bold text-zinc-800">"{deptToDelete.name}"</strong>
 								?
 							</p>
@@ -416,7 +412,7 @@ export default function DepartmentManagement() {
 										setShowDeleteDeptModal(false);
 										setDeptToDelete(null);
 									}}
-									className="px-4 py-2 border border-zinc-200 text-zinc-500 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
 								>
 									Cancel
 								</button>

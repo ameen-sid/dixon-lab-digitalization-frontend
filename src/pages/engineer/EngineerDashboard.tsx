@@ -10,7 +10,7 @@ export default function EngineerDashboard() {
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">My Assigned Tests</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">My Assigned Tests</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">6 Active</h3>
 						<p className="text-amber-600 text-xs mt-2 font-medium">2 pending calibration</p>
 					</div>
@@ -20,7 +20,7 @@ export default function EngineerDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Sequences Run</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Sequences Run</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">94 Run</h3>
 						<p className="text-emerald-600 text-xs mt-2 font-medium">99.2% diagnostics pass</p>
 					</div>
@@ -30,7 +30,7 @@ export default function EngineerDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50 sm:col-span-2 lg:col-span-1">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Calibration Sync</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Calibration Sync</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">Synchronized</h3>
 						<p className="text-zinc-500 text-xs mt-2 font-medium">Last checked 2 hours ago</p>
 					</div>

@@ -9,7 +9,7 @@ import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import { 
-	Shield, Database, Users, ChevronRight, Plus, RotateCw, Activity, Wrench
+	Shield, Database, Users, ChevronRight, RotateCw, Activity
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -217,12 +217,12 @@ export default function AdminDashboard() {
 									</div>
 									<div>
 										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">4</h4>
-										<p className="text-xs text-zinc-400 font-medium">Active Profiles</p>
+										<p className="text-xs text-zinc-500 font-medium">Active Profiles</p>
 									</div>
 								</div>
 								<div 
 									onClick={() => setActiveTab('users-management')} 
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer"
+									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
 									<ChevronRight className="w-3.5 h-3.5" />
@@ -237,12 +237,12 @@ export default function AdminDashboard() {
 									</div>
 									<div>
 										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">21 Max</h4>
-										<p className="text-xs text-zinc-400 font-medium">Database Pools</p>
+										<p className="text-xs text-zinc-500 font-medium">Database Pools</p>
 									</div>
 								</div>
 								<div 
 									onClick={() => setActiveTab('platform-availability')}
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer"
+									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
 									<ChevronRight className="w-3.5 h-3.5" />
@@ -257,12 +257,12 @@ export default function AdminDashboard() {
 									</div>
 									<div>
 										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">4 Hubs</h4>
-										<p className="text-xs text-zinc-400 font-medium">Departments</p>
+										<p className="text-xs text-zinc-500 font-medium">Departments</p>
 									</div>
 								</div>
 								<div 
 									onClick={() => setActiveTab('departments-management')}
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer"
+									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
 									<ChevronRight className="w-3.5 h-3.5" />
@@ -323,7 +323,7 @@ export default function AdminDashboard() {
 										{/* Card Header */}
 										<div className="bg-[#11236a] flex items-center justify-between px-3 py-2 shrink-0">
 											<span className="text-white text-xs font-extrabold tracking-wide">S{pNum}</span>
-											<span className="text-zinc-400 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
+											<span className="text-zinc-500 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
 										</div>
 										{/* Card Body Grid */}
 										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
@@ -416,16 +416,16 @@ export default function AdminDashboard() {
 										<div className="p-4 flex-grow flex flex-col justify-between bg-[#f8fafc]/30">
 											<div>
 												<h4 className="text-xs font-bold text-zinc-950 truncate leading-tight">{eq.name}</h4>
-												<p className="text-[10px] text-zinc-400 font-medium mt-0.5">{eq.class}</p>
+												<p className="text-[10px] text-zinc-500 font-medium mt-0.5">{eq.class}</p>
 
 												{/* Metrics Stats Box */}
 												<div className="border border-zinc-150 bg-zinc-50/50 rounded-xl p-3 my-3.5 flex flex-col gap-2">
 													<div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
 														<span>Telemetry Metric</span>
-														<span className="text-zinc-700 font-mono font-extrabold">{eq.metric}</span>
+														<span className="text-zinc-700  font-extrabold">{eq.metric}</span>
 													</div>
 													<div className="space-y-1">
-														<div className="flex justify-between text-[10px] text-zinc-400 font-bold uppercase">
+														<div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase">
 															<span>Chamber Load</span>
 															<span className={eq.status === 'MAINTENANCE' ? 'text-rose-600 font-extrabold' : 'text-zinc-850 font-extrabold'}>
 																{eq.status === 'MAINTENANCE' ? 'OFFLINE' : `${eq.capacity}%`}
@@ -449,7 +449,7 @@ export default function AdminDashboard() {
 
 											{/* Telemetry Points (Slots Grid) */}
 											<div>
-												<p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1.5">Telemetry Slots (Click to toggle)</p>
+												<p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-widest mb-1.5">Telemetry Slots (Click to toggle)</p>
 												<div className="grid grid-cols-4 gap-1.5">
 													{eq.slots.map((isSlotAvailable, slotIdx) => {
 														return (
@@ -459,7 +459,7 @@ export default function AdminDashboard() {
 																disabled={eq.status === 'MAINTENANCE'}
 																className={`group p-1.5 rounded-lg border outline-none text-center flex flex-col items-center justify-center transition-all ${
 																	eq.status === 'MAINTENANCE'
-																		? 'bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed'
+																		? 'bg-zinc-100 border-zinc-200 text-zinc-500 cursor-not-allowed'
 																		: isSlotAvailable
 																			? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 hover:border-emerald-250 text-emerald-700 cursor-pointer active:scale-95'
 																			: 'bg-indigo-50/50 hover:bg-indigo-100/50 border-indigo-100 hover:border-indigo-250 text-indigo-700 cursor-pointer active:scale-95'

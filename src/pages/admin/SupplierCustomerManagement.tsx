@@ -139,10 +139,10 @@ export default function SupplierCustomerManagement() {
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Suppliers / Customers</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Total Suppliers / Customers</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
 						) : (
 							records.length
 						)}
@@ -152,7 +152,7 @@ export default function SupplierCustomerManagement() {
 
 			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
 				<div className="relative w-full sm:w-80 shrink-0">
-					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+					<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-650">
 						<Search className="w-4 h-4" />
 					</span>
 					<input
@@ -163,7 +163,7 @@ export default function SupplierCustomerManagement() {
 							setSearchQuery(e.target.value);
 							setCurrentPage(1);
 						}}
-						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
+						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-600 outline-none focus:border-[#11236a] transition-all font-light"
 					/>
 				</div>
 				<button
@@ -181,14 +181,13 @@ export default function SupplierCustomerManagement() {
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
 						<Loader2 className="w-8 h-8 text-[#11236a] animate-spin" />
-						<p className="text-xs text-zinc-450 font-light">Loading supplier and customer registry...</p>
+						<p className="text-xs text-zinc-650 font-light">Loading supplier and customer registry...</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">
 						<table className="w-full text-left border-collapse">
 							<thead>
-								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
-									<th className="py-4 px-6">Supplier / Customer ID</th>
+								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Supplier / Customer Name</th>
 									<th className="py-4 px-6 text-right">Actions</th>
 								</tr>
@@ -197,8 +196,8 @@ export default function SupplierCustomerManagement() {
 								{paginatedRecords.length === 0 ? (
 									<tr>
 										<td
-											colSpan={3}
-											className="py-8 text-center text-zinc-400 font-light"
+											colSpan={2}
+											className="py-8 text-center text-zinc-650 font-light"
 										> No registered suppliers or customers found.</td>
 									</tr>
 								) : (
@@ -207,7 +206,6 @@ export default function SupplierCustomerManagement() {
 											key={item.id}
 											className="hover:bg-zinc-50/50 transition-colors"
 										>
-											<td className="py-4 px-6 font-mono text-zinc-400 text-xs">#{item.id}</td>
 											<td className="py-4 px-6 font-bold text-zinc-800">{item.name}</td>
 											<td className="py-4 px-6 text-right space-x-2 shrink-0">
 												<button
@@ -254,7 +252,7 @@ export default function SupplierCustomerManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowAddModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -266,7 +264,7 @@ export default function SupplierCustomerManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -292,7 +290,7 @@ export default function SupplierCustomerManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowEditModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -304,7 +302,7 @@ export default function SupplierCustomerManagement() {
 							className="mt-4 space-y-4 text-left"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Supplier / Customer Name</label>
 								<input
 									type="text"
 									required
@@ -326,13 +324,13 @@ export default function SupplierCustomerManagement() {
 
 			{showDeleteModal && recordToDelete && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
+					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => {
 								setShowDeleteModal(false);
 								setRecordToDelete(null);
 							}}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -345,7 +343,7 @@ export default function SupplierCustomerManagement() {
 						</div>
 
 						<div className="mt-4 space-y-4">
-							<p className="text-xs text-zinc-500 font-light leading-relaxed">
+							<p className="text-xs text-zinc-700 font-medium leading-relaxed">
 								Are you sure you want to permanently delete the supplier / customer entry for{" "}
 								<strong className="font-bold text-zinc-800">"{recordToDelete.name}"</strong>?
 							</p>
@@ -359,7 +357,7 @@ export default function SupplierCustomerManagement() {
 										setShowDeleteModal(false);
 										setRecordToDelete(null);
 									}}
-									className="px-4 py-2 border border-zinc-200 text-zinc-555 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
 								>
 									Cancel
 								</button>

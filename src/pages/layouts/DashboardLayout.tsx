@@ -26,15 +26,15 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 
 	return (
 		<div className="h-screen w-screen overflow-hidden bg-[#eef2f6] text-zinc-800 flex flex-row relative">
-			<aside className={`h-full bg-white shrink-0 flex flex-col justify-between z-20 shadow-sm border-r border-zinc-200 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-20 p-4' : 'w-72 p-6'}`}>
+			<aside className={`h-full bg-white shrink-0 flex flex-col justify-between z-20 shadow-sm border-r border-zinc-200 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-20 p-4' : 'w-64 p-5'}`}>
 				<div className="flex flex-col gap-6 min-h-0 flex-1">
 					<div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
 						{!isCollapsed && <img src="/logo.png" alt="Dixon Logo" className="h-14 w-75 object-contain" />}
 						<button 
 							onClick={() => setIsCollapsed(!isCollapsed)}
-							className="w-8 h-8 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-455 hover:text-zinc-650 transition-all cursor-pointer border-none outline-none"
+							className="w-8 h-8 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-[#11236a] transition-all cursor-pointer border-none outline-none"
 						>
-							<svg className="w-4 h-4 text-zinc-655" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+							<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
 								<rect x="3" y="3" width="18" height="18" rx="2" />
 								<path d="M9 3v18" />
 							</svg>
@@ -79,7 +79,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 								].map((cat, groupIdx) => (
 									<div key={groupIdx} className="flex flex-col gap-1">
 										{!isCollapsed && (
-											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-none">
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
 												{cat.category}
 											</div>
 										)}
@@ -91,9 +91,9 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 													key={item.id}
 													onClick={() => onTabChange?.(item.id)}
 													title={item.label}
-													className={`flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-semibold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800'}`}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
 												>
-													<Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'}`} />
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
 													{!isCollapsed && <span className="truncate">{item.label}</span>}
 												</button>
 											);
@@ -115,7 +115,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 								].map((cat, groupIdx) => (
 									<div key={groupIdx} className="flex flex-col gap-1">
 										{!isCollapsed && (
-											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-400 font-bold uppercase tracking-widest leading-none">
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
 												{cat.category}
 											</div>
 										)}
@@ -129,9 +129,9 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 													key={item.id}
 													onClick={() => onTabChange?.(item.id)}
 													title={item.label}
-													className={`flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-semibold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'hover:bg-zinc-50 text-zinc-500 hover:text-zinc-800'}`}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
 												>
-													<Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'}`} />
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
 													{!isCollapsed && <span className="truncate">{item.label}</span>}
 												</button>
 											);
@@ -161,7 +161,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 						<button
 							onClick={handleLogout}
 							title="Disconnect Portal"
-							className={`bg-zinc-50 hover:bg-red-50 hover:border-red-200 border border-zinc-200 text-zinc-650 hover:text-red-600 font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 outline-none active:scale-[0.98] cursor-pointer text-xs ${isCollapsed ? 'p-2.5' : 'py-2 px-3 w-full'}`}
+							className={`bg-zinc-50 hover:bg-red-50 hover:border-red-200 border border-zinc-200 text-zinc-700 hover:text-red-600 font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 outline-none active:scale-[0.98] cursor-pointer text-xs ${isCollapsed ? 'p-2.5' : 'py-2 px-3 w-full'}`}
 						>
 							<LogOut className="w-3.5 h-3.5 shrink-0" />
 							{!isCollapsed && <span>Disconnect Portal</span>}

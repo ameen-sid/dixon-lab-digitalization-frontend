@@ -10,7 +10,7 @@ export default function InspectorDashboard() {
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">				
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Awaiting Inspection</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Awaiting Inspection</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">8 Batches</h3>
 						<p className="text-amber-600 text-xs mt-2 font-medium">3 arrival checks priority</p>
 					</div>
@@ -20,7 +20,7 @@ export default function InspectorDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Inspected Batches</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Inspected Batches</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">112</h3>
 						<p className="text-emerald-600 text-xs mt-2 font-medium">98.5% compliance rating</p>
 					</div>
@@ -30,7 +30,7 @@ export default function InspectorDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50 sm:col-span-2 lg:col-span-1">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Pending Adjudications</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Pending Adjudications</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">0 Pending</h3>
 						<p className="text-emerald-600 text-xs mt-2 font-medium">Clear of queue lag</p>
 					</div>

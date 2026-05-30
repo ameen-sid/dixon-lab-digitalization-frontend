@@ -10,7 +10,7 @@ export default function HeadDashboard() {
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">				
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Awaiting Sign-off</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Awaiting Sign-off</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">14 Plans</h3>
 						<p className="text-amber-600 text-xs mt-2 font-medium">Requires immediate action</p>
 					</div>
@@ -20,7 +20,7 @@ export default function HeadDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Reports Certified</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Reports Certified</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">428</h3>
 						<p className="text-emerald-600 text-xs mt-2 font-medium">99.8% compliance rate</p>
 					</div>
@@ -30,7 +30,7 @@ export default function HeadDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50 sm:col-span-2 lg:col-span-1">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Adjudications Resolved</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Adjudications Resolved</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">36 Resolves</h3>
 						<p className="text-zinc-500 text-xs mt-2 font-medium">No backlogs remaining</p>
 					</div>

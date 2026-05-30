@@ -169,10 +169,10 @@ export default function TestingEquipmentManagement() {
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Equipments</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Total Equipments</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-650" />
 						) : (
 							equipments.length
 						)}
@@ -183,7 +183,7 @@ export default function TestingEquipmentManagement() {
 			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
 				<div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
 					<div className="relative w-full sm:w-80 shrink-0">
-						<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+						<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-650">
 							<Search className="w-4 h-4" />
 						</span>
 						<input
@@ -194,7 +194,7 @@ export default function TestingEquipmentManagement() {
 								setSearchQuery(e.target.value);
 								setCurrentPage(1);
 							}}
-							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
+							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-600 outline-none focus:border-[#11236a] transition-all font-light"
 						/>
 					</div>
 					<div className="w-full sm:w-56">
@@ -242,14 +242,13 @@ export default function TestingEquipmentManagement() {
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
 						<Loader2 className="w-8 h-8 text-[#11236a] animate-spin" />
-						<p className="text-xs text-zinc-450 font-light">Loading testing equipments registry...</p>
+						<p className="text-xs text-zinc-650 font-light">Loading testing equipments registry...</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">
 						<table className="w-full text-left border-collapse">
 							<thead>
-								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
-									<th className="py-4 px-6">Equipment ID</th>
+								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Equipment Name</th>
 									<th className="py-4 px-6">Calibration Due Date</th>
 									<th className="py-4 px-6">Uptime Status</th>
@@ -260,8 +259,8 @@ export default function TestingEquipmentManagement() {
 								{paginatedRecords.length === 0 ? (
 									<tr>
 										<td
-											colSpan={5}
-											className="py-8 text-center text-zinc-400 font-light"
+											colSpan={4}
+											className="py-8 text-center text-zinc-650 font-light"
 										> No registered chambers/assets found.</td>
 									</tr>
 								) : (
@@ -270,11 +269,10 @@ export default function TestingEquipmentManagement() {
 											key={item.id}
 											className="hover:bg-zinc-50/50 transition-colors"
 										>
-											<td className="py-4 px-6 font-mono text-zinc-400 text-xs">#{item.id}</td>
 											<td className="py-4 px-6 font-bold text-zinc-800">{item.name}</td>
 											<td className="py-4 px-6">
-												<div className="flex items-center gap-1.5 font-mono text-zinc-600">
-													<Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+												<div className="flex items-center gap-1.5 text-zinc-800">
+													<Calendar className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
 													<span>
 														{new Date(item.calibrationDueDate).toLocaleDateString(undefined, {
 															year: 'numeric',
@@ -334,7 +332,7 @@ export default function TestingEquipmentManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowAddModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -346,7 +344,7 @@ export default function TestingEquipmentManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Equipment Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Equipment Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -357,7 +355,7 @@ export default function TestingEquipmentManagement() {
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Calibration Due Date <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Calibration Due Date <span className="text-red-500">*</span></label>
 								<input
 									type="date"
 									required
@@ -367,7 +365,7 @@ export default function TestingEquipmentManagement() {
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Initial Status</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Initial Status</label>
 								<CustomSelect
 									value={status}
 									onChange={setStatus}
@@ -394,7 +392,7 @@ export default function TestingEquipmentManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowEditModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -406,7 +404,7 @@ export default function TestingEquipmentManagement() {
 							className="mt-4 space-y-4 text-left"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Equipment Name</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Equipment Name</label>
 								<input
 									type="text"
 									required
@@ -416,7 +414,7 @@ export default function TestingEquipmentManagement() {
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Calibration Due Date</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Calibration Due Date</label>
 								<input
 									type="date"
 									required
@@ -426,7 +424,7 @@ export default function TestingEquipmentManagement() {
 								/>
 							</div>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide mb-1">Uptime Status</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide mb-1">Uptime Status</label>
 								<CustomSelect
 									value={status}
 									onChange={setStatus}
@@ -450,13 +448,13 @@ export default function TestingEquipmentManagement() {
 
 			{showDeleteModal && recordToDelete && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden">
+					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => {
 								setShowDeleteModal(false);
 								setRecordToDelete(null);
 							}}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-650 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -469,7 +467,7 @@ export default function TestingEquipmentManagement() {
 						</div>
 
 						<div className="mt-4 space-y-4">
-							<p className="text-xs text-zinc-500 font-light leading-relaxed">
+							<p className="text-xs text-zinc-700 font-medium leading-relaxed">
 								Are you sure you want to permanently delete the physical chamber registry for{" "}
 								<strong className="font-bold text-zinc-800">"{recordToDelete.name}"</strong>?
 							</p>
@@ -483,7 +481,7 @@ export default function TestingEquipmentManagement() {
 										setShowDeleteModal(false);
 										setRecordToDelete(null);
 									}}
-									className="px-4 py-2 border border-zinc-200 text-zinc-555 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
 								>
 									Cancel
 								</button>

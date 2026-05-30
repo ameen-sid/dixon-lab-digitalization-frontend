@@ -287,20 +287,20 @@ export default function UserManagement() {
 
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Total Profiles</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Total Profiles</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
 						) : (
 							users.length
 						)}
 					</h3>
 				</div>
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Inspector Roles</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Inspector Roles</p>
 					<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
 						) : (
 							users.filter((u) => u.role === "Inspector").length
 						)}{" "}
@@ -308,10 +308,10 @@ export default function UserManagement() {
 					</h3>
 				</div>
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm">
-					<p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Requester Roles</p>
+					<p className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider">Requester Roles</p>
 					<h3 className="text-2xl font-bold text-[#11236a] mt-1">
 						{isLoading ? (
-							<Loader2 className="w-5 h-5 animate-spin text-zinc-400" />
+							<Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
 						) : (
 							users.filter((u) => u.role === "Requester").length
 						)}{" "}
@@ -323,7 +323,7 @@ export default function UserManagement() {
 			<div className="bg-white border border-zinc-200/50 rounded-[20px] p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
 				<div className="w-full md:w-auto flex flex-col sm:flex-row gap-4 items-center flex-1">
 					<div className="relative w-full sm:w-64">
-						<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+						<span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-600">
 							<Search className="w-4 h-4" />
 						</span>
 						<input
@@ -334,12 +334,12 @@ export default function UserManagement() {
 								setUserSearch(e.target.value);
 								setCurrentPage(1);
 							}}
-							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#11236a] transition-all font-light"
+							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs text-zinc-800 placeholder-zinc-600 outline-none focus:border-[#11236a] transition-all font-light"
 						/>
 					</div>
 
 					<div className="flex items-center gap-2 w-full sm:w-auto">
-						<span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider whitespace-nowrap">Role:</span>
+						<span className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider whitespace-nowrap">Role:</span>
 						<CustomSelect
 							value={selectedRoleFilter}
 							onChange={(val) => {
@@ -361,7 +361,7 @@ export default function UserManagement() {
 					</div>
 
 					<div className="flex items-center gap-2 w-full sm:w-auto">
-						<span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider whitespace-nowrap">Dept:</span>
+						<span className="text-[10px] text-zinc-700 font-bold uppercase tracking-wider whitespace-nowrap">Dept:</span>
 						<CustomSelect
 							value={selectedDeptFilter}
 							onChange={(val) => {
@@ -406,13 +406,13 @@ export default function UserManagement() {
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
 						<Loader2 className="w-8 h-8 text-[#11236a] animate-spin" />
-						<p className="text-xs text-zinc-450 font-light">Loading full-stack records from Dixon DB...</p>
+						<p className="text-xs text-zinc-600 font-light">Loading full-stack records from Dixon DB...</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto">
 						<table className="w-full text-left border-collapse">
 							<thead>
-								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold text-[10px] uppercase tracking-wider">
+								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Portal Name</th>
 									<th className="py-4 px-6">Username (UID)</th>
 									<th className="py-4 px-6">Role Assignment</th>
@@ -425,7 +425,7 @@ export default function UserManagement() {
 									<tr>
 										<td
 											colSpan={5}
-											className="py-8 text-center text-zinc-400 font-light"
+											className="py-8 text-center text-zinc-600 font-light"
 										> No user credentials found in full-stack registry.</td>
 									</tr>
 								) : (
@@ -435,17 +435,14 @@ export default function UserManagement() {
 											className="hover:bg-zinc-50/50 transition-colors"
 										>
 											<td className="py-4 px-6">
-												<div className="flex items-center gap-3">
-													<div className="w-8 h-8 bg-zinc-100 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-550 font-bold shrink-0">{user.name.charAt(0)}</div>
-													<p className="font-bold text-zinc-900">{user.name}</p>
-												</div>
+												<p className="font-bold text-zinc-900">{user.name}</p>
 											</td>
-											<td className="py-4 px-6 text-zinc-500 font-mono">{user.username}</td>
+											<td className="py-4 px-6 text-zinc-700 font-medium">{user.username}</td>
 											<td className="py-4 px-6">
 												<span className="bg-[#11236a]/10 text-[#11236a] text-[9px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wide">{user.role}</span>
 											</td>
-											<td className="py-4 px-6 font-mono text-zinc-650">
-												<span className="bg-zinc-100/80 border border-zinc-200/50 px-2 py-0.5 rounded text-[10px]">{user.dept}</span>
+											<td className="py-4 px-6 text-zinc-700 font-medium">
+												<span className="bg-zinc-100/80 border border-zinc-200/50 px-2 py-0.5 rounded text-[10px] font-bold">{user.dept}</span>
 											</td>
 											<td className="py-4 px-6 text-right space-x-2">
 												<button
@@ -492,7 +489,7 @@ export default function UserManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowAddUserModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -504,7 +501,7 @@ export default function UserManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Full Name <span className="text-red-500">*</span></label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Full Name <span className="text-red-500">*</span></label>
 								<input
 									type="text"
 									required
@@ -516,7 +513,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Username (UID) <span className="text-red-500">*</span></label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Username (UID) <span className="text-red-500">*</span></label>
 									<input
 										type="text"
 										required
@@ -527,7 +524,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Password (Secret) <span className="text-red-500">*</span></label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Password (Secret) <span className="text-red-500">*</span></label>
 									<input
 										type="password"
 										required
@@ -540,7 +537,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Role Assignment <span className="text-red-500">*</span></label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Role Assignment <span className="text-red-500">*</span></label>
 									<CustomSelect
 										value={usrRole}
 										onChange={setUsrRole}
@@ -556,7 +553,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name {!["Admin", "CEO"].includes(mapUIToBackendRole(usrRole)) && <span className="text-red-500">*</span>}</label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Department Name {!["Admin", "CEO"].includes(mapUIToBackendRole(usrRole)) && <span className="text-red-500">*</span>}</label>
 									<CustomSelect
 										value={usrDeptId}
 										onChange={setUsrDeptId}
@@ -590,7 +587,7 @@ export default function UserManagement() {
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl p-6 relative">
 						<button
 							onClick={() => setShowEditUserModal(false)}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -602,7 +599,7 @@ export default function UserManagement() {
 							className="mt-4 space-y-4"
 						>
 							<div>
-								<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Full Name</label>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Full Name</label>
 								<input
 									type="text"
 									required
@@ -613,7 +610,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Username (UID)</label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Username (UID)</label>
 									<input
 										type="text"
 										required
@@ -623,7 +620,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">New Password (Optional)</label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">New Password (Optional)</label>
 									<input
 										type="password"
 										placeholder="Leave empty to retain same"
@@ -635,7 +632,7 @@ export default function UserManagement() {
 							</div>
 							<div className="grid grid-cols-2 gap-4">
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Role Assignment</label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Role Assignment</label>
 									<CustomSelect
 										value={usrRole}
 										onChange={setUsrRole}
@@ -651,7 +648,7 @@ export default function UserManagement() {
 									/>
 								</div>
 								<div>
-									<label className="block text-[10px] text-zinc-400 font-bold uppercase tracking-wide">Department Name</label>
+									<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Department Name</label>
 									<CustomSelect
 										value={usrDeptId}
 										onChange={setUsrDeptId}
@@ -685,7 +682,7 @@ export default function UserManagement() {
 								setShowDeleteUserModal(false);
 								setUserToDelete(null);
 							}}
-							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-455 hover:text-zinc-700 transition-all cursor-pointer outline-none"
+							className="absolute top-4 right-4 w-7 h-7 bg-zinc-50 border border-zinc-200 rounded-full flex items-center justify-center text-zinc-600 hover:text-red-600 transition-all cursor-pointer outline-none"
 						>
 							<XCircle className="w-4 h-4" />
 						</button>
@@ -698,7 +695,7 @@ export default function UserManagement() {
 						</div>
 
 						<div className="mt-4 space-y-4">
-							<p className="text-xs text-zinc-500 font-light leading-relaxed">
+							<p className="text-xs text-zinc-700 font-medium leading-relaxed">
 								Are you sure you want to permanently delete the user profile for{" "}
 								<strong className="font-bold text-zinc-800">"{userToDelete.name}"</strong> ?
 							</p>
@@ -710,7 +707,7 @@ export default function UserManagement() {
 										setShowDeleteUserModal(false);
 										setUserToDelete(null);
 									}}
-									className="px-4 py-2 border border-zinc-200 text-zinc-550 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-700 rounded-xl text-xs font-bold bg-white hover:bg-zinc-50 transition-all cursor-pointer outline-none"
 								>
 									Cancel
 								</button>

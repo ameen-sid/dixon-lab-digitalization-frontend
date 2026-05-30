@@ -10,7 +10,7 @@ export default function ManagerDashboard() {
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">				
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Busy Instruments</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Busy Instruments</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">18 / 24</h3>
 						<p className="text-emerald-600 text-xs mt-2 font-medium">75% utilization efficiency</p>
 					</div>
@@ -20,7 +20,7 @@ export default function ManagerDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Supervised Staff</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Supervised Staff</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">12 Duty</h3>
 						<p className="text-zinc-500 text-xs mt-2 font-medium">Engineers and inspectors</p>
 					</div>
@@ -30,7 +30,7 @@ export default function ManagerDashboard() {
 				</div>
 				<div className="bg-white border border-zinc-200 rounded-xl p-6 flex items-center justify-between shadow-md shadow-zinc-100/50 sm:col-span-2 lg:col-span-1">
 					<div>
-						<span className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Calibrations Due</span>
+						<span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Calibrations Due</span>
 						<h3 className="text-3xl font-bold text-zinc-900 mt-1">2 Alerts</h3>
 						<p className="text-amber-600 text-xs mt-2 font-medium">Scheduled for next Tuesday</p>
 					</div>

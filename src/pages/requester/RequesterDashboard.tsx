@@ -286,7 +286,7 @@ export default function RequesterDashboard() {
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">				
 							<div className="bg-white border border-zinc-200/50 rounded-xl p-5 flex items-center justify-between shadow-sm">
 								<div>
-									<span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">My Submissions</span>
+									<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-widest">My Submissions</span>
 									<h3 className="text-2xl font-bold text-zinc-950 mt-1">{requests.length} Requests</h3>
 									<p className="text-zinc-500 text-xs mt-2 font-medium">
 										{requests.filter(r => r.status === 'COMPLETED').length} completed, {requests.filter(r => r.status === 'UNDER_TEST').length} under test
@@ -298,7 +298,7 @@ export default function RequesterDashboard() {
 							</div>
 							<div className="bg-white border border-zinc-200/50 rounded-xl p-5 flex items-center justify-between shadow-sm">
 								<div>
-									<span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">Certified Reports</span>
+									<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-widest">Certified Reports</span>
 									<h3 className="text-2xl font-bold text-zinc-950 mt-1">
 										{requests.filter(r => r.status === 'COMPLETED').length} Reports
 									</h3>
@@ -313,7 +313,7 @@ export default function RequesterDashboard() {
 							</div>
 							<div className="bg-white border border-zinc-200/50 rounded-xl p-5 flex items-center justify-between shadow-sm sm:col-span-2 lg:col-span-1">
 								<div>
-									<span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">CAPA Action Plans</span>
+									<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-widest">CAPA Action Plans</span>
 									<h3 className="text-2xl font-bold text-zinc-950 mt-1">{capas.length} Registered</h3>
 									<p className="text-amber-600 text-xs mt-2 font-bold">
 										{capas.filter(c => c.status === 'OPEN').length} active investigations
@@ -350,7 +350,7 @@ export default function RequesterDashboard() {
 										<FileText className="w-5 h-5 shrink-0 text-zinc-500" />
 										<div className="text-left">
 											<p className="text-xs font-bold leading-none text-zinc-950">My Submissions</p>
-											<span className="text-[10px] text-zinc-400 font-medium mt-1 block">View test status logs</span>
+											<span className="text-[10px] text-zinc-500 font-medium mt-1 block">View test status logs</span>
 										</div>
 									</div>
 									<ArrowRight className="w-4 h-4 shrink-0 opacity-60 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
@@ -386,21 +386,21 @@ export default function RequesterDashboard() {
 								<table className="w-full text-left border-collapse min-w-[500px]">
 									<thead>
 										<tr className="border-b border-zinc-150">
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">ID</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Product Name</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Test Category</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Urgency</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Status</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase text-right">Action</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">ID</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Product Name</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Test Category</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Urgency</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Status</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase text-right">Action</th>
 										</tr>
 									</thead>
 									<tbody>
 										{requests.slice(0, 3).map((req) => (
 											<tr key={req.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-all group last:border-b-0">
-												<td className="py-3 text-xs font-mono font-bold text-zinc-800">{req.id}</td>
+												<td className="py-3 text-xs  font-bold text-zinc-800">{req.id}</td>
 												<td className="py-3">
 													<p className="text-xs font-bold text-zinc-950 leading-tight">{req.productName}</p>
-													<span className="text-[9px] text-zinc-400 font-semibold uppercase">{req.supplier}</span>
+													<span className="text-[9px] text-zinc-500 font-semibold uppercase">{req.supplier}</span>
 												</td>
 												<td className="py-3 text-xs text-zinc-500 font-medium">{req.category}</td>
 												<td className="py-3">
@@ -449,7 +449,7 @@ export default function RequesterDashboard() {
 						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
 							<div className="flex flex-col sm:flex-row gap-3 flex-1">
 								<div className="relative flex-1">
-									<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+									<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
 									<input 
 										type="text" 
 										placeholder="Search product, ID, or supplier..."
@@ -460,7 +460,7 @@ export default function RequesterDashboard() {
 									{searchQuery && (
 										<button 
 											onClick={() => setSearchQuery('')}
-											className="absolute right-3 top-2.5 text-zinc-400 hover:text-zinc-700 bg-transparent border-none cursor-pointer"
+											className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-700 bg-transparent border-none cursor-pointer"
 										>
 											<X className="w-4 h-4" />
 										</button>
@@ -517,29 +517,29 @@ export default function RequesterDashboard() {
 								<div className="text-center py-12">
 									<AlertTriangle className="w-10 h-10 text-zinc-300 mx-auto mb-3" />
 									<h4 className="text-sm font-bold text-zinc-700">No testing requests found</h4>
-									<p className="text-xs text-zinc-400 font-light mt-1">Refine your active filters or clear searches.</p>
+									<p className="text-xs text-zinc-500 font-light mt-1">Refine your active filters or clear searches.</p>
 								</div>
 							) : (
 								<div className="overflow-x-auto">
 									<table className="w-full text-left border-collapse min-w-[700px]">
 										<thead>
 											<tr className="border-b border-zinc-150">
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">ID</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Product Details</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Supplier / Customer</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Urgency</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Status</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Required Date</th>
-												<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase text-right">Action</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">ID</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Product Details</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Supplier / Customer</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Urgency</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Status</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Required Date</th>
+												<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase text-right">Action</th>
 											</tr>
 										</thead>
 										<tbody>
 											{filteredRequests.map((req) => (
 												<tr key={req.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-all group last:border-b-0">
-													<td className="py-3.5 text-xs font-mono font-bold text-zinc-800">{req.id}</td>
+													<td className="py-3.5 text-xs  font-bold text-zinc-800">{req.id}</td>
 													<td className="py-3.5">
 														<p className="text-xs font-bold text-zinc-950 leading-tight">{req.productName}</p>
-														<span className="text-[9px] text-zinc-400 font-medium">Part: {req.partNo || 'Optional / N/A'}</span>
+														<span className="text-[9px] text-zinc-500 font-medium">Part: {req.partNo || 'Optional / N/A'}</span>
 													</td>
 													<td className="py-3.5 text-xs text-zinc-650 font-medium">{req.supplier}</td>
 													<td className="py-3.5">
@@ -561,7 +561,7 @@ export default function RequesterDashboard() {
 															{req.status.replace('_', ' ')}
 														</span>
 													</td>
-													<td className="py-3.5 text-xs text-zinc-500 font-mono">{req.requiredDate}</td>
+													<td className="py-3.5 text-xs text-zinc-500 ">{req.requiredDate}</td>
 													<td className="py-3.5 text-right">
 														<button 
 															onClick={() => {
@@ -600,7 +600,7 @@ export default function RequesterDashboard() {
 						<div className="bg-white border border-zinc-200/50 rounded-xl shadow-sm p-6 max-w-4xl mx-auto">
 							<div className="border-b border-zinc-100 pb-4 mb-6">
 								<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wide">Register New Test Requirement</h3>
-								<p className="text-[11px] text-zinc-400 font-light mt-0.5">Please specify precise telemetry calibrations. Red indicators (*) denote mandatory fields.</p>
+								<p className="text-[11px] text-zinc-500 font-light mt-0.5">Please specify precise telemetry calibrations. Red indicators (*) denote mandatory fields.</p>
 							</div>
 
 							<form onSubmit={handleCreateRequest} className="space-y-5">
@@ -623,7 +623,7 @@ export default function RequesterDashboard() {
 									{/* Part No (Optional as per req #6!) */}
 									<div>
 										<label className="block text-xs font-bold text-zinc-700 mb-1.5">
-											Part Number <span className="text-zinc-400 font-light">(Optional)</span>
+											Part Number <span className="text-zinc-500 font-light">(Optional)</span>
 										</label>
 										<input 
 											type="text" 
@@ -817,7 +817,7 @@ export default function RequesterDashboard() {
 								<div className="bg-white border border-zinc-200/50 rounded-xl p-5 shadow-sm space-y-4">
 									<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 										<div>
-											<span className="text-[10px] font-extrabold text-zinc-400 font-mono tracking-wider">{selectedRequest.id}</span>
+											<span className="text-[10px] font-extrabold text-zinc-500  tracking-wider">{selectedRequest.id}</span>
 											<h3 className="text-base font-extrabold text-zinc-950 mt-0.5 leading-tight">{selectedRequest.productName}</h3>
 										</div>
 										<span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full ${
@@ -834,33 +834,33 @@ export default function RequesterDashboard() {
 
 									<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Supplier / Customer</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Supplier / Customer</p>
 											<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.supplier}</p>
 										</div>
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Part Number</p>
-											<p className="font-bold text-zinc-800 mt-0.5 font-mono">{selectedRequest.partNo || 'N/A'}</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Part Number</p>
+											<p className="font-bold text-zinc-800 mt-0.5 ">{selectedRequest.partNo || 'N/A'}</p>
 										</div>
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Test Type</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Test Type</p>
 											<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.testType}</p>
 										</div>
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Quantity</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Quantity</p>
 											<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.quantity} Samples</p>
 										</div>
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Urgency Level</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Urgency Level</p>
 											<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.urgency}</p>
 										</div>
 										<div>
-											<p className="text-[10px] text-zinc-400 font-extrabold uppercase">Required Date</p>
-											<p className="font-bold text-zinc-800 mt-0.5 font-mono">{selectedRequest.requiredDate}</p>
+											<p className="text-[10px] text-zinc-500 font-extrabold uppercase">Required Date</p>
+											<p className="font-bold text-zinc-800 mt-0.5 ">{selectedRequest.requiredDate}</p>
 										</div>
 									</div>
 
 									<div className="border-t border-zinc-100 pt-3">
-										<p className="text-[10px] text-zinc-400 font-extrabold uppercase mb-1">Testing Description / Specifications</p>
+										<p className="text-[10px] text-zinc-500 font-extrabold uppercase mb-1">Testing Description / Specifications</p>
 										<p className="text-xs text-zinc-650 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-150">
 											{selectedRequest.description}
 										</p>
@@ -877,7 +877,7 @@ export default function RequesterDashboard() {
 										<p className="text-xs font-medium text-zinc-700 leading-relaxed">
 											{selectedRequest.remarks}
 										</p>
-										<div className="flex justify-between items-center text-[9px] text-zinc-400 font-extrabold uppercase mt-2.5 pt-2.5 border-t border-dashed border-zinc-200">
+										<div className="flex justify-between items-center text-[9px] text-zinc-500 font-extrabold uppercase mt-2.5 pt-2.5 border-t border-dashed border-zinc-200">
 											<span>Verifier: Lab Tech (NABL Certifier)</span>
 											<span>Stamps: Verified & Stamped</span>
 										</div>
@@ -903,10 +903,10 @@ export default function RequesterDashboard() {
 														? 'bg-emerald-500 border-emerald-500' 
 														: 'bg-white border-zinc-200'
 												}`} />
-												<p className={`text-xs font-bold leading-tight ${item.completed ? 'text-zinc-950' : 'text-zinc-400'}`}>
+												<p className={`text-xs font-bold leading-tight ${item.completed ? 'text-zinc-950' : 'text-zinc-500'}`}>
 													{item.step}
 												</p>
-												<span className="text-[10px] text-zinc-400 font-medium block mt-0.5">{item.date}</span>
+												<span className="text-[10px] text-zinc-500 font-medium block mt-0.5">{item.date}</span>
 											</div>
 										))}
 									</div>
@@ -922,7 +922,7 @@ export default function RequesterDashboard() {
 									{selectedRequest.telemetry.length === 0 ? (
 										<div className="bg-zinc-50 border border-zinc-200 rounded-xl py-8 text-center">
 											<TrendingUp className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-											<p className="text-[11px] text-zinc-400 font-medium">Awaiting calibration launch</p>
+											<p className="text-[11px] text-zinc-500 font-medium">Awaiting calibration launch</p>
 										</div>
 									) : (
 										<div>
@@ -942,7 +942,7 @@ export default function RequesterDashboard() {
 													/>
 												</svg>
 											</div>
-											<div className="flex justify-between text-[8px] text-zinc-400 font-extrabold uppercase mt-1 px-1">
+											<div className="flex justify-between text-[8px] text-zinc-500 font-extrabold uppercase mt-1 px-1">
 												<span>Start Cycle</span>
 												<span>Load Peaks</span>
 												<span>Exit Cycle</span>
@@ -975,23 +975,23 @@ export default function RequesterDashboard() {
 								<table className="w-full text-left border-collapse min-w-[700px]">
 									<thead>
 										<tr className="border-b border-zinc-150">
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">CAPA ID</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Related Request</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Product Affected</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Non-Conformity Failure</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Target Date</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase">Status</th>
-											<th className="pb-3 text-[10px] font-bold text-zinc-400 uppercase text-right">Action</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">CAPA ID</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Related Request</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Product Affected</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Non-Conformity Failure</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Target Date</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase">Status</th>
+											<th className="pb-3 text-[10px] font-bold text-zinc-500 uppercase text-right">Action</th>
 										</tr>
 									</thead>
 									<tbody>
 										{capas.map((capa) => (
 											<tr key={capa.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-all group last:border-b-0">
-												<td className="py-3.5 text-xs font-mono font-bold text-zinc-800">{capa.id}</td>
-												<td className="py-3.5 text-xs font-mono font-bold text-[#11236a]">{capa.relatedRequest}</td>
+												<td className="py-3.5 text-xs  font-bold text-zinc-800">{capa.id}</td>
+												<td className="py-3.5 text-xs  font-bold text-[#11236a]">{capa.relatedRequest}</td>
 												<td className="py-3.5 text-xs font-bold text-zinc-950">{capa.productName}</td>
 												<td className="py-3.5 text-xs text-zinc-500 font-light truncate max-w-xs">{capa.nonConformity}</td>
-												<td className="py-3.5 text-xs text-zinc-550 font-mono">{capa.targetedDate}</td>
+												<td className="py-3.5 text-xs text-zinc-550 ">{capa.targetedDate}</td>
 												<td className="py-3.5">
 													<span className={`text-[9px] font-bold px-2 py-0.5 border rounded-full uppercase tracking-wider ${
 														capa.status === 'COMPLETED' 
@@ -1038,7 +1038,7 @@ export default function RequesterDashboard() {
 						<div className="bg-white border border-zinc-200/50 rounded-xl shadow-sm p-6 max-w-3xl mx-auto">
 							<div className="border-b border-zinc-100 pb-4 mb-6">
 								<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wide">Initiate CAPA Corrective Action Report</h3>
-								<p className="text-[11px] text-zinc-400 font-light mt-0.5">Define systematic, physical engineering adjustments to eliminate recurrent testing failures.</p>
+								<p className="text-[11px] text-zinc-500 font-light mt-0.5">Define systematic, physical engineering adjustments to eliminate recurrent testing failures.</p>
 							</div>
 
 							<form onSubmit={handleCreateCapa} className="space-y-5">
@@ -1197,9 +1197,9 @@ export default function RequesterDashboard() {
 							<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-zinc-100 pb-4 gap-4">
 								<div>
 									<div className="flex items-center gap-2">
-										<span className="text-[10px] font-extrabold text-zinc-400 font-mono tracking-wider">{selectedCapa.id}</span>
+										<span className="text-[10px] font-extrabold text-zinc-500  tracking-wider">{selectedCapa.id}</span>
 										<span className="text-zinc-300 text-xs">|</span>
-										<span className="text-[10px] font-extrabold text-indigo-600 font-mono tracking-wider">REF: {selectedCapa.relatedRequest}</span>
+										<span className="text-[10px] font-extrabold text-indigo-600  tracking-wider">REF: {selectedCapa.relatedRequest}</span>
 									</div>
 									<h3 className="text-base font-extrabold text-zinc-950 mt-0.5 leading-tight">{selectedCapa.productName}</h3>
 								</div>
@@ -1217,7 +1217,7 @@ export default function RequesterDashboard() {
 								<div className="md:col-span-2 space-y-5">
 									{/* Non conformity defect */}
 									<div className="bg-zinc-50 border border-zinc-150 p-4 rounded-xl">
-										<h4 className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+										<h4 className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
 											<AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
 											Non-Conformity Failure Defect
 										</h4>
@@ -1256,23 +1256,23 @@ export default function RequesterDashboard() {
 										<h4 className="text-xs font-bold text-zinc-950 uppercase tracking-widest">Ownership & Schedule</h4>
 										<div className="space-y-3 text-xs">
 											<div>
-												<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Department Owner</p>
+												<p className="text-[9px] text-zinc-500 font-extrabold uppercase">Department Owner</p>
 												<p className="font-bold text-zinc-800 mt-0.5">{selectedCapa.owner}</p>
 											</div>
 											<div>
-												<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Initiation Date</p>
-												<p className="font-bold text-zinc-800 mt-0.5 font-mono">{selectedCapa.createdDate}</p>
+												<p className="text-[9px] text-zinc-500 font-extrabold uppercase">Initiation Date</p>
+												<p className="font-bold text-zinc-800 mt-0.5 ">{selectedCapa.createdDate}</p>
 											</div>
 											<div>
-												<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Target Target Date</p>
-												<p className="font-bold text-zinc-800 mt-0.5 font-mono">{selectedCapa.targetedDate}</p>
+												<p className="text-[9px] text-zinc-500 font-extrabold uppercase">Target Target Date</p>
+												<p className="font-bold text-zinc-800 mt-0.5 ">{selectedCapa.targetedDate}</p>
 											</div>
 										</div>
 									</div>
 
 									{/* Approval Stamp signature */}
 									<div className="border border-zinc-200 bg-white rounded-xl p-4 text-center space-y-3 shadow-inner">
-										<p className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wider">Quality Manager Verification</p>
+										<p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider">Quality Manager Verification</p>
 										<div className="w-20 h-20 border border-dashed border-zinc-300 rounded-full mx-auto flex items-center justify-center text-zinc-300 bg-zinc-50 relative">
 											<span className="text-[9px] font-extrabold text-[#11236a] opacity-80 select-none transform -rotate-12 border-2 border-solid border-[#11236a] px-1 py-0.5 uppercase tracking-wide">
 												NABL STAMPED

@@ -15,10 +15,10 @@ export default function CeoDashboard() {
 						</div>
 						<div>
 							<h4 className="text-2xl font-bold text-zinc-900 leading-tight">9</h4>
-							<p className="text-xs text-zinc-400 font-medium">Active Visitor</p>
+							<p className="text-xs text-zinc-500 font-medium">Active Visitor</p>
 						</div>
 					</div>
-					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer">
+					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer">
 						<span>View details</span>
 						<ChevronRight className="w-3.5 h-3.5" />
 					</div>
@@ -30,10 +30,10 @@ export default function CeoDashboard() {
 						</div>
 						<div>
 							<h4 className="text-2xl font-bold text-zinc-900 leading-tight">2,231</h4>
-							<p className="text-xs text-zinc-400 font-medium">Click Events</p>
+							<p className="text-xs text-zinc-500 font-medium">Click Events</p>
 						</div>
 					</div>
-					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer">
+					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer">
 						<span>View details</span>
 						<ChevronRight className="w-3.5 h-3.5" />
 					</div>
@@ -45,10 +45,10 @@ export default function CeoDashboard() {
 						</div>
 						<div>
 							<h4 className="text-2xl font-bold text-zinc-900 leading-tight">2</h4>
-							<p className="text-xs text-zinc-400 font-medium">Form Submissions</p>
+							<p className="text-xs text-zinc-500 font-medium">Form Submissions</p>
 						</div>
 					</div>
-					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-450 hover:text-[#11236a] transition-all cursor-pointer">
+					<div className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer">
 						<span>View details</span>
 						<ChevronRight className="w-3.5 h-3.5" />
 					</div>
@@ -94,7 +94,7 @@ export default function CeoDashboard() {
 							/>
 							<circle cx="360" cy="50" r="4" fill="#ffffff" stroke="#11236a" strokeWidth="2.5" />
 						</svg>
-						<div className="flex justify-between text-[10px] text-zinc-400 font-medium px-1 mt-2">
+						<div className="flex justify-between text-[10px] text-zinc-500 font-medium px-1 mt-2">
 							<span>Jul</span>
 							<span>Aug</span>
 							<span>Sep</span>
@@ -140,7 +140,7 @@ export default function CeoDashboard() {
 							/>
 							<circle cx="450" cy="40" r="4" fill="#ffffff" stroke="#d61a21" strokeWidth="2.5" />
 						</svg>
-						<div className="flex justify-between text-[10px] text-zinc-400 font-medium px-1 mt-2">
+						<div className="flex justify-between text-[10px] text-zinc-500 font-medium px-1 mt-2">
 							<span>Jul</span>
 							<span>Aug</span>
 							<span>Sep</span>
@@ -154,10 +154,10 @@ export default function CeoDashboard() {
 						<button className="bg-zinc-100 text-zinc-800 text-xs font-bold py-1.5 px-4 rounded-lg border-none cursor-pointer">
 							Pages
 						</button>
-						<button className="text-zinc-400 hover:text-zinc-700 text-xs font-bold py-1.5 px-4 rounded-lg border-none cursor-pointer bg-transparent">
+						<button className="text-zinc-500 hover:text-zinc-700 text-xs font-bold py-1.5 px-4 rounded-lg border-none cursor-pointer bg-transparent">
 							Entry Pages
 						</button>
-						<button className="text-zinc-400 hover:text-zinc-700 text-xs font-bold py-1.5 px-4 rounded-lg border-none cursor-pointer bg-transparent">
+						<button className="text-zinc-500 hover:text-zinc-700 text-xs font-bold py-1.5 px-4 rounded-lg border-none cursor-pointer bg-transparent">
 							Exit Pages
 						</button>
 					</div>

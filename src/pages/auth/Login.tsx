@@ -62,7 +62,7 @@ export default function Login() {
 							value={username}
 							onChange={(e) => setUsername(e.target.value)}
 							disabled={isLoading}
-							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-3 text-zinc-800 placeholder-zinc-400 outline-none text-sm transition-all duration-200 focus:border-[#11236a] focus:ring-4 focus:ring-[#11236a]/5 focus:bg-white"
+							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-3 text-zinc-800 placeholder-zinc-500 outline-none text-sm transition-all duration-200 focus:border-[#11236a] focus:ring-4 focus:ring-[#11236a]/5 focus:bg-white"
 						/>
 					</div>
 
@@ -77,12 +77,12 @@ export default function Login() {
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
 								disabled={isLoading}
-								className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-4 pr-11 py-3 text-zinc-800 placeholder-zinc-400 outline-none text-sm transition-all duration-200 focus:border-[#11236a] focus:ring-4 focus:ring-[#11236a]/5 focus:bg-white"
+								className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-4 pr-11 py-3 text-zinc-800 placeholder-zinc-500 outline-none text-sm transition-all duration-200 focus:border-[#11236a] focus:ring-4 focus:ring-[#11236a]/5 focus:bg-white"
 							/>
 							<button
 								type="button"
 								onClick={() => setShowPassword(!showPassword)}
-								className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-400 hover:text-zinc-650 transition-colors cursor-pointer"
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-zinc-500 hover:text-zinc-650 transition-colors cursor-pointer"
 							>
 								{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
 							</button>
@@ -107,7 +107,7 @@ export default function Login() {
 			</div>
 
 			<div className="mt-8 text-center relative z-10">
-				<p className="text-zinc-400 text-[10px] font-normal tracking-wide">© 2026 Dixon Technologies</p>
+				<p className="text-zinc-500 text-[10px] font-normal tracking-wide">© 2026 Dixon Technologies</p>
 			</div>
 		</div>
 	);
