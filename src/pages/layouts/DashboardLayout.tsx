@@ -124,6 +124,52 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 									</div>
 								))}
 							</>
+						) : (user.role === 'Lab Manager' || user.role?.toLowerCase() === 'lab manager') ? (
+							<>
+								{[
+									{
+										category: 'Overview & Systems',
+										items: [
+											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
+											{ id: 'platform-tracking', label: 'Platform Tracking', icon: Server },
+											{ id: 'equipment-tracking', label: 'Equipment Tracking', icon: Activity },
+										]
+									},
+									{
+										category: 'Operations & Testing',
+										items: [
+											{ id: 'approved-requests', label: 'Approved Requests', icon: FileText },
+											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
+											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
+										]
+									}
+								].map((cat, groupIdx) => (
+									<div key={groupIdx} className="flex flex-col gap-1">
+										{!isCollapsed && (
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
+												{cat.category}
+											</div>
+										)}
+										{cat.items.map((item) => {
+											const Icon = item.icon;
+											const isActive = derivedActiveTab === item.id ||
+												(item.id === 'approved-requests' && derivedActiveTab === 'approved-request-details') ||
+												(item.id === 'assigned-samples' && derivedActiveTab === 'inspect-sample');
+											return (
+												<button
+													key={item.id}
+													onClick={() => handleTabClick(item.id)}
+													title={item.label}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
+												>
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
+													{!isCollapsed && <span className="truncate">{item.label}</span>}
+												</button>
+											);
+										})}
+									</div>
+								))}
+							</>
 						) : (
 							<>
 								{[
