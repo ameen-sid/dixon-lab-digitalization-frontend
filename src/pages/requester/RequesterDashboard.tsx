@@ -17,6 +17,7 @@ import { getTestRequests, createTestRequest } from '../../services/operations/te
 
 interface RequestRecord {
 	id: string;
+	dbId?: number;
 	customerNameAddress: string;
 	manufacturerNameAddress: string;
 	customerContactDetails: string;
@@ -96,6 +97,7 @@ export default function RequesterDashboard() {
 			const dbRequests = await getTestRequests()();
 			const mapped = dbRequests.map((db: any) => ({
 				id: db.requestId || `REQ-2026-${String(db.id).padStart(3, '0')}`,
+				dbId: db.id,
 				customerNameAddress: db.customerNameAddress,
 				manufacturerNameAddress: db.manufacturerNameAddress,
 				customerContactDetails: db.customerContactDetails,

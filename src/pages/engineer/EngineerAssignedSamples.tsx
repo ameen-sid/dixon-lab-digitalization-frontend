@@ -26,7 +26,7 @@ interface SampleReport {
 	status: 'PASSED' | 'FAILED';
 }
 
-interface AssignedSamplesProps {
+interface EngineerAssignedSamplesProps {
 	tasks: InspectionTask[];
 	onCompleteInspection: (taskId: string, result: 'PASSED' | 'FAILED', remarks: string, checks: any) => void;
 }
@@ -43,7 +43,7 @@ const CHECKPOINTS = [
 	{ id: 9, text: "Is all accessories received with sample?" },
 ];
 
-export default function AssignedSamples({ tasks, onCompleteInspection }: AssignedSamplesProps) {
+export default function EngineerAssignedSamples({ tasks, onCompleteInspection }: EngineerAssignedSamplesProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
@@ -61,13 +61,13 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 	// Dictionary mapping unique key `${planId}-sample-${sampleIndex}` to SampleReport
 	const [sampleInspections, setSampleInspections] = useState<{ [key: string]: SampleReport }>(() => {
-		const cached = localStorage.getItem('dixon_sample_inspections');
+		const cached = localStorage.getItem('dixon_engineer_sample_inspections');
 		return cached ? JSON.parse(cached) : {};
 	});
 
 	// Persist checklist progress locally
 	useEffect(() => {
-		localStorage.setItem('dixon_sample_inspections', JSON.stringify(sampleInspections));
+		localStorage.setItem('dixon_engineer_sample_inspections', JSON.stringify(sampleInspections));
 	}, [sampleInspections]);
 
 	// Fetch and populate sample inspections from DB when activePlanId is set
@@ -344,13 +344,13 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						<div className="overflow-x-auto">
 							<table className="w-full text-left border-collapse min-w-[600px]">
 								<thead>
-									<tr className="bg-zinc-50/80 border-b border-zinc-250/20 text-zinc-650 font-extrabold text-[11px] uppercase tracking-wider">
+									<tr className="bg-zinc-50/80 border-b border-zinc-250/20 text-zinc-655 font-extrabold text-[11px] uppercase tracking-wider">
 										<th className="py-4.5 px-6 w-16 text-center">Sr. No</th>
 										<th className="py-4.5 px-6">Check Point</th>
 										<th className="py-4.5 px-6 text-center w-56">Observation</th>
 									</tr>
 								</thead>
-								<tbody className="divide-y divide-zinc-100 text-zinc-800">
+								<tbody className="divide-y divide-zinc-100 text-zinc-805">
 									{CHECKPOINTS.map((checkpoint) => {
 										const qId = checkpoint.id;
 										const selectedValue = checks[qId];
@@ -623,7 +623,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					</div>
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Duty Specialist Allocation</span>
-						<span className="text-zinc-800 font-bold text-xs leading-none mt-1.5 block">{activePlan.engineerName || 'Lab Manager'}</span>
+						<span className="text-zinc-800 font-bold text-xs leading-none mt-1.5 block">{activePlan.engineerName || 'Lab Specialist'}</span>
 					</div>
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Original Submission Specifications</span>
@@ -676,7 +676,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 											<td className="py-4 px-6">
 												{!isPending && sample.report ? (
 													<div className="max-w-xs space-y-0.5">
-														<p className="text-zinc-650 truncate" title={sample.report.remarks}>
+														<p className="text-zinc-655 truncate" title={sample.report.remarks}>
 															Remarks: <span className="text-zinc-800 font-medium">"{sample.report.remarks || 'No issues observed.'}"</span>
 														</p>
 														{sample.report.images.length > 0 && (
@@ -744,7 +744,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					<div className="text-center py-16">
 						<ClipboardList className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
 						<h4 className="text-sm font-bold text-zinc-800">No active plans assigned</h4>
-						<p className="text-xs text-zinc-500 font-light mt-1">Select and assign a specialist in the Approved Request details page to see them listed here.</p>
+						<p className="text-xs text-zinc-500 font-light mt-1">Awaiting allocations from the Laboratory Operations Manager.</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">

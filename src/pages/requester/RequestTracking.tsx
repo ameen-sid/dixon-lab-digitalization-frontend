@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText } from 'lucide-react';
 
 interface RequestRecord {
 	id: string;
+	dbId?: number;
 	customerNameAddress: string;
 	manufacturerNameAddress: string;
 	customerContactDetails: string;
@@ -33,6 +35,25 @@ interface RequestTrackingProps {
 }
 
 export default function RequestTracking({ selectedRequest, setActiveTab, onInitiateCapa }: RequestTrackingProps) {
+	const [realSampleInspections, setRealSampleInspections] = useState<any[]>([]);
+
+	useEffect(() => {
+		const fetchDbInspections = async () => {
+			const dbIdVal = selectedRequest?.dbId || (selectedRequest?.id ? Number(selectedRequest.id.split('-').pop()) : null);
+			if (!dbIdVal || isNaN(dbIdVal)) return;
+			try {
+				const { getTestRequestDetails } = await import('../../services/operations/testRequestService');
+				const data = await getTestRequestDetails(dbIdVal)();
+				if (data && data.sampleInspections) {
+					setRealSampleInspections(data.sampleInspections);
+				}
+			} catch (err) {
+				console.error('Failed to fetch real database inspection results:', err);
+			}
+		};
+		fetchDbInspections();
+	}, [selectedRequest?.dbId, selectedRequest?.id, selectedRequest?.status]);
+
 	if (!selectedRequest) {
 		return (
 			<div className="bg-white border border-zinc-200/50 rounded-3xl p-8 text-center">
@@ -265,27 +286,33 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									},
 									{ 
 										step: 'Approved Testing Request by Head of Lab', 
-										date: isRejected ? 'Rejected' : (selectedRequest.status !== 'PENDING_APPROVAL' ? selectedRequest.createdDate : 'Awaiting approval'), 
+										date: isRejected 
+											? 'Rejected' 
+											: (selectedRequest.status !== 'PENDING_APPROVAL' ? selectedRequest.createdDate : 'Awaiting approval'), 
 										completed: selectedRequest.status !== 'PENDING_APPROVAL' && !isRejected,
 										failed: isRejected
 									},
 									...(!isRejected ? [
 										{ 
 											step: 'Sample Checked', 
-											date: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED' 
+											date: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
 												? selectedRequest.createdDate 
 												: (selectedRequest.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'), 
-											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED',
+											completed: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST',
 										},
 										{ 
 											step: 'Test Plan Created', 
-											date: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting plan', 
-											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
+											date: selectedRequest.status === 'COMPLETED'
+												? selectedRequest.createdDate 
+												: 'Awaiting plan', 
+											completed: selectedRequest.status === 'COMPLETED'
 										},
 										{ 
 											step: 'Testing', 
-											date: selectedRequest.status === 'UNDER_TEST' ? 'Active phase' : (selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting start'), 
-											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
+											date: selectedRequest.status === 'COMPLETED' 
+												? selectedRequest.createdDate 
+												: 'Awaiting start', 
+											completed: selectedRequest.status === 'COMPLETED'
 										},
 										{ 
 											step: selectedRequest.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Testing Passed', 
@@ -340,6 +367,97 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							})()}
 						</div>
 					</div>
+
+					{/* Individual Sample Inspection Results */}
+					{(selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED') && (
+						<div className="bg-white border border-zinc-200/50 rounded-3xl p-5 shadow-sm space-y-4">
+							<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
+								<span>Sample Inspection Results</span>
+								<span className="text-[10px] font-bold text-zinc-400">Total: {selectedRequest.sampleQty || 1}</span>
+							</h4>
+							
+							<div className="divide-y divide-zinc-150/70">
+								{(() => {
+									const qty = selectedRequest.sampleQty || 1;
+									const list = [];
+									
+									for (let i = 0; i < qty; i++) {
+										// 1. Try finding in real database-fetched inspections
+										const dbReport = realSampleInspections.find((r: any) => Number(r.sampleIndex) === i);
+										if (dbReport) {
+											list.push({
+												index: i,
+												report: {
+													allottedId: dbReport.allottedId,
+													status: dbReport.status,
+													remarks: dbReport.remarks
+												}
+											});
+										} else {
+											// 2. Fall back to local storage cache if not saved to db yet
+											const cacheKey = `${selectedRequest.id}-sample-${i}`;
+											const cachedManager = localStorage.getItem('dixon_sample_inspections');
+											const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+											const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+											
+											const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+											const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+											const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+											
+											const merged = { ...engineerReports, ...managerReports, ...completedReports };
+											list.push({
+												index: i,
+												report: merged[cacheKey]
+											});
+										}
+									}
+									
+									return list.map(({ index, report }) => {
+										const sampleNumber = index + 1;
+										if (!report) {
+											return (
+												<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+													<div className="flex items-center gap-3">
+														<div className="w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
+														<div>
+															<p className="text-[11px] font-bold text-zinc-800">Sample #{sampleNumber}</p>
+															<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">Awaiting Inspection</p>
+														</div>
+													</div>
+													<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-zinc-100 text-zinc-450 rounded uppercase tracking-wider">
+														Pending
+													</span>
+												</div>
+											);
+										}
+
+										return (
+											<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+												<div className="flex items-center gap-3">
+													<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+													<div>
+														<p className="text-[11px] font-bold text-zinc-900">
+															Sample #{sampleNumber}
+														</p>
+														<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
+															ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
+														</p>
+													</div>
+												</div>
+												<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+													report.status === 'PASSED' 
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
+														: 'bg-rose-50 border border-rose-100 text-rose-700'
+												}`}>
+													{report.status}
+												</span>
+											</div>
+										);
+									});
+								})()}
+							</div>
+						</div>
+					)}
 
 				</div>
 			</div>

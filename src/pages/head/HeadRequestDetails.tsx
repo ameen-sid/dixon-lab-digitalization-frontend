@@ -43,6 +43,7 @@ interface RequestRecord {
 	remarks?: string | null;
 	createdAt: string;
 	attachments?: AttachmentRecord[];
+	sampleInspections?: any[];
 }
 
 export default function HeadRequestDetails() {
@@ -381,12 +382,14 @@ export default function HeadRequestDetails() {
 								const steps = [
 									{ 
 										step: 'Testing Request Submitted', 
-										date: new Date(request.createdAt).toISOString().split('T')[0], 
+										date: new Date(request.createdAt).toLocaleString(), 
 										completed: true 
 									},
 									{ 
 										step: 'Approved Testing Request by Head of Lab', 
-										date: isRejected ? 'Rejected' : (request.status !== 'PENDING_APPROVAL' ? 'Approved' : 'Awaiting approval'), 
+										date: isRejected 
+											? 'Rejected' 
+											: (request.status !== 'PENDING_APPROVAL' ? new Date(request.createdAt).toLocaleString() : 'Awaiting approval'), 
 										completed: request.status !== 'PENDING_APPROVAL' && !isRejected,
 										failed: isRejected
 									},
@@ -394,33 +397,37 @@ export default function HeadRequestDetails() {
 										{ 
 											step: 'Sample Checked', 
 											date: request.status === 'UNDER_TEST' || request.status === 'COMPLETED' 
-												? 'Verified' 
+												? new Date(request.createdAt).toLocaleString() 
 												: (request.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'), 
 											completed: request.status === 'UNDER_TEST' || request.status === 'COMPLETED',
 										},
 										{ 
 											step: 'Test Plan Created', 
-											date: request.status === 'UNDER_TEST' || request.status === 'COMPLETED' ? 'Created' : 'Awaiting plan', 
-											completed: request.status === 'UNDER_TEST' || request.status === 'COMPLETED'
+											date: request.status === 'COMPLETED' 
+												? new Date(request.createdAt).toLocaleString() 
+												: 'Awaiting plan', 
+											completed: request.status === 'COMPLETED'
 										},
 										{ 
 											step: 'Testing', 
-											date: request.status === 'UNDER_TEST' ? 'Active testing' : (request.status === 'COMPLETED' ? 'Completed' : 'Awaiting start'), 
-											completed: request.status === 'UNDER_TEST' || request.status === 'COMPLETED'
+											date: request.status === 'COMPLETED' 
+												? new Date(request.createdAt).toLocaleString() 
+												: 'Awaiting start', 
+											completed: request.status === 'COMPLETED'
 										},
 										{ 
-											step: request.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Passed', 
-											date: request.status === 'COMPLETED' ? 'Verified' : 'Awaiting results', 
+											step: request.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Testing Passed', 
+											date: request.status === 'COMPLETED' ? new Date(request.createdAt).toLocaleString() : 'Awaiting results', 
 											completed: request.status === 'COMPLETED' 
 										},
 										{ 
 											step: 'Report Generation', 
-											date: request.status === 'COMPLETED' ? 'Generated' : 'Pending release', 
+											date: request.status === 'COMPLETED' ? new Date(request.createdAt).toLocaleString() : 'Pending release', 
 											completed: request.status === 'COMPLETED' 
 										},
 										{ 
 											step: 'Approved Final Report by Head', 
-											date: request.status === 'COMPLETED' ? 'Certified' : 'Pending final sign-off', 
+											date: request.status === 'COMPLETED' ? new Date(request.createdAt).toLocaleString() : 'Pending final sign-off', 
 											completed: request.status === 'COMPLETED' 
 										}
 									] : [])
@@ -461,6 +468,97 @@ export default function HeadRequestDetails() {
 							})()}
 						</div>
 					</div>
+
+					{/* Individual Sample Inspection Results */}
+					{(request.status === 'UNDER_TEST' || request.status === 'COMPLETED') && (
+						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
+							<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
+								<span>Sample Inspection Results</span>
+								<span className="text-[10px] font-bold text-zinc-400">Total: {request.sampleQty || 1}</span>
+							</h4>
+							
+							<div className="divide-y divide-zinc-150/70">
+								{(() => {
+									const qty = request.sampleQty || 1;
+									const list = [];
+									const dbInspections = request.sampleInspections || [];
+									
+									for (let i = 0; i < qty; i++) {
+										const dbReport = dbInspections.find((r: any) => Number(r.sampleIndex) === i);
+										if (dbReport) {
+											list.push({
+												index: i,
+												report: {
+													allottedId: dbReport.allottedId,
+													status: dbReport.status,
+													remarks: dbReport.remarks
+												}
+											});
+										} else {
+											const cacheKey = `${request.id}-sample-${i}`;
+											const cachedManager = localStorage.getItem('dixon_sample_inspections');
+											const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+											const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+											
+											const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+											const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+											const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+											
+											const merged = { ...engineerReports, ...managerReports, ...completedReports };
+											list.push({
+												index: i,
+												report: merged[cacheKey]
+											});
+										}
+									}
+									
+									return list.map(({ index, report }) => {
+										const sampleNumber = index + 1;
+										if (!report) {
+											return (
+												<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+													<div className="flex items-center gap-3">
+														<div className="w-2 h-2 rounded-full bg-zinc-300 shrink-0" />
+														<div>
+															<p className="text-[11px] font-bold text-zinc-800">Sample #{sampleNumber}</p>
+															<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">Awaiting Inspection</p>
+														</div>
+													</div>
+													<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-zinc-100 text-zinc-450 rounded uppercase tracking-wider">
+														Pending
+													</span>
+												</div>
+											);
+										}
+
+										return (
+											<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
+												<div className="flex items-center gap-3">
+													<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+													<div>
+														<p className="text-[11px] font-bold text-zinc-900">
+															Sample #{sampleNumber}
+														</p>
+														<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
+															ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
+														</p>
+													</div>
+												</div>
+												<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+													report.status === 'PASSED' 
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
+														: 'bg-rose-50 border border-rose-100 text-rose-700'
+												}`}>
+													{report.status}
+												</span>
+											</div>
+										);
+									});
+								})()}
+							</div>
+						</div>
+					)}
+
 				</div>
 			</div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { RotateCw, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,9 +11,14 @@ import ApprovedRequestDetails from './ApprovedRequestDetails';
 import AssignedSamples from './AssignedSamples';
 import ManagerCapaManagement from './ManagerCapaManagement';
 
+// Import backend API services
+import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
+import { getUsers } from '../../services/operations/userService';
+
 // Interface definitions
 interface ApprovedRequest {
 	id: string;
+	requestId: string;
 	customerNameAddress: string;
 	sampleDescription: string;
 	modelNo: string;
@@ -28,24 +33,24 @@ interface ApprovedRequest {
 	inspectionResult?: string;
 	inspectionRemarks?: string;
 	inspectionDate?: string;
+	customerContactDetails?: string;
+	manufacturerNameAddress?: string;
 }
 
 interface InspectionTask {
 	id: string;
+	requestId: string;
 	brandName: string;
 	modelNo: string;
 	testMethodRef: string;
 	sampleDescription: string;
-	status: string; // 'PENDING' | 'PASSED' | 'FAILED'
+	sampleQty: number;
+	status: string; // 'PENDING' | 'PASSED' | 'FAILED' | 'COMPLETED'
 	assignedDate: string;
 	completedDate?: string;
 	remarks?: string;
-	checks?: {
-		visualOk: boolean;
-		insulationOk: boolean;
-		thermalOk: boolean;
-		gasketOk: boolean;
-	};
+	engineerId?: string;
+	engineerName?: string;
 }
 
 interface CapaRecord {
@@ -64,8 +69,8 @@ interface CapaRecord {
 
 export default function ManagerDashboard() {
 	const navigate = useNavigate();
-	const [activeTab, setActiveTab] = useState('dashboard');
-	const [selectedRequest, setSelectedRequest] = useState<ApprovedRequest | null>(null);
+	const location = useLocation();
+	const { id } = useParams<{ id: string }>();
 
 	// Validate Authentication and Role
 	const token = localStorage.getItem('token');
@@ -85,66 +90,130 @@ export default function ManagerDashboard() {
 	}, [token, userStr, navigate]);
 
 	// ==========================================
-	// MOCK DATABASE STATES
+	// LIVE BACKEND DATA STATES & EFFECT HOOKS
 	// ==========================================
+	const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
+	const [loadingRequests, setLoadingRequests] = useState(false);
+	const [engineers, setEngineers] = useState<{ id: string; name: string; role: string }[]>([]);
 	
-	// 1. Approved Requests State
-	const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([
-		{
-			id: 'REQ-2026-001',
-			customerNameAddress: 'SMT Division, Dixon Noida Sector-63',
-			sampleDescription: 'Verify soldering durability under rapid cycles of -40°C to +150°C.',
-			modelNo: 'SMT-X90',
-			brandName: 'Dixon SMT',
-			sampleQty: 5,
-			testMethodRef: 'IEC 60068-2-14 (Thermal Shock)',
-			requesterName: 'Ameen Siddiqui',
-			status: 'APPROVED',
-			approvedDate: '2026-05-30',
-			engineerId: 'ENG-002',
-			engineerName: 'Er. Rajesh Kumar (Thermal Stress)',
-			inspectionResult: 'PASSED',
-			inspectionRemarks: 'All 5 sample SMT boards successfully passed structural visual inspections under peak load temperatures.',
-			inspectionDate: '2026-05-31'
-		},
-		{
-			id: 'REQ-2026-002',
-			customerNameAddress: 'LED Lighting Hub, Dixon Dehradun',
-			sampleDescription: 'IPX9 Ingress test cycles under 95% relative humidity for 48 consecutive hours.',
-			modelNo: 'LED-DRV-45',
-			brandName: 'Dixon LED',
-			sampleQty: 10,
-			testMethodRef: 'ISO 20653 (IPX9 Moisture Ingress)',
-			requesterName: 'Ameen Siddiqui',
-			status: 'APPROVED',
-			approvedDate: '2026-05-31'
-		},
-		{
-			id: 'REQ-2026-003',
-			customerNameAddress: 'NABL High-Power Division, Noida Sector-85',
-			sampleDescription: 'High-frequency bandwidth impedance stress test check.',
-			modelNo: 'HF-AMP-300',
-			brandName: 'Dixon RF',
-			sampleQty: 3,
-			testMethodRef: 'IS 13252 (High Frequency Standard)',
-			requesterName: 'Ameen Siddiqui',
-			status: 'APPROVED',
-			approvedDate: '2026-06-01'
-		}
-	]);
+	// Dynamic request details loading state
+	const [activeRequestDetails, setActiveRequestDetails] = useState<ApprovedRequest | null>(null);
+	const [loadingDetails, setLoadingDetails] = useState(false);
 
-	// 2. Assigned Samples State (inspections assigned to the manager self: MGR-001)
-	const [assignedTasks, setAssignedTasks] = useState<InspectionTask[]>([
-		{
-			id: 'REQ-2026-003',
-			brandName: 'Dixon RF',
-			modelNo: 'HF-AMP-300',
-			testMethodRef: 'IS 13252 (High Frequency Standard)',
-			sampleDescription: 'High-frequency bandwidth impedance stress test check.',
-			status: 'PENDING',
-			assignedDate: '2026-06-01'
+	// Load Approved Requests from database
+	const loadApprovedRequests = async () => {
+		setLoadingRequests(true);
+		try {
+			const fetchOp = getTestRequests();
+			const data = await fetchOp();
+			
+			// Map the database format to the component expectations
+			const mapped = data.map((req: any) => ({
+				id: String(req.id),
+				requestId: req.requestId,
+				customerNameAddress: req.customerNameAddress,
+				sampleDescription: req.sampleDescription,
+				modelNo: req.modelNo,
+				brandName: req.brandName,
+				sampleQty: req.sampleQty,
+				testMethodRef: req.testMethodRef,
+				requesterName: req.requester?.name || 'System User',
+				status: req.status,
+				approvedDate: req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0],
+				engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
+				engineerName: req.assignedTo ? req.assignedTo.name : undefined,
+				inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+				inspectionRemarks: req.remarks
+			}));
+
+			// Approved requests are those which have been signed off by the Lab Head 
+			// (Status is NOT PENDING_APPROVAL and NOT REJECTED)
+			const filtered = mapped.filter((r: any) => r.status !== 'PENDING_APPROVAL' && r.status !== 'REJECTED');
+			setApprovedRequests(filtered);
+		} catch (error) {
+			console.error('Failed to load approved requests from database:', error);
+		} finally {
+			setLoadingRequests(false);
 		}
-	]);
+	};
+
+	// Load Users to display as Engineers
+	const loadEngineers = async () => {
+		try {
+			const fetchUsersOp = getUsers();
+			const users = await fetchUsersOp();
+			// Capture ONLY registered staff whose role is strictly 'Engineer' case-insensitively
+			const staff = users
+				.filter((u: any) => {
+					const r = (u.role || '').toLowerCase();
+					return r === 'engineer';
+				})
+				.map((u: any) => ({
+					id: String(u.id),
+					name: u.name,
+					role: u.role
+				}));
+			setEngineers(staff);
+		} catch (error) {
+			console.error('Failed to load engineers from database:', error);
+		}
+	};
+
+	// Boot load live data
+	useEffect(() => {
+		if (token && userStr) {
+			loadApprovedRequests();
+			loadEngineers();
+		}
+	}, [token, userStr]);
+
+	// Fetch dynamic single request details fresh from database when URL parameters change
+	useEffect(() => {
+		const loadDetails = async () => {
+			if (!id) {
+				setActiveRequestDetails(null);
+				return;
+			}
+			setLoadingDetails(true);
+			try {
+				const fetchOp = getTestRequestDetails(id);
+				const req = await fetchOp();
+				
+				const mapped = {
+					id: String(req.id),
+					requestId: req.requestId,
+					customerNameAddress: req.customerNameAddress,
+					sampleDescription: req.sampleDescription,
+					modelNo: req.modelNo,
+					brandName: req.brandName,
+					sampleQty: req.sampleQty,
+					testMethodRef: req.testMethodRef,
+					requesterName: req.requester?.name || 'System User',
+					status: req.status,
+					approvedDate: req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0],
+					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
+					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
+					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					inspectionRemarks: req.remarks,
+					customerContactDetails: req.customerContactDetails,
+					manufacturerNameAddress: req.manufacturerNameAddress
+				};
+				setActiveRequestDetails(mapped);
+				
+				// Instantly reload available engineers list to stay synchronized
+				await loadEngineers();
+			} catch (error) {
+				console.error('Failed to load request details from database:', error);
+			} finally {
+				setLoadingDetails(false);
+			}
+		};
+		loadDetails();
+	}, [id]);
+
+	// ==========================================
+	// MOCK DATABASE STATES FOR OFFLINE MODULES
+	// ==========================================
 
 	// 3. CAPA Records State
 	const [capas, setCapas] = useState<CapaRecord[]>([
@@ -175,6 +244,17 @@ export default function ManagerDashboard() {
 			createdDate: '2026-05-28'
 		}
 	]);
+
+	// Derive current URL properties
+	const pathSegment = location.pathname.replace('/manager/', '') || 'dashboard';
+
+	let activeTab = 'dashboard';
+	if (pathSegment === 'platform-tracking') activeTab = 'platform-tracking';
+	else if (pathSegment === 'equipment-tracking') activeTab = 'equipment-tracking';
+	else if (pathSegment === 'approved-requests') activeTab = 'approved-requests';
+	else if (pathSegment.startsWith('approved-requests/')) activeTab = 'approved-request-details';
+	else if (pathSegment === 'assigned-samples' || pathSegment.startsWith('assigned-samples/')) activeTab = 'assigned-samples';
+	else if (pathSegment === 'capa-management') activeTab = 'capa-management';
 
 	// ==========================================
 	// PLATFORM TRACKING SYSTEM STATE (SHARED FROM ADMIN)
@@ -336,131 +416,122 @@ export default function ManagerDashboard() {
 	const maintenanceEq = equipmentTelemetry.filter(e => e.status === 'MAINTENANCE').length;
 
 	// ==========================================
-	// OPERATIONS WORKFLOW LOGIC
+	// INTEGRATED OPERATIONS WORKFLOW LOGIC
 	// ==========================================
 
-	// 1. Assign Engineer to Request
-	const handleAssignEngineer = (requestId: string, engineerId: string, engineerName: string) => {
-		// Update Approved Requests array
-		setApprovedRequests(prev => prev.map(req => {
-			if (req.id === requestId) {
-				return {
-					...req,
-					engineerId,
-					engineerName
+	// 1. Assign Engineer to Request (Live Backend Integration)
+	const handleAssignEngineer = async (requestId: string, engineerId: string, engineerName: string) => {
+		try {
+			const numericRequestId = Number(requestId);
+			const numericEngineerId = Number(engineerId);
+
+			// Call backend update API to transition status to UNDER_TEST & assign scientist
+			const updateOp = updateTestRequestStatus(
+				numericRequestId, 
+				'UNDER_INSPECTION', 
+				`Assigned testing plan to specialized engineer: ${engineerName}`, 
+				numericEngineerId
+			);
+			await updateOp();
+
+			// Refresh listing data
+			await loadApprovedRequests();
+
+			// Sync details page dynamically
+			if (id && id === requestId) {
+				const fetchOp = getTestRequestDetails(id);
+				const req = await fetchOp();
+				const mapped = {
+					id: String(req.id),
+					requestId: req.requestId,
+					customerNameAddress: req.customerNameAddress,
+					sampleDescription: req.sampleDescription,
+					modelNo: req.modelNo,
+					brandName: req.brandName,
+					sampleQty: req.sampleQty,
+					testMethodRef: req.testMethodRef,
+					requesterName: req.requester?.name || 'System User',
+					status: req.status,
+					approvedDate: req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0],
+					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
+					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
+					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					inspectionRemarks: req.remarks,
+					customerContactDetails: req.customerContactDetails,
+					manufacturerNameAddress: req.manufacturerNameAddress
 				};
+				setActiveRequestDetails(mapped);
 			}
-			return req;
-		}));
-
-		// Also update current active selected details request
-		if (selectedRequest && selectedRequest.id === requestId) {
-			setSelectedRequest(prev => prev ? { ...prev, engineerId, engineerName } : null);
+		} catch (error) {
+			console.error('Failed to allocate testing plan on backend:', error);
 		}
-
-		// If manager assigns to themselves ('MGR-001'), push to Assigned tasks
-		if (engineerId === 'MGR-001') {
-			const req = approvedRequests.find(r => r.id === requestId);
-			if (req) {
-				const alreadyExists = assignedTasks.some(t => t.id === requestId);
-				if (!alreadyExists) {
-					const newTask: InspectionTask = {
-						id: req.id,
-						brandName: req.brandName,
-						modelNo: req.modelNo,
-						testMethodRef: req.testMethodRef,
-						sampleDescription: req.sampleDescription,
-						status: 'PENDING',
-						assignedDate: new Date().toISOString().split('T')[0]
-					};
-					setAssignedTasks(prev => [newTask, ...prev]);
-				}
-			}
-		}
-
-		toast.success(`Successfully allocated testing plan to ${engineerName}.`);
 	};
 
-	// 2. Simulate Inspection Completion (from detail screen)
-	const handleSimulateInspectionCompletion = (requestId: string, result: 'PASSED' | 'FAILED', remarks: string) => {
-		const completionDate = new Date().toISOString().split('T')[0];
+	// 2. Simulate Inspection Completion (Live Backend Integration)
+	const handleSimulateInspectionCompletion = async (requestId: string, result: 'PASSED' | 'FAILED', remarks: string) => {
+		try {
+			const numericRequestId = Number(requestId);
+			const statusTransition = result === 'PASSED' ? 'UNDER_TEST' : 'UNDER_INSPECTION';
 
-		setApprovedRequests(prev => prev.map(req => {
-			if (req.id === requestId) {
-				return {
-					...req,
-					inspectionResult: result,
-					inspectionRemarks: remarks,
-					inspectionDate: completionDate
+			const updateOp = updateTestRequestStatus(
+				numericRequestId,
+				statusTransition,
+				remarks
+			);
+			await updateOp();
+
+			// Refresh listing data
+			await loadApprovedRequests();
+
+			// Sync details page dynamically
+			if (id && id === requestId) {
+				const fetchOp = getTestRequestDetails(id);
+				const req = await fetchOp();
+				const mapped = {
+					id: String(req.id),
+					requestId: req.requestId,
+					customerNameAddress: req.customerNameAddress,
+					sampleDescription: req.sampleDescription,
+					modelNo: req.modelNo,
+					brandName: req.brandName,
+					sampleQty: req.sampleQty,
+					testMethodRef: req.testMethodRef,
+					requesterName: req.requester?.name || 'System User',
+					status: req.status,
+					approvedDate: req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0],
+					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
+					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
+					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					inspectionRemarks: req.remarks,
+					customerContactDetails: req.customerContactDetails,
+					manufacturerNameAddress: req.manufacturerNameAddress
 				};
+				setActiveRequestDetails(mapped);
 			}
-			return req;
-		}));
-
-		if (selectedRequest && selectedRequest.id === requestId) {
-			setSelectedRequest(prev => prev ? { 
-				...prev, 
-				inspectionResult: result, 
-				inspectionRemarks: remarks, 
-				inspectionDate: completionDate 
-			} : null);
+		} catch (error) {
+			console.error('Failed to log inspection results on backend:', error);
 		}
-
-		// Sync with self-assigned tasks list if it exists there
-		setAssignedTasks(prev => prev.map(t => {
-			if (t.id === requestId) {
-				return {
-					...t,
-					status: result,
-					completedDate: completionDate,
-					remarks
-				};
-			}
-			return t;
-		}));
-
-		toast.success(`Inspection certified as ${result}. Results saved.`);
 	};
 
 	// 3. Form inspection completion (from Manager's Assigned task screen checklist)
-	const handleCompleteInspectionForm = (taskId: string, result: 'PASSED' | 'FAILED', remarks: string, checks: any) => {
-		const completionDate = new Date().toISOString().split('T')[0];
+	const handleCompleteInspectionForm = async (taskId: string, result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
+		try {
+			const numericTaskId = Number(taskId);
+			const statusTransition = result === 'PASSED' ? 'UNDER_TEST' : 'UNDER_INSPECTION';
 
-		setAssignedTasks(prev => prev.map(t => {
-			if (t.id === taskId) {
-				return {
-					...t,
-					status: result,
-					completedDate: completionDate,
-					remarks,
-					checks
-				};
-			}
-			return t;
-		}));
+			const updateOp = updateTestRequestStatus(
+				numericTaskId,
+				statusTransition,
+				remarks
+			);
+			await updateOp();
 
-		setApprovedRequests(prev => prev.map(req => {
-			if (req.id === taskId) {
-				return {
-					...req,
-					inspectionResult: result,
-					inspectionRemarks: remarks,
-					inspectionDate: completionDate
-				};
-			}
-			return req;
-		}));
+			// Refresh list
+			await loadApprovedRequests();
 
-		if (selectedRequest && selectedRequest.id === taskId) {
-			setSelectedRequest(prev => prev ? { 
-				...prev, 
-				inspectionResult: result, 
-				inspectionRemarks: remarks, 
-				inspectionDate: completionDate 
-			} : null);
+		} catch (error) {
+			console.error('Failed to log checklist form on backend:', error);
 		}
-
-		toast.success(`Self-inspection completed! Checklist certified: ${result}.`);
 	};
 
 	// 4. Initiate CAPA Report Submission
@@ -516,10 +587,10 @@ export default function ManagerDashboard() {
 			case 'dashboard':
 				return (
 					<ManagerDashboardOverview 
-						setActiveTab={setActiveTab}
+						navigate={navigate}
 						stats={{
 							approvedCount: approvedRequests.filter(r => !r.engineerId).length,
-							assignedCount: assignedTasks.filter(t => t.status === 'PENDING').length,
+							assignedCount: approvedRequests.filter(r => !!r.engineerId && (r.status === 'UNDER_TEST' || r.status === 'UNDER_INSPECTION')).length,
 							completedCount: approvedRequests.filter(r => !!r.inspectionResult).length,
 							capaCount: capas.filter(c => c.status === 'OPEN').length
 						}}
@@ -548,7 +619,7 @@ export default function ManagerDashboard() {
 							<button
 								onClick={resetSlots}
 								title="Reset telemetry grid"
-								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none border-none shrink-0"
+								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-555 hover:text-[#11236a] transition-all hover:bg-zinc-100 cursor-pointer outline-none border-none shrink-0"
 							>
 								<RotateCw className="w-4 h-4" />
 							</button>
@@ -620,7 +691,7 @@ export default function ManagerDashboard() {
 							<button
 								onClick={resetEquipmentTelemetry}
 								title="Reset chamber states"
-								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none border-none shrink-0"
+								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-555 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none border-none shrink-0"
 							>
 								<RotateCw className="w-4 h-4" />
 							</button>
@@ -641,24 +712,24 @@ export default function ManagerDashboard() {
 										>
 											<option value="AVAILABLE" className="text-zinc-800 font-medium">Ready/Idle</option>
 											<option value="UNDER_TEST" className="text-zinc-800 font-medium">Running Test</option>
-											<option value="MAINTENANCE" className="text-zinc-800 font-medium">Maintenance</option>
+											<option value="MAINTENANCE" className="text-zinc-855 font-medium">Maintenance</option>
 										</select>
 									</div>
 
 									<div className="p-4 flex-grow flex flex-col justify-between bg-[#f8fafc]/30">
 										<div>
-											<h4 className="text-xs font-bold text-zinc-950 truncate leading-tight">{eq.name}</h4>
+											<h4 className="text-xs font-bold text-zinc-955 truncate leading-tight">{eq.name}</h4>
 											<p className="text-[10px] text-zinc-555 font-medium mt-0.5">{eq.class}</p>
 
 											<div className="border border-zinc-150 bg-zinc-50/50 rounded-xl p-3 my-3.5 flex flex-col gap-2">
-												<div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+												<div className="flex items-center justify-between text-[10px] text-zinc-555 font-bold uppercase tracking-wider">
 													<span>Telemetry Metric</span>
 													<span className="text-zinc-700 font-extrabold">{eq.metric}</span>
 												</div>
 												<div className="space-y-1">
-													<div className="flex justify-between text-[10px] text-zinc-500 font-bold uppercase">
+													<div className="flex justify-between text-[10px] text-zinc-555 font-bold uppercase">
 														<span>Chamber Load</span>
-														<span className={eq.status === 'MAINTENANCE' ? 'text-rose-600 font-extrabold' : 'text-zinc-800 font-extrabold'}>
+														<span className={eq.status === 'MAINTENANCE' ? 'text-rose-650 font-extrabold' : 'text-zinc-800 font-extrabold'}>
 															{eq.status === 'MAINTENANCE' ? 'OFFLINE' : `${eq.capacity}%`}
 														</span>
 													</div>
@@ -666,7 +737,7 @@ export default function ManagerDashboard() {
 														<div 
 															className={`h-full transition-all duration-500 rounded-full ${
 																eq.status === 'MAINTENANCE' 
-																	? 'bg-rose-500' 
+																	? 'bg-rose-505' 
 																	: eq.status === 'AVAILABLE' 
 																		? 'bg-emerald-500' 
 																		: 'bg-indigo-650'
@@ -679,7 +750,7 @@ export default function ManagerDashboard() {
 										</div>
 
 										<div>
-											<p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mb-1.5">Telemetry Slots</p>
+											<p className="text-[9px] text-zinc-555 font-bold uppercase tracking-widest mb-1.5">Telemetry Slots</p>
 											<div className="grid grid-cols-4 gap-1.5">
 												{eq.slots.map((isSlotAvailable, slotIdx) => (
 													<button
@@ -688,10 +759,10 @@ export default function ManagerDashboard() {
 														disabled={eq.status === 'MAINTENANCE'}
 														className={`group p-1.5 rounded-lg border outline-none text-center flex flex-col items-center justify-center transition-all border-none ${
 															eq.status === 'MAINTENANCE'
-																? 'bg-zinc-100 border-zinc-200 text-zinc-500 cursor-not-allowed'
+																? 'bg-zinc-100 border-zinc-200 text-zinc-555 cursor-not-allowed'
 																: isSlotAvailable
-																	? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 hover:border-emerald-250 text-emerald-700 cursor-pointer active:scale-95'
-																	: 'bg-indigo-50/50 hover:bg-indigo-100/50 border-indigo-100 hover:border-indigo-250 text-indigo-700 cursor-pointer active:scale-95'
+																	? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 hover:border-emerald-255 text-emerald-700 cursor-pointer active:scale-95'
+																	: 'bg-indigo-50/50 hover:bg-indigo-100/50 border-indigo-100 hover:border-indigo-255 text-indigo-700 cursor-pointer active:scale-95'
 														}`}
 													>
 														<span className="text-[10px] font-extrabold">{slotIdx + 1}</span>
@@ -714,28 +785,60 @@ export default function ManagerDashboard() {
 				);
 
 			case 'approved-requests':
+				if (loadingRequests && approvedRequests.length === 0) {
+					return (
+						<div className="flex flex-col items-center justify-center py-20 gap-3">
+							<div className="w-8 h-8 border-4 border-indigo-650 border-t-transparent rounded-full animate-spin" />
+							<p className="text-xs text-zinc-555 font-bold">Synchronizing approved requests from database...</p>
+						</div>
+					);
+				}
 				return (
 					<ApprovedRequests 
 						requests={approvedRequests}
-						setActiveTab={setActiveTab}
-						setSelectedRequest={setSelectedRequest}
 					/>
 				);
 
 			case 'approved-request-details':
+				if (loadingDetails && !activeRequestDetails) {
+					return (
+						<div className="flex flex-col items-center justify-center py-20 gap-3">
+							<div className="w-8 h-8 border-4 border-indigo-650 border-t-transparent rounded-full animate-spin" />
+							<p className="text-xs text-zinc-555 font-bold">Loading testing plan specifications...</p>
+						</div>
+					);
+				}
 				return (
 					<ApprovedRequestDetails 
-						request={selectedRequest}
-						onBack={() => setActiveTab('approved-requests')}
+						request={activeRequestDetails}
+						engineers={engineers}
 						onAssignEngineer={handleAssignEngineer}
 						onSimulateInspectionCompletion={handleSimulateInspectionCompletion}
 					/>
 				);
 
 			case 'assigned-samples':
+				const currentUser = userStr ? JSON.parse(userStr) : null;
+				const currentManagerId = currentUser ? String(currentUser.id) : '';
+				const dynamicTasks: InspectionTask[] = approvedRequests
+					// Only requests where the engineer assigned IS the manager themselves
+					.filter(r => !!r.engineerId && r.engineerId === currentManagerId)
+					.map(r => ({
+						id: String(r.id),
+						requestId: r.requestId || `REQ-${r.id}`,
+						brandName: r.brandName,
+						modelNo: r.modelNo,
+						testMethodRef: r.testMethodRef,
+						sampleDescription: r.sampleDescription,
+						sampleQty: r.sampleQty || 1,
+						status: r.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING',
+						assignedDate: r.approvedDate,
+						engineerId: r.engineerId,
+						engineerName: r.engineerName
+					}));
 				return (
 					<AssignedSamples 
-						tasks={assignedTasks}
+						tasks={dynamicTasks}
 						onCompleteInspection={handleCompleteInspectionForm}
 					/>
 				);
@@ -759,12 +862,6 @@ export default function ManagerDashboard() {
 			title={headers.title}
 			description={headers.desc}
 			activeTab={activeTab}
-			onTabChange={(tab) => {
-				setActiveTab(tab);
-				if (tab === 'approved-requests') {
-					setSelectedRequest(null);
-				}
-			}}
 		>
 			{renderContent()}
 		</DashboardLayout>

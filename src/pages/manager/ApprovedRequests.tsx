@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, ClipboardCheck, Clock } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
 interface ApprovedRequest {
 	id: string;
+	requestId?: string;
 	customerNameAddress: string;
 	sampleDescription: string;
 	modelNo: string;
@@ -20,11 +22,10 @@ interface ApprovedRequest {
 
 interface ApprovedRequestsProps {
 	requests: ApprovedRequest[];
-	setActiveTab: (tab: string) => void;
-	setSelectedRequest: (req: ApprovedRequest) => void;
 }
 
-export default function ApprovedRequests({ requests, setActiveTab, setSelectedRequest }: ApprovedRequestsProps) {
+export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
+	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -38,17 +39,13 @@ export default function ApprovedRequests({ requests, setActiveTab, setSelectedRe
 
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
-	if (currentPage !== activePage) {
-		setCurrentPage(activePage);
-	}
 
 	const startIndex = (activePage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
 
 	const handleRowClick = (req: ApprovedRequest) => {
-		setSelectedRequest(req);
-		setActiveTab('approved-request-details');
+		navigate(`/manager/approved-requests/${req.id}`);
 	};
 
 	return (
@@ -105,12 +102,12 @@ export default function ApprovedRequests({ requests, setActiveTab, setSelectedRe
 											className="hover:bg-zinc-50/50 transition-all group cursor-pointer"
 											onClick={() => handleRowClick(req)}
 										>
-											<td className="py-4 px-6 font-bold text-zinc-900 group-hover:text-[#11236a]">{req.id}</td>
+											<td className="py-4 px-6 font-bold text-zinc-900 group-hover:text-[#11236a]">{req.requestId || req.id}</td>
 											<td className="py-4 px-6">
 												<div className="font-bold text-zinc-900 leading-tight">{req.brandName}</div>
 												<span className="text-[10px] text-zinc-500 font-medium">{req.modelNo}</span>
 											</td>
-											<td className="py-4 px-6 text-zinc-650 max-w-xs truncate">{req.sampleDescription}</td>
+											<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.sampleDescription}</td>
 											<td className="py-4 px-6 text-zinc-700">{req.requesterName}</td>
 											<td className="py-4 px-6 text-zinc-600 font-medium">{req.approvedDate}</td>
 											<td className="py-4 px-6">

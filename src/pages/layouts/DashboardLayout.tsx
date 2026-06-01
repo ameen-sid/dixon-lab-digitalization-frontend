@@ -35,13 +35,44 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
+	} else if (user.role.toLowerCase() === 'lab manager') {
+		if (path.includes('/manager/platform-tracking')) {
+			derivedActiveTab = 'platform-tracking';
+		} else if (path.includes('/manager/equipment-tracking')) {
+			derivedActiveTab = 'equipment-tracking';
+		} else if (path.includes('/manager/approved-requests') || path.includes('/manager/approved-request-details')) {
+			derivedActiveTab = 'approved-requests';
+		} else if (path.includes('/manager/assigned-samples')) {
+			derivedActiveTab = 'assigned-samples';
+		} else if (path.includes('/manager/capa-management')) {
+			derivedActiveTab = 'capa-management';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
+	} else if (user.role.toLowerCase() === 'engineer') {
+		if (path.includes('/engineer/assigned-samples')) {
+			derivedActiveTab = 'assigned-samples';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
 	}
 
 	const handleTabClick = (itemId: string) => {
-		if (user.role.toLowerCase() === 'requester') {
+		const userRoleLower = user.role.toLowerCase();
+		if (userRoleLower === 'requester') {
 			if (itemId === 'dashboard') navigate('/requester/dashboard');
 			else if (itemId === 'my-requests') navigate('/requester/my-requests');
 			else if (itemId === 'capa-management') navigate('/requester/capa');
+		} else if (userRoleLower === 'lab manager') {
+			if (itemId === 'dashboard') navigate('/manager/dashboard');
+			else if (itemId === 'platform-tracking') navigate('/manager/platform-tracking');
+			else if (itemId === 'equipment-tracking') navigate('/manager/equipment-tracking');
+			else if (itemId === 'approved-requests') navigate('/manager/approved-requests');
+			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
+			else if (itemId === 'capa-management') navigate('/manager/capa-management');
+		} else if (userRoleLower === 'engineer') {
+			if (itemId === 'dashboard') navigate('/engineer/dashboard');
+			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
 		} else {
 			onTabChange?.(itemId);
 		}
@@ -155,6 +186,46 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 											const isActive = derivedActiveTab === item.id ||
 												(item.id === 'approved-requests' && derivedActiveTab === 'approved-request-details') ||
 												(item.id === 'assigned-samples' && derivedActiveTab === 'inspect-sample');
+											return (
+												<button
+													key={item.id}
+													onClick={() => handleTabClick(item.id)}
+													title={item.label}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
+												>
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
+													{!isCollapsed && <span className="truncate">{item.label}</span>}
+												</button>
+											);
+										})}
+									</div>
+								))}
+							</>
+						) : (user.role?.toLowerCase() === 'engineer') ? (
+							<>
+								{[
+									{
+										category: 'Overview & Systems',
+										items: [
+											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
+										]
+									},
+									{
+										category: 'Operations & Testing',
+										items: [
+											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
+										]
+									}
+								].map((cat, groupIdx) => (
+									<div key={groupIdx} className="flex flex-col gap-1">
+										{!isCollapsed && (
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
+												{cat.category}
+											</div>
+										)}
+										{cat.items.map((item) => {
+											const Icon = item.icon;
+											const isActive = derivedActiveTab === item.id;
 											return (
 												<button
 													key={item.id}

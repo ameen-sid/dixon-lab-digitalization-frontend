@@ -32,7 +32,18 @@ function App() {
 				<Route path="/head/failure-decision" element={<HeadDashboard />} />
 				<Route path="/head/capa-reports" element={<HeadDashboard />} />
 				<Route path="/manager/dashboard" element={<ManagerDashboard />} />
+				<Route path="/manager/platform-tracking" element={<ManagerDashboard />} />
+				<Route path="/manager/equipment-tracking" element={<ManagerDashboard />} />
+				<Route path="/manager/approved-requests" element={<ManagerDashboard />} />
+				<Route path="/manager/approved-requests/:id" element={<ManagerDashboard />} />
+				<Route path="/manager/assigned-samples" element={<ManagerDashboard />} />
+				<Route path="/manager/assigned-samples/:planId" element={<ManagerDashboard />} />
+				<Route path="/manager/assigned-samples/:planId/sample/:sampleIndex" element={<ManagerDashboard />} />
+				<Route path="/manager/capa-management" element={<ManagerDashboard />} />
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />
+				<Route path="/engineer/assigned-samples" element={<EngineerDashboard />} />
+				<Route path="/engineer/assigned-samples/:planId" element={<EngineerDashboard />} />
+				<Route path="/engineer/assigned-samples/:planId/sample/:sampleIndex" element={<EngineerDashboard />} />
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
 				
 				{/* Requester sub-pages serving unique URL paths */}

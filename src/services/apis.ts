@@ -76,4 +76,5 @@ export const testRequestEndpoints = {
 	CREATE_TEST_REQUEST_API: BASE_URL + '/test-requests',
 	GET_TEST_REQUEST_DETAILS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
 	UPDATE_TEST_REQUEST_STATUS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
+	SAVE_SAMPLE_INSPECTION_API: (id: string | number) => BASE_URL + `/test-requests/${id}/sample-inspections`,
 };

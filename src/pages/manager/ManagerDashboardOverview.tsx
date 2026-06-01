@@ -1,7 +1,7 @@
 import { Activity, ClipboardList, CheckCircle, AlertTriangle, Users, TrendingUp } from 'lucide-react';
 
 interface ManagerDashboardOverviewProps {
-	setActiveTab: (tab: string) => void;
+	navigate: (path: string) => void;
 	stats: {
 		approvedCount: number;
 		assignedCount: number;
@@ -10,14 +10,14 @@ interface ManagerDashboardOverviewProps {
 	};
 }
 
-export default function ManagerDashboardOverview({ setActiveTab, stats }: ManagerDashboardOverviewProps) {
+export default function ManagerDashboardOverview({ navigate, stats }: ManagerDashboardOverviewProps) {
 	return (
 		<div className="space-y-8">
 			{/* Metric Cards Grid */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 				{/* Approved Requests Card */}
 				<div 
-					onClick={() => setActiveTab('approved-requests')}
+					onClick={() => navigate('/manager/approved-requests')}
 					className="bg-white border border-zinc-200 hover:border-[#11236a]/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
@@ -34,7 +34,7 @@ export default function ManagerDashboardOverview({ setActiveTab, stats }: Manage
 
 				{/* Assigned Samples Card */}
 				<div 
-					onClick={() => setActiveTab('assigned-samples')}
+					onClick={() => navigate('/manager/assigned-samples')}
 					className="bg-white border border-zinc-200 hover:border-violet-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
@@ -65,7 +65,7 @@ export default function ManagerDashboardOverview({ setActiveTab, stats }: Manage
 
 				{/* CAPA Corrective Card */}
 				<div 
-					onClick={() => setActiveTab('capa-management')}
+					onClick={() => navigate('/manager/capa-management')}
 					className="bg-white border border-zinc-200 hover:border-amber-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
@@ -86,7 +86,7 @@ export default function ManagerDashboardOverview({ setActiveTab, stats }: Manage
 				{/* Telemetry and System Uptime */}
 				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
 					<div>
-						<h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider">System Operations & Availability</h3>
+						<h3 className="text-sm font-extrabold text-zinc-955 uppercase tracking-wider">System Operations & Availability</h3>
 						<p className="text-xs text-zinc-500 font-medium mt-1">Real-time status tracking of structural modules and testing telemetry channels.</p>
 					</div>
 
@@ -100,7 +100,7 @@ export default function ManagerDashboardOverview({ setActiveTab, stats }: Manage
 								</span>
 							</div>
 							<button 
-								onClick={() => setActiveTab('platform-tracking')}
+								onClick={() => navigate('/manager/platform-tracking')}
 								className="text-xs font-bold text-[#11236a] hover:underline bg-white border border-zinc-200 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
 							>
 								Monitor
@@ -116,7 +116,7 @@ export default function ManagerDashboardOverview({ setActiveTab, stats }: Manage
 								</span>
 							</div>
 							<button 
-								onClick={() => setActiveTab('equipment-tracking')}
+								onClick={() => navigate('/manager/equipment-tracking')}
 								className="text-xs font-bold text-[#11236a] hover:underline bg-white border border-zinc-200 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
 							>
 								Monitor

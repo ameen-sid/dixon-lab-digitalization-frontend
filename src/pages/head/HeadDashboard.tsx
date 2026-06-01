@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Compass, ClipboardList, CheckCircle, XCircle, AlertTriangle, LogOut, User } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 import HeadOverview from './HeadOverview';
