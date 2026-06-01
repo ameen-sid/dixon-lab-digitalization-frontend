@@ -78,3 +78,11 @@ export const testRequestEndpoints = {
 	UPDATE_TEST_REQUEST_STATUS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
 	SAVE_SAMPLE_INSPECTION_API: (id: string | number) => BASE_URL + `/test-requests/${id}/sample-inspections`,
 };
+
+// Platform Availability Endpoints
+export const platformAvailabilityEndpoints = {
+	GET_PLATFORMS_API: BASE_URL + '/platform-availability',
+	TOGGLE_PLATFORM_API: BASE_URL + '/platform-availability/toggle',
+	RESERVE_PLATFORMS_API: BASE_URL + '/platform-availability/reserve',
+	RELEASE_PLATFORMS_API: BASE_URL + '/platform-availability/release',
+};
