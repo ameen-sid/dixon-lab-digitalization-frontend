@@ -23,7 +23,18 @@ function App() {
 				<Route path="/dashboard" element={<Dashboard />} />
 
 				{/* Role-specific clean path routes */}
+				{/* Admin Console clean path routes */}
 				<Route path="/admin/dashboard" element={<AdminDashboard />} />
+				<Route path="/admin/platform-availability" element={<AdminDashboard />} />
+				<Route path="/admin/equipment-availability" element={<AdminDashboard />} />
+				<Route path="/admin/departments-management" element={<AdminDashboard />} />
+				<Route path="/admin/users-management" element={<AdminDashboard />} />
+				<Route path="/admin/test-types" element={<AdminDashboard />} />
+				<Route path="/admin/test-categories" element={<AdminDashboard />} />
+				<Route path="/admin/test-protocols" element={<AdminDashboard />} />
+				<Route path="/admin/product-part-names" element={<AdminDashboard />} />
+				<Route path="/admin/suppliers-customers" element={<AdminDashboard />} />
+				<Route path="/admin/rd-equipment" element={<AdminDashboard />} />
 				<Route path="/ceo/dashboard" element={<CeoDashboard />} />
 				<Route path="/head/dashboard" element={<HeadDashboard />} />
 				<Route path="/head/sample-tests" element={<HeadDashboard />} />
@@ -40,6 +51,8 @@ function App() {
 				<Route path="/manager/assigned-samples/:planId" element={<ManagerDashboard />} />
 				<Route path="/manager/assigned-samples/:planId/sample/:sampleIndex" element={<ManagerDashboard />} />
 				<Route path="/manager/capa-management" element={<ManagerDashboard />} />
+				<Route path="/manager/test-plans" element={<ManagerDashboard />} />
+				<Route path="/manager/test-plans/:id" element={<ManagerDashboard />} />
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples/:planId" element={<EngineerDashboard />} />

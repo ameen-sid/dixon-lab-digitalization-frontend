@@ -107,10 +107,10 @@ export default function EngineerDashboard() {
 	}, [token, userStr]);
 
 	// Handler to sync finished inspection with backend server
-	const handleCompleteInspectionForm = async (taskId: string, result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
+	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = result === 'PASSED' ? 'UNDER_TEST' : 'UNDER_INSPECTION';
+			const statusTransition = 'UNDER_TEST';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,

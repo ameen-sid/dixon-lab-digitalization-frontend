@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import DepartmentManagement from './DepartmentManagement';
 import UserManagement from './UserManagement';
@@ -13,7 +14,22 @@ import {
 } from 'lucide-react';
 
 export default function AdminDashboard() {
-	const [activeTab, setActiveTab] = useState('departments-management'); // Set default to Departments Management
+	const location = useLocation();
+	const navigate = useNavigate();
+	const path = location.pathname;
+
+	let activeTab = 'departments-management'; // Set default to Departments Management
+	if (path.includes('/admin/dashboard')) activeTab = 'dashboard';
+	else if (path.includes('/admin/platform-availability')) activeTab = 'platform-availability';
+	else if (path.includes('/admin/equipment-availability')) activeTab = 'equipment-availability';
+	else if (path.includes('/admin/departments-management')) activeTab = 'departments-management';
+	else if (path.includes('/admin/users-management')) activeTab = 'users-management';
+	else if (path.includes('/admin/test-types')) activeTab = 'test-types-management';
+	else if (path.includes('/admin/test-categories')) activeTab = 'test-category-management';
+	else if (path.includes('/admin/test-protocols')) activeTab = 'test-protocols-management';
+	else if (path.includes('/admin/product-part-names')) activeTab = 'product-part-names';
+	else if (path.includes('/admin/suppliers-customers')) activeTab = 'suppliers-customers';
+	else if (path.includes('/admin/rd-equipment')) activeTab = 'rd-testing-equipments';
 
 	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>(() => {
 		const initial: { [key: string]: boolean } = {};
@@ -221,7 +237,7 @@ export default function AdminDashboard() {
 									</div>
 								</div>
 								<div 
-									onClick={() => setActiveTab('users-management')} 
+									onClick={() => navigate('/admin/users-management')} 
 									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
@@ -241,7 +257,7 @@ export default function AdminDashboard() {
 									</div>
 								</div>
 								<div 
-									onClick={() => setActiveTab('platform-availability')}
+									onClick={() => navigate('/admin/platform-availability')}
 									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
@@ -261,7 +277,7 @@ export default function AdminDashboard() {
 									</div>
 								</div>
 								<div 
-									onClick={() => setActiveTab('departments-management')}
+									onClick={() => navigate('/admin/departments-management')}
 									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
 								>
 									<span>View details</span>
@@ -520,7 +536,19 @@ export default function AdminDashboard() {
 			title={headers.title}
 			description={headers.desc}
 			activeTab={activeTab}
-			onTabChange={setActiveTab}
+			onTabChange={(tab) => {
+				if (tab === 'dashboard') navigate('/admin/dashboard');
+				else if (tab === 'platform-availability') navigate('/admin/platform-availability');
+				else if (tab === 'equipment-availability') navigate('/admin/equipment-availability');
+				else if (tab === 'departments-management') navigate('/admin/departments-management');
+				else if (tab === 'users-management') navigate('/admin/users-management');
+				else if (tab === 'test-types-management') navigate('/admin/test-types');
+				else if (tab === 'test-category-management') navigate('/admin/test-categories');
+				else if (tab === 'test-protocols-management') navigate('/admin/test-protocols');
+				else if (tab === 'product-part-names') navigate('/admin/product-part-names');
+				else if (tab === 'suppliers-customers') navigate('/admin/suppliers-customers');
+				else if (tab === 'rd-testing-equipments') navigate('/admin/rd-equipment');
+			}}
 		>
 			{renderContent()}
 		</DashboardLayout>

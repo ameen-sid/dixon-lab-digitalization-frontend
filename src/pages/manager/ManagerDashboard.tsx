@@ -10,10 +10,12 @@ import ApprovedRequests from './ApprovedRequests';
 import ApprovedRequestDetails from './ApprovedRequestDetails';
 import AssignedSamples from './AssignedSamples';
 import ManagerCapaManagement from './ManagerCapaManagement';
+import ManagerTestPlans from './ManagerTestPlans';
 
 // Import backend API services
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { getUsers } from '../../services/operations/userService';
+import { getPlatforms } from '../../services/operations/platformAvailabilityService';
 
 // Interface definitions
 interface ApprovedRequest {
@@ -35,6 +37,7 @@ interface ApprovedRequest {
 	inspectionDate?: string;
 	customerContactDetails?: string;
 	manufacturerNameAddress?: string;
+	sampleInspections?: any[];
 }
 
 interface InspectionTask {
@@ -123,7 +126,8 @@ export default function ManagerDashboard() {
 				engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
 				engineerName: req.assignedTo ? req.assignedTo.name : undefined,
 				inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
-				inspectionRemarks: req.remarks
+				inspectionRemarks: req.remarks,
+				sampleInspections: req.sampleInspections
 			}));
 
 			// Approved requests are those which have been signed off by the Lab Head 
@@ -164,6 +168,7 @@ export default function ManagerDashboard() {
 		if (token && userStr) {
 			loadApprovedRequests();
 			loadEngineers();
+			loadPlatformTelemetry();
 		}
 	}, [token, userStr]);
 
@@ -255,37 +260,33 @@ export default function ManagerDashboard() {
 	else if (pathSegment.startsWith('approved-requests/')) activeTab = 'approved-request-details';
 	else if (pathSegment === 'assigned-samples' || pathSegment.startsWith('assigned-samples/')) activeTab = 'assigned-samples';
 	else if (pathSegment === 'capa-management') activeTab = 'capa-management';
+	else if (pathSegment === 'test-plans') activeTab = 'test-plans';
+	else if (pathSegment.startsWith('test-plans/')) activeTab = 'test-plan-details';
 
 	// ==========================================
 	// PLATFORM TRACKING SYSTEM STATE (SHARED FROM ADMIN)
 	// ==========================================
-	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>(() => {
-		const initial: { [key: string]: boolean } = {};
-		for (let p = 1; p <= 14; p++) {
-			for (let s = 1; s <= 10; s++) {
-				initial[`${p}-${s}`] = p !== 5; // P5 occupied by default (false), others available (true)
-			}
-		}
-		return initial;
-	});
+	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>({});
+	const [platformOccupancies, setPlatformOccupancies] = useState<any[]>([]);
 
-	const toggleSlot = (p: number, s: number) => {
-		setPlatformSlots(prev => ({
-			...prev,
-			[`${p}-${s}`]: !prev[`${p}-${s}`]
-		}));
-		toast.success(`Platform ${p} Slot ${s} status updated successfully.`);
+	const loadPlatformTelemetry = async () => {
+		try {
+			const data = await getPlatforms()();
+			setPlatformOccupancies(data || []);
+			const mapping: { [key: string]: boolean } = {};
+			(data || []).forEach((item: any) => {
+				mapping[`${item.stationNo}-${item.platformNo}`] = item.isAvailable;
+			});
+			setPlatformSlots(mapping);
+		} catch (err) {
+			console.error('Failed to load platform availability telemetry:', err);
+		}
 	};
 
-	const resetSlots = () => {
-		const initial: { [key: string]: boolean } = {};
-		for (let p = 1; p <= 14; p++) {
-			for (let s = 1; s <= 10; s++) {
-				initial[`${p}-${s}`] = p !== 5;
-			}
-		}
-		setPlatformSlots(initial);
-		toast.success('Platform live tracking grid re-initialized.');
+
+	const resetSlots = async () => {
+		await loadPlatformTelemetry();
+		toast.success('Platform live tracking grid synchronized from database.');
 	};
 
 	const availableCount = Object.values(platformSlots).filter(v => v === true).length;
@@ -514,10 +515,10 @@ export default function ManagerDashboard() {
 	};
 
 	// 3. Form inspection completion (from Manager's Assigned task screen checklist)
-	const handleCompleteInspectionForm = async (taskId: string, result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
+	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = result === 'PASSED' ? 'UNDER_TEST' : 'UNDER_INSPECTION';
+			const statusTransition = 'UNDER_TEST';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,
@@ -574,6 +575,10 @@ export default function ManagerDashboard() {
 				return { title: 'Self-Assigned Inspections', desc: 'Verify calibration parameters and execute physical checklists assigned directly to you.' };
 			case 'capa-management':
 				return { title: 'CAPA Action Plans', desc: 'Track Corrective and Preventive Action plans addressing testing failures or quality exceptions.' };
+			case 'test-plans':
+				return { title: 'Test Plan Configurations', desc: 'Create, schedule, and allocate physical station testing parameters for successfully inspected samples.' };
+			case 'test-plan-details':
+				return { title: 'Configure Test Plan Specifications', desc: 'Define physical testing parameters, platforms grid, NABL cycles, and begin physical testing.' };
 			default:
 				return { title: 'Lab Operations Console', desc: 'NABL calibration and structural stress testing hub.' };
 		}
@@ -638,14 +643,18 @@ export default function ManagerDashboard() {
 											{Array.from({ length: 10 }, (_, j) => {
 												const sNum = j + 1;
 												const isAvailable = platformSlots[`${pNum}-${sNum}`];
+												const details = platformOccupancies.find((item: any) => item.stationNo === pNum && item.platformNo === sNum);
+												const tooltipText = isAvailable 
+													? `S${pNum} P${sNum}: Available` 
+													: `S${pNum} P${sNum}: Occupied\nBy: ${details?.occupiedBy || 'N/A'}\nModel: ${details?.modelNo || 'N/A'}\nUntil: ${details?.occupiedUntil ? new Date(details.occupiedUntil).toLocaleDateString() : 'N/A'}`;
 												return (
-													<button
+													<div
 														key={sNum}
-														onClick={() => toggleSlot(pNum, sNum)}
-														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border outline-none cursor-pointer active:scale-95 border-none ${
+														title={tooltipText}
+														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border select-none border-none ${
 															isAvailable
-																? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 text-emerald-700 hover:border-emerald-250'
-																: 'bg-rose-50/70 hover:bg-rose-100/70 border-rose-150 text-rose-700 hover:border-rose-250'
+																? 'bg-emerald-50/50 border-emerald-100 text-emerald-700'
+																: 'bg-rose-50/70 border-rose-150 text-rose-700'
 														}`}
 													>
 														<span className="text-[11px] font-extrabold">{sNum}</span>
@@ -654,7 +663,7 @@ export default function ManagerDashboard() {
 																? 'bg-emerald-500 group-hover:scale-125'
 																: 'bg-rose-500 group-hover:scale-125'
 														}`} />
-													</button>
+													</div>
 												);
 											})}
 										</div>
@@ -849,6 +858,45 @@ export default function ManagerDashboard() {
 						capas={capas}
 						onAddCapa={handleAddCapa}
 						requests={approvedRequests}
+					/>
+				);
+
+			case 'test-plans':
+				return (
+					<ManagerTestPlans 
+						requests={approvedRequests}
+						onUpdateStatus={async (requestId, status, remarks) => {
+							const numId = Number(requestId);
+							if (isNaN(numId)) return;
+							try {
+								const updateOp = updateTestRequestStatus(numId, status, remarks);
+								await updateOp();
+								await loadApprovedRequests();
+							} catch (e) {
+								console.error('Failed to update request testing status:', e);
+								throw e;
+							}
+						}}
+					/>
+				);
+
+			case 'test-plan-details':
+				return (
+					<ManagerTestPlans 
+						requests={approvedRequests}
+						selectedRequestId={id}
+						onUpdateStatus={async (requestId, status, remarks) => {
+							const numId = Number(requestId);
+							if (isNaN(numId)) return;
+							try {
+								const updateOp = updateTestRequestStatus(numId, status, remarks);
+								await updateOp();
+								await loadApprovedRequests();
+							} catch (e) {
+								console.error('Failed to update request testing status:', e);
+								throw e;
+							}
+						}}
 					/>
 				);
 

@@ -46,12 +46,40 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'assigned-samples';
 		} else if (path.includes('/manager/capa-management')) {
 			derivedActiveTab = 'capa-management';
+		} else if (path.includes('/manager/test-plans')) {
+			derivedActiveTab = 'test-plans';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
 	} else if (user.role.toLowerCase() === 'engineer') {
 		if (path.includes('/engineer/assigned-samples')) {
 			derivedActiveTab = 'assigned-samples';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
+	} else if (user.role.toLowerCase() === 'admin') {
+		if (path.includes('/admin/dashboard')) {
+			derivedActiveTab = 'dashboard';
+		} else if (path.includes('/admin/platform-availability')) {
+			derivedActiveTab = 'platform-availability';
+		} else if (path.includes('/admin/equipment-availability')) {
+			derivedActiveTab = 'equipment-availability';
+		} else if (path.includes('/admin/departments-management')) {
+			derivedActiveTab = 'departments-management';
+		} else if (path.includes('/admin/users-management')) {
+			derivedActiveTab = 'users-management';
+		} else if (path.includes('/admin/test-types')) {
+			derivedActiveTab = 'test-types-management';
+		} else if (path.includes('/admin/test-categories')) {
+			derivedActiveTab = 'test-category-management';
+		} else if (path.includes('/admin/test-protocols')) {
+			derivedActiveTab = 'test-protocols-management';
+		} else if (path.includes('/admin/product-part-names')) {
+			derivedActiveTab = 'product-part-names';
+		} else if (path.includes('/admin/suppliers-customers')) {
+			derivedActiveTab = 'suppliers-customers';
+		} else if (path.includes('/admin/rd-equipment')) {
+			derivedActiveTab = 'rd-testing-equipments';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -63,6 +91,18 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			if (itemId === 'dashboard') navigate('/requester/dashboard');
 			else if (itemId === 'my-requests') navigate('/requester/my-requests');
 			else if (itemId === 'capa-management') navigate('/requester/capa');
+		} else if (userRoleLower === 'admin') {
+			if (itemId === 'dashboard') navigate('/admin/dashboard');
+			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
+			else if (itemId === 'equipment-availability') navigate('/admin/equipment-availability');
+			else if (itemId === 'departments-management') navigate('/admin/departments-management');
+			else if (itemId === 'users-management') navigate('/admin/users-management');
+			else if (itemId === 'test-types-management') navigate('/admin/test-types');
+			else if (itemId === 'test-category-management') navigate('/admin/test-categories');
+			else if (itemId === 'test-protocols-management') navigate('/admin/test-protocols');
+			else if (itemId === 'product-part-names') navigate('/admin/product-part-names');
+			else if (itemId === 'suppliers-customers') navigate('/admin/suppliers-customers');
+			else if (itemId === 'rd-testing-equipments') navigate('/admin/rd-equipment');
 		} else if (userRoleLower === 'lab manager') {
 			if (itemId === 'dashboard') navigate('/manager/dashboard');
 			else if (itemId === 'platform-tracking') navigate('/manager/platform-tracking');
@@ -70,6 +110,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'approved-requests') navigate('/manager/approved-requests');
 			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
 			else if (itemId === 'capa-management') navigate('/manager/capa-management');
+			else if (itemId === 'test-plans') navigate('/manager/test-plans');
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
@@ -171,6 +212,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'approved-requests', label: 'Approved Requests', icon: FileText },
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
+											{ id: 'test-plans', label: 'Test Plans', icon: Settings },
 											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
 										]
 									}
