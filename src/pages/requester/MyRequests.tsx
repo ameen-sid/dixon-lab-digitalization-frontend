@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, X, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
 
 interface RequestRecord {
 	id: string;
@@ -101,21 +102,22 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 						)}
 					</div>
 					
-					<select
+					<CustomSelect
 						value={statusFilter}
-						onChange={(e) => {
-							setStatusFilter(e.target.value);
+						onChange={(val) => {
+							setStatusFilter(val);
 							setCurrentPage(1);
 						}}
-						className="bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 outline-none cursor-pointer hover:bg-zinc-50 transition-colors"
-					>
-						<option value="ALL">All Statuses</option>
-						<option value="PENDING_APPROVAL">Pending Approval</option>
-						<option value="UNDER_INSPECTION">Under Inspection</option>
-						<option value="UNDER_TEST">Under Test</option>
-						<option value="COMPLETED">Completed</option>
-						<option value="REJECTED">Rejected</option>
-					</select>
+						options={[
+							{ value: 'ALL',              label: 'All Statuses' },
+							{ value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+							{ value: 'UNDER_INSPECTION', label: 'Under Inspection' },
+							{ value: 'UNDER_TEST',       label: 'Under Test' },
+							{ value: 'COMPLETED',        label: 'Completed' },
+							{ value: 'REJECTED',         label: 'Rejected' }
+						]}
+						className="w-44 shrink-0"
+					/>
 
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>

@@ -68,6 +68,19 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				)}
 			</div>
 
+			{/* Rejection Remarks from Head */}
+			{selectedRequest.status === 'REJECTED' && selectedRequest.remarks && (
+				<div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 shadow-sm flex flex-col gap-2">
+					<div className="flex items-center gap-2 text-rose-800 font-extrabold text-sm">
+						<span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+						Rejection Remarks from Head of Lab
+					</div>
+					<p className="text-xs font-semibold text-rose-750 leading-relaxed bg-white/60 rounded-xl p-3 border border-rose-100/50">
+						{selectedRequest.remarks}
+					</p>
+				</div>
+			)}
+
 			{/* Three Column details panel */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Left Columns: Core Metadata */}
@@ -97,7 +110,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 
 						{/* Applicant details */}
 						<div className="bg-zinc-50/50 border border-zinc-200/50 rounded-2xl p-4 space-y-3">
-							<h4 className="text-[10px] font-extrabold text-indigo-950 uppercase tracking-wider">Applicant & Manufacturer Information</h4>
+							<h4 className="text-[10px] font-extrabold text-indigo-955 uppercase tracking-wider">Applicant & Manufacturer Information</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
 								<div>
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Applicant Name & Address</p>
@@ -105,7 +118,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 								<div>
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Contact Details</p>
-									<p className="font-bold text-zinc-850 mt-0.5">{selectedRequest.customerContactDetails}</p>
+									<p className="font-bold text-zinc-855 mt-0.5">{selectedRequest.customerContactDetails}</p>
 								</div>
 								<div className="sm:col-span-2 border-t border-zinc-200/70 pt-2.5">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Manufacturer Name & Address</p>
@@ -155,7 +168,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 								<div>
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Sample Disposal Scheme</p>
-									<p className="font-bold text-zinc-850 mt-0.5">
+									<p className="font-bold text-zinc-855 mt-0.5">
 										{selectedRequest.collectBack === 'Yes' ? 'Collect Back after test' : 
 										 selectedRequest.collectBack === 'No_Retain' ? 'Retain in lab archives' : 
 										 'Discard after testing cycle'}
@@ -174,7 +187,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Statement of Conformity</p>
 									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.conformityStatement}</p>
 									{selectedRequest.conformityStatement === 'Required' && selectedRequest.decisionRule && (
-										<p className="text-[10px] text-zinc-650 font-semibold mt-1 bg-white p-2 border border-zinc-150 rounded-lg">
+										<p className="text-[10px] text-zinc-655 font-semibold mt-1 bg-white p-2 border border-zinc-150 rounded-lg">
 											Decision Rule: <span className="font-bold text-zinc-800">
 												{selectedRequest.decisionRule === 'A' ? 'A (Measurement of uncertainty)' :
 												 selectedRequest.decisionRule === 'B' ? 'B (As per standard)' :
@@ -234,7 +247,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							</div>
 						)}
 					</div>
-
 				</div>
 
 				{/* Right Column: Telemetry & Flow Charts */}
@@ -244,6 +256,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 						<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Step Progression</h4>
 						<div className="space-y-4 relative pl-5 border-l border-zinc-200 ml-2 pt-1">
 							{(() => {
+								const isRejected = selectedRequest.status === 'REJECTED';
 								const steps = [
 									{ 
 										step: 'Testing Request Submitted', 
@@ -252,41 +265,44 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									},
 									{ 
 										step: 'Approved Testing Request by Head of Lab', 
-										date: selectedRequest.status !== 'PENDING_APPROVAL' && selectedRequest.status !== 'REJECTED' ? selectedRequest.createdDate : selectedRequest.status === 'REJECTED' ? 'Rejected' : 'Awaiting approval', 
-										completed: selectedRequest.status !== 'PENDING_APPROVAL' && selectedRequest.status !== 'REJECTED',
-										failed: selectedRequest.status === 'REJECTED'
+										date: isRejected ? 'Rejected' : (selectedRequest.status !== 'PENDING_APPROVAL' ? selectedRequest.createdDate : 'Awaiting approval'), 
+										completed: selectedRequest.status !== 'PENDING_APPROVAL' && !isRejected,
+										failed: isRejected
 									},
-									{ 
-										step: selectedRequest.status === 'REJECTED' ? 'Sample Failed - Re-submit Testing Request' : 'Sample Checked', 
-										date: selectedRequest.status === 'REJECTED' ? 'Rejected' : selectedRequest.status !== 'PENDING_APPROVAL' ? selectedRequest.createdDate : 'Pending verification', 
-										completed: selectedRequest.status !== 'PENDING_APPROVAL' && selectedRequest.status !== 'REJECTED',
-										failed: selectedRequest.status === 'REJECTED'
-									},
-									{ 
-										step: 'Test Plan Created', 
-										date: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : selectedRequest.status === 'UNDER_INSPECTION' ? 'In planning phase' : 'Awaiting plan', 
-										completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
-									},
-									{ 
-										step: 'Testing', 
-										date: selectedRequest.status === 'UNDER_TEST' ? 'Active phase' : selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting start', 
-										completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
-									},
-									{ 
-										step: selectedRequest.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Testing Passed', 
-										date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting results', 
-										completed: selectedRequest.status === 'COMPLETED' 
-									},
-									{ 
-										step: 'Report Generation', 
-										date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending release', 
-										completed: selectedRequest.status === 'COMPLETED' 
-									},
-									{ 
-										step: 'Approved Final Report by Head', 
-										date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending final sign-off', 
-										completed: selectedRequest.status === 'COMPLETED' 
-									}
+									...(!isRejected ? [
+										{ 
+											step: 'Sample Checked', 
+											date: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED' 
+												? selectedRequest.createdDate 
+												: (selectedRequest.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'), 
+											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED',
+										},
+										{ 
+											step: 'Test Plan Created', 
+											date: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting plan', 
+											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
+										},
+										{ 
+											step: 'Testing', 
+											date: selectedRequest.status === 'UNDER_TEST' ? 'Active phase' : (selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting start'), 
+											completed: selectedRequest.status === 'UNDER_TEST' || selectedRequest.status === 'COMPLETED'
+										},
+										{ 
+											step: selectedRequest.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Testing Passed', 
+											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting results', 
+											completed: selectedRequest.status === 'COMPLETED' 
+										},
+										{ 
+											step: 'Report Generation', 
+											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending release', 
+											completed: selectedRequest.status === 'COMPLETED' 
+										},
+										{ 
+											step: 'Approved Final Report by Head', 
+											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending final sign-off', 
+											completed: selectedRequest.status === 'COMPLETED' 
+										}
+									] : [])
 								];
 
 								const activeIdx = steps.findIndex(s => !s.completed && !s.failed);

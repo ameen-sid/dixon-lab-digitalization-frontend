@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { Compass, ClipboardList, CheckCircle, XCircle, AlertTriangle, LogOut, User } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 import HeadOverview from './HeadOverview';
@@ -7,6 +7,7 @@ import HeadSampleTests from './HeadSampleTests';
 import HeadCompletedReports from './HeadCompletedReports';
 import HeadFailureDecision from './HeadFailureDecision';
 import HeadCapaReports from './HeadCapaReports';
+import HeadRequestDetails from './HeadRequestDetails';
 
 const navItems = [
 	{ id: 'dashboard',          label: 'Dashboard',           icon: Compass,       path: '/head/dashboard' },
@@ -43,13 +44,21 @@ export default function HeadDashboard() {
 	if (user.role?.toLowerCase() !== 'head') return null;
 
 	const pathSegment = location.pathname.replace('/head/', '') || 'dashboard';
-	const activeId = navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard';
-	const { title, desc } = titleMap[activeId] ?? titleMap['dashboard'];
+	
+	// Check if this is a sub-page details route
+	const isDetailsPage = pathSegment.startsWith('sample-tests/') && pathSegment !== 'sample-tests';
+	
+	const activeId = isDetailsPage ? 'sample-tests' : (navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard');
+	
+	const { title, desc } = isDetailsPage 
+		? { title: 'Review Testing Request Details', desc: 'Inspect request specifications, attachments, timeline, and issue approvals/rejections.' }
+		: (titleMap[activeId] ?? titleMap['dashboard']);
 
 	const handleLogout = async () => { await logout()(); navigate('/'); };
 
 	const renderPage = () => {
 		if (pathSegment === 'dashboard' || location.pathname === '/head/dashboard') return <HeadOverview navigate={navigate} />;
+		if (isDetailsPage)                       return <HeadRequestDetails />;
 		if (pathSegment === 'sample-tests')      return <HeadSampleTests />;
 		if (pathSegment === 'completed-reports') return <HeadCompletedReports />;
 		if (pathSegment === 'failure-decision')  return <HeadFailureDecision />;

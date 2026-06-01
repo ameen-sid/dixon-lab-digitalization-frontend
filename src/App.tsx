@@ -27,6 +27,7 @@ function App() {
 				<Route path="/ceo/dashboard" element={<CeoDashboard />} />
 				<Route path="/head/dashboard" element={<HeadDashboard />} />
 				<Route path="/head/sample-tests" element={<HeadDashboard />} />
+				<Route path="/head/sample-tests/:id" element={<HeadDashboard />} />
 				<Route path="/head/completed-reports" element={<HeadDashboard />} />
 				<Route path="/head/failure-decision" element={<HeadDashboard />} />
 				<Route path="/head/capa-reports" element={<HeadDashboard />} />
