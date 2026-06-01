@@ -26,6 +26,10 @@ function App() {
 				<Route path="/admin/dashboard" element={<AdminDashboard />} />
 				<Route path="/ceo/dashboard" element={<CeoDashboard />} />
 				<Route path="/head/dashboard" element={<HeadDashboard />} />
+				<Route path="/head/sample-tests" element={<HeadDashboard />} />
+				<Route path="/head/completed-reports" element={<HeadDashboard />} />
+				<Route path="/head/failure-decision" element={<HeadDashboard />} />
+				<Route path="/head/capa-reports" element={<HeadDashboard />} />
 				<Route path="/manager/dashboard" element={<ManagerDashboard />} />
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
