@@ -12,6 +12,7 @@ import EngineerDashboard from './pages/engineer/EngineerDashboard';
 import InspectorDashboard from './pages/inspector/InspectorDashboard';
 import InspectorDailyChecksheet from './pages/inspector/InspectorDailyChecksheet';
 import InspectorChecksheet from './pages/inspector/InspectorChecksheet';
+import ManagerEvaluateChecksheet from './pages/manager/ManagerEvaluateChecksheet';
 import RequesterDashboard from './pages/requester/RequesterDashboard';
 
 function App() {
@@ -53,6 +54,7 @@ function App() {
 				<Route path="/manager/capa-management" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans/:id" element={<ManagerDashboard />} />
+				<Route path="/manager/evaluate-checksheet/:planKey" element={<ManagerEvaluateChecksheet />} />
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples/:planId" element={<EngineerDashboard />} />

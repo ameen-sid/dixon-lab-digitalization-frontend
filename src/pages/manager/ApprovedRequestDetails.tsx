@@ -165,7 +165,14 @@ export default function ApprovedRequestDetails({
 								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
 								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
 						: 'Awaiting start', 
-				completed: request.status === 'COMPLETED'
+				completed: request.status === 'COMPLETED' || !!(testPlan && new Date() > new Date(testPlan.endDate))
+			},
+			{ 
+				step: 'Reliability Evaluation', 
+				date: testPlan && testPlan.evaluationStatus
+					? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
+					: 'Awaiting checksheet completion and evaluation', 
+				completed: !!(testPlan && testPlan.evaluationStatus)
 			},
 			{ 
 				step: 'Approved Final Report by Head', 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 
@@ -30,6 +30,8 @@ interface TestPlanForm {
 	endDate: string;
 	remarks: string;
 	equipmentId: string;
+	evaluationStatus?: 'PASSED' | 'FAILED';
+	evaluationRemarks?: string;
 }
 
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus }: ManagerTestPlansProps) {
@@ -583,16 +585,52 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														Plan Disabled - Sample Failed
 													</span>
 												) : isPassed ? (
-													<button
-														onClick={() => handleOpenPlanForm(index)}
-														className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${plan
-																? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
-																: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
-															}`}
-													>
-														<Clipboard className="w-3.5 h-3.5 shrink-0" />
-														{plan ? 'Edit Test Plan' : 'Create Test Plan'}
-													</button>
+													<div className="flex flex-wrap items-center gap-2 shrink-0">
+														<button
+															onClick={() => handleOpenPlanForm(index)}
+															className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${plan
+																	? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
+																	: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
+																}`}
+														>
+															<Clipboard className="w-3.5 h-3.5 shrink-0" />
+															{plan ? 'Edit Test Plan' : 'Create Test Plan'}
+														</button>
+
+														{plan && (() => {
+															const todayStr = new Date().toISOString().split('T')[0];
+															const isLastDateOrLater = todayStr >= plan.endDate;
+															const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+
+															if (isLastDateOrLater) {
+																if (isEvaluated) {
+																	return (
+																		<span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${
+																			plan.evaluationStatus === 'PASSED'
+																				? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+																				: 'bg-rose-50 text-rose-600 border-rose-100'
+																		}`}>
+																			{plan.evaluationStatus === 'PASSED' ? (
+																				<CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+																			) : (
+																				<XCircle className="w-3.5 h-3.5 text-rose-650 shrink-0" />
+																			)}
+																			Evaluated: {plan.evaluationStatus}
+																		</span>
+																	);
+																}
+																return (
+																	<button
+																		onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-sample-${index}`)}
+																		className="px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm bg-amber-600 hover:bg-amber-700 text-white hover:scale-[1.01] active:scale-95 shrink-0"
+																	>
+																		Evaluate
+																	</button>
+																);
+															}
+															return null;
+														})()}
+													</div>
 												) : (
 													<span className="text-[10px] font-bold text-zinc-400 shrink-0">
 														Awaiting complete inspection
