@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, Play, CheckCircle, AlertTriangle, X, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 
@@ -177,8 +177,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	};
 
-	// Save test plan to local cache
-	const handleSaveTestPlan = (e: React.FormEvent) => {
+	// Save test plan to local cache & reserve in database
+	const handleSaveTestPlan = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedReq || activeSampleIndex === null) return;
 
@@ -187,70 +187,44 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			return;
 		}
 
-		const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
-		const updatedPlans = {
-			...savedPlans,
-			[key]: form
-		};
-
-		setSavedPlans(updatedPlans);
-		localStorage.setItem('dixon_sample_test_plans', JSON.stringify(updatedPlans));
-		
-		toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved successfully!`);
-		setActiveSampleIndex(null);
-	};
-
-	// Activate complete test plan, update request phase and occupy database platforms
-	const handleActivateRequestTesting = async () => {
-		if (!selectedReq) return;
-		
-		const qty = selectedReq.sampleQty || 1;
-		const passedIndices: number[] = [];
-
-		for (let i = 0; i < qty; i++) {
-			const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-			if (report && report.status === 'PASSED') {
-				passedIndices.push(i);
-			}
-		}
-
-		// Validate that all passed samples have a test plan created
-		const missingPlans = passedIndices.filter(idx => !savedPlans[`${selectedReq.id}-sample-${idx}`]);
-		if (missingPlans.length > 0) {
-			toast.error(`Please create test plans for all passed samples (Sample #${missingPlans.map(i => i + 1).join(', ')}) before starting testing.`);
-			return;
-		}
-
 		try {
-			// 1. Reserve platform channels in database for all planned samples
-			for (const idx of passedIndices) {
-				const plan = savedPlans[`${selectedReq.id}-sample-${idx}`];
-				if (plan) {
-					const resOp = reservePlatforms(
-						Number(plan.stationNo),
-						plan.platformNos.map(Number),
-						Number(selectedReq.id),
-						`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${idx + 1})`,
-						selectedReq.modelNo,
-						plan.endDate
-					);
-					await resOp();
-				}
+			// 1. Reserve platform channels in database for this sample
+			const resOp = reservePlatforms(
+				Number(form.stationNo),
+				form.platformNos.map(Number),
+				Number(selectedReq.id),
+				`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
+				selectedReq.modelNo,
+				form.endDate
+			);
+			await resOp();
+
+			// 2. Perform parent status sync if callback is provided
+			if (onUpdateStatus) {
+				await onUpdateStatus(
+					selectedReq.id, 
+					'UNDER_TEST', 
+					`Test Plan configured for Sample #${activeSampleIndex + 1} at Station S${form.stationNo}.`
+				);
 			}
 
-			// 2. Perform request state transition to UNDER_TEST
-			if (onUpdateStatus) {
-				await onUpdateStatus(selectedReq.id, 'UNDER_TEST', 'Test Plan activated. Commencing physical platform testing.');
-				toast.success('Test plan activated successfully! Request is now running stress tests.');
-				
-				// Return to the register list
-				navigate('/manager/test-plans');
-			}
+			const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
+			const updatedPlans = {
+				...savedPlans,
+				[key]: form
+			};
+
+			setSavedPlans(updatedPlans);
+			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(updatedPlans));
+			
+			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved and platforms reserved!`);
+			setActiveSampleIndex(null);
 		} catch (error) {
-			console.error('Failed to transition request to testing phase:', error);
-			toast.error('Failed to activate platform testing reservations.');
+			console.error('Failed to reserve platforms for test plan:', error);
+			toast.error('Failed to reserve platform channels in database.');
 		}
 	};
+
 
 	// Search and Paginate filters
 	const filteredRequests = inspectedRequests.filter(r => {
@@ -429,28 +403,39 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-						{/* Left: Request Details (Specifications Card) */}
-						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1">
-							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
-								Request Specifications
-							</h4>
-							<div className="space-y-3.5 text-xs font-semibold">
-								<div>
-									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Sample Description</p>
-									<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{selectedReq.sampleDescription}</p>
+						{/* Left: Request Details Card */}
+						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1 flex flex-col justify-between">
+							<div className="space-y-4">
+								<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
+									Request Details
+								</h4>
+								<div className="space-y-3.5 text-xs font-semibold">
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Sample Description</p>
+										<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{selectedReq.sampleDescription}</p>
+									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer & Brand</p>
+										<p className="font-bold text-zinc-800 mt-1">{selectedReq.brandName} — {selectedReq.modelNo}</p>
+									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Reference</p>
+										<p className="font-bold text-[#11236a] mt-1">{selectedReq.testMethodRef}</p>
+									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Quantity</p>
+										<p className="font-bold text-zinc-800 mt-1">{selectedReq.sampleQty || 1} Units</p>
+									</div>
 								</div>
-								<div>
-									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer & Brand</p>
-									<p className="font-bold text-zinc-800 mt-1">{selectedReq.brandName} — {selectedReq.modelNo}</p>
-								</div>
-								<div>
-									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Reference</p>
-									<p className="font-bold text-[#11236a] mt-1">{selectedReq.testMethodRef}</p>
-								</div>
-								<div>
-									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Quantity</p>
-									<p className="font-bold text-zinc-800 mt-1">{selectedReq.sampleQty || 1} Units</p>
-								</div>
+							</div>
+							<div className="border-t border-zinc-100 mt-4 pt-3">
+								<button
+									onClick={() => navigate(`/manager/approved-requests/${selectedReq.id}`)}
+									className="w-full py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-700 hover:text-[#11236a] text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95"
+								>
+									<span>View More</span>
+									<ChevronRight className="w-3.5 h-3.5" />
+								</button>
 							</div>
 						</div>
 
@@ -484,11 +469,14 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										const sampleNo = index + 1;
 										const isFailed = report?.status === 'FAILED';
 										const isPassed = report?.status === 'PASSED';
+										
+										const todayStr = new Date().toISOString().split('T')[0];
+										const isTesting = plan && plan.startDate <= todayStr;
 
 										return (
 											<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 												<div className="space-y-1">
-													<div className="flex items-center gap-2">
+													<div className="flex items-center gap-2 flex-wrap">
 														<span className="text-xs font-bold text-zinc-855">Sample #{sampleNo}</span>
 														{report ? (
 															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
@@ -501,6 +489,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														) : (
 															<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-zinc-100 text-zinc-450 rounded uppercase tracking-wider">
 																No Inspection Report
+															</span>
+														)}
+														{plan && (
+															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+																isTesting 
+																	? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse' 
+																	: 'bg-amber-50 text-amber-700 border border-amber-100'
+															}`}>
+																{isTesting ? 'Testing' : 'Scheduled'}
 															</span>
 														)}
 													</div>
@@ -548,19 +545,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 
 							{/* Activation Footer */}
-							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
+							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end">
 								<button
 									onClick={() => navigate('/manager/test-plans')}
-									className="px-4 py-2 border border-zinc-200 text-zinc-650 hover:bg-zinc-50 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none"
+									className="px-4 py-2 border border-zinc-200 text-zinc-650 hover:bg-zinc-50 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none shadow-sm active:scale-95"
 								>
 									Close View
-								</button>
-								<button
-									onClick={handleActivateRequestTesting}
-									className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-xl transition-all cursor-pointer border-none outline-none flex items-center gap-2 shadow-md hover:scale-[1.01] active:scale-95"
-								>
-									<Play className="w-3.5 h-3.5 shrink-0" />
-									Activate Test Plan & Start Testing
 								</button>
 							</div>
 						</div>
