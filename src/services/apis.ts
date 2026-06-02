@@ -68,6 +68,8 @@ export const testingEquipmentEndpoints = {
 	CREATE_TESTING_EQUIPMENT_API: BASE_URL + '/testing-equipments',
 	UPDATE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
 	DELETE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
+	RESERVE_EQUIPMENT_API: BASE_URL + '/testing-equipments/reserve',
+	RELEASE_EQUIPMENT_API: BASE_URL + '/testing-equipments/release',
 };
 
 // Test Request Endpoints

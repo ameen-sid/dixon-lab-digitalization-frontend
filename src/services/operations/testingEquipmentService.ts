@@ -2,7 +2,7 @@ import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
 import { testingEquipmentEndpoints } from '../apis';
 
-const { GET_TESTING_EQUIPMENTS_API, CREATE_TESTING_EQUIPMENT_API, UPDATE_TESTING_EQUIPMENT_API, DELETE_TESTING_EQUIPMENT_API } = testingEquipmentEndpoints;
+const { GET_TESTING_EQUIPMENTS_API, CREATE_TESTING_EQUIPMENT_API, UPDATE_TESTING_EQUIPMENT_API, DELETE_TESTING_EQUIPMENT_API, RESERVE_EQUIPMENT_API, RELEASE_EQUIPMENT_API } = testingEquipmentEndpoints;
 
 interface AxiosServiceError {
 	response?: {
@@ -103,11 +103,69 @@ export const deleteTestingEquipment = (id: number) => {
 	};
 };
 
+export const reserveEquipment = (
+	id: number,
+	testRequestId: number,
+	occupiedBy: string,
+	modelNo: string,
+	occupiedUntil: string
+) => {
+	return async () => {
+		const toastId = toast.loading('Reserving testing equipment...');
+		try {
+			const response = await apiConnector('POST', RESERVE_EQUIPMENT_API, {
+				id,
+				testRequestId,
+				occupiedBy,
+				modelNo,
+				occupiedUntil
+			});
+			const isSuccess = response.data?.success ?? true;
+			if (!isSuccess) throw new Error(response.data?.message || 'Failed to reserve equipment');
+
+			toast.success(`Equipment reserved successfully!`);
+			return response.data.data;
+		} catch (error) {
+			console.error('RESERVE_EQUIPMENT_API Error: ', error);
+			const err = error as AxiosServiceError;
+			const errMsg = err.response?.data?.message || err.message || 'Failed to reserve equipment.';
+			toast.error(errMsg);
+			throw new Error(errMsg, { cause: error });
+		} finally {
+			toast.dismiss(toastId);
+		}
+	};
+};
+
+export const releaseEquipment = (id: number) => {
+	return async () => {
+		const toastId = toast.loading('Releasing testing equipment...');
+		try {
+			const response = await apiConnector('POST', RELEASE_EQUIPMENT_API, { id });
+			const isSuccess = response.data?.success ?? true;
+			if (!isSuccess) throw new Error(response.data?.message || 'Failed to release equipment');
+
+			toast.success(`Equipment released successfully.`);
+			return response.data.data;
+		} catch (error) {
+			console.error('RELEASE_EQUIPMENT_API Error: ', error);
+			const err = error as AxiosServiceError;
+			const errMsg = err.response?.data?.message || err.message || 'Failed to release equipment.';
+			toast.error(errMsg);
+			throw new Error(errMsg, { cause: error });
+		} finally {
+			toast.dismiss(toastId);
+		}
+	};
+};
+
 const testingEquipmentService = {
 	getTestingEquipments,
 	createTestingEquipment,
 	updateTestingEquipment,
-	deleteTestingEquipment
+	deleteTestingEquipment,
+	reserveEquipment,
+	releaseEquipment
 };
 
 export default testingEquipmentService;
