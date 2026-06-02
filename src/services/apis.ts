@@ -88,3 +88,9 @@ export const platformAvailabilityEndpoints = {
 	RESERVE_PLATFORMS_API: BASE_URL + '/platform-availability/reserve',
 	RELEASE_PLATFORMS_API: BASE_URL + '/platform-availability/release',
 };
+
+// Reliability Checksheet Endpoints
+export const reliabilityChecksheetEndpoints = {
+	UPSERT_ENTRY_API: BASE_URL + '/reliability-checksheets/upsert',
+	GET_ENTRIES_API: (planKey: string) => BASE_URL + `/reliability-checksheets/${planKey}`,
+};
