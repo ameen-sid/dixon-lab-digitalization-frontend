@@ -10,6 +10,8 @@ import HeadDashboard from './pages/head/HeadDashboard';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import EngineerDashboard from './pages/engineer/EngineerDashboard';
 import InspectorDashboard from './pages/inspector/InspectorDashboard';
+import InspectorDailyChecksheet from './pages/inspector/InspectorDailyChecksheet';
+import InspectorChecksheet from './pages/inspector/InspectorChecksheet';
 import RequesterDashboard from './pages/requester/RequesterDashboard';
 
 function App() {
@@ -56,6 +58,8 @@ function App() {
 				<Route path="/engineer/assigned-samples/:planId" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples/:planId/sample/:sampleIndex" element={<EngineerDashboard />} />
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
+				<Route path="/inspector/daily-checksheet" element={<InspectorDailyChecksheet />} />
+				<Route path="/inspector/checksheet/:planKey" element={<InspectorChecksheet />} />
 				
 				{/* Requester sub-pages serving unique URL paths */}
 				<Route path="/requester" element={<RequesterDashboard />} />

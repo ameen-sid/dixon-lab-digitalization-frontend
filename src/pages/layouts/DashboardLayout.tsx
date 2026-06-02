@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench } from 'lucide-react';
+import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
 interface DashboardLayoutProps {
@@ -54,6 +54,12 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	} else if (user.role.toLowerCase() === 'engineer') {
 		if (path.includes('/engineer/assigned-samples')) {
 			derivedActiveTab = 'assigned-samples';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
+	} else if (user.role.toLowerCase() === 'inspector') {
+		if (path.includes('/inspector/daily-checksheet') || path.includes('/inspector/checksheet')) {
+			derivedActiveTab = 'daily-checksheet';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -114,6 +120,9 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
+		} else if (userRoleLower === 'inspector') {
+			if (itemId === 'dashboard') navigate('/inspector/dashboard');
+			else if (itemId === 'daily-checksheet') navigate('/inspector/daily-checksheet');
 		} else {
 			onTabChange?.(itemId);
 		}
@@ -256,6 +265,41 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										category: 'Operations & Testing',
 										items: [
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
+										]
+									}
+								].map((cat, groupIdx) => (
+									<div key={groupIdx} className="flex flex-col gap-1">
+										{!isCollapsed && (
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
+												{cat.category}
+											</div>
+										)}
+										{cat.items.map((item) => {
+											const Icon = item.icon;
+											const isActive = derivedActiveTab === item.id;
+											return (
+												<button
+													key={item.id}
+													onClick={() => handleTabClick(item.id)}
+													title={item.label}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
+												>
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
+													{!isCollapsed && <span className="truncate">{item.label}</span>}
+												</button>
+											);
+										})}
+									</div>
+								))}
+							</>
+						) : (user.role?.toLowerCase() === 'inspector') ? (
+							<>
+								{[
+									{
+										category: 'Inspector Workspace',
+										items: [
+											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
+											{ id: 'daily-checksheet', label: 'Daily Checksheet', icon: CheckSquare },
 										]
 									}
 								].map((cat, groupIdx) => (

@@ -235,11 +235,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			return;
 		}
 
-		if (!form.equipmentId) {
-			toast.error('Please assign a physical R&D Equipment.');
-			return;
-		}
-
 		try {
 			// 1. Reserve platform channels in database for this sample
 			const resOp = reservePlatforms(
@@ -252,15 +247,17 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			);
 			await resOp();
 
-			// 2. Reserve physical R&D Equipment in database
-			const eqResOp = reserveEquipment(
-				Number(form.equipmentId),
-				Number(selectedReq.id),
-				`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
-				selectedReq.modelNo,
-				form.endDate
-			);
-			await eqResOp();
+			// 2. Reserve physical R&D Equipment in database if selected
+			if (form.equipmentId) {
+				const eqResOp = reserveEquipment(
+					Number(form.equipmentId),
+					Number(selectedReq.id),
+					`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
+					selectedReq.modelNo,
+					form.endDate
+				);
+				await eqResOp();
+			}
 
 			// 3. Perform parent status sync if callback is provided
 			if (onUpdateStatus) {
@@ -710,7 +707,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 							{/* R&D Equipment selection */}
 							<div className="flex flex-col gap-1.5">
-								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">Assign R&D Equipment</label>
+								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">Assign R&D Equipment (Optional)</label>
 								<select
 									id="equipmentSelect"
 									value={form.equipmentId}
