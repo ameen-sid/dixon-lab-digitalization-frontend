@@ -403,16 +403,16 @@ export default function HeadRequestDetails() {
 										},
 										{ 
 											step: 'Test Plan Created', 
-											date: request.status === 'COMPLETED' 
+											date: request.status === 'COMPLETED' || request.status === 'UNDER_TEST'
 												? new Date(request.createdAt).toLocaleString() 
 												: 'Awaiting plan', 
-											completed: request.status === 'COMPLETED'
+											completed: request.status === 'COMPLETED' || request.status === 'UNDER_TEST'
 										},
 										{ 
 											step: 'Testing', 
 											date: request.status === 'COMPLETED' 
 												? new Date(request.createdAt).toLocaleString() 
-												: 'Awaiting start', 
+												: (request.status === 'UNDER_TEST' ? 'In testing phase' : 'Awaiting start'), 
 											completed: request.status === 'COMPLETED'
 										},
 										{ 

@@ -302,16 +302,16 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										},
 										{ 
 											step: 'Test Plan Created', 
-											date: selectedRequest.status === 'COMPLETED'
+											date: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
 												? selectedRequest.createdDate 
 												: 'Awaiting plan', 
-											completed: selectedRequest.status === 'COMPLETED'
+											completed: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
 										},
 										{ 
 											step: 'Testing', 
 											date: selectedRequest.status === 'COMPLETED' 
 												? selectedRequest.createdDate 
-												: 'Awaiting start', 
+												: (selectedRequest.status === 'UNDER_TEST' ? 'In testing phase' : 'Awaiting start'), 
 											completed: selectedRequest.status === 'COMPLETED'
 										},
 										{ 
