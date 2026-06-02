@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import DashboardLayout from '../layouts/DashboardLayout';
+import { getPlatforms } from '../../services/operations/platformAvailabilityService';
 import DepartmentManagement from './DepartmentManagement';
 import UserManagement from './UserManagement';
 import TestTypeManagement from './TestTypeManagement';
@@ -31,31 +33,36 @@ export default function AdminDashboard() {
 	else if (path.includes('/admin/suppliers-customers')) activeTab = 'suppliers-customers';
 	else if (path.includes('/admin/rd-equipment')) activeTab = 'rd-testing-equipments';
 
-	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>(() => {
-		const initial: { [key: string]: boolean } = {};
-		for (let p = 1; p <= 14; p++) {
-			for (let s = 1; s <= 10; s++) {
-				initial[`${p}-${s}`] = p !== 5; // P5 occupied by default (false), others available (true)
-			}
-		}
-		return initial;
-	});
+	const token = localStorage.getItem('token');
+	const userStr = localStorage.getItem('user');
 
-	const toggleSlot = (p: number, s: number) => {
-		setPlatformSlots(prev => ({
-			...prev,
-			[`${p}-${s}`]: !prev[`${p}-${s}`]
-		}));
+	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>({});
+	const [platformOccupancies, setPlatformOccupancies] = useState<any[]>([]);
+	const [selectedPlatformModal, setSelectedPlatformModal] = useState<{ stationNo: number; platformNo: number } | null>(null);
+
+	const loadPlatformTelemetry = async () => {
+		try {
+			const data = await getPlatforms()();
+			setPlatformOccupancies(data || []);
+			const mapping: { [key: string]: boolean } = {};
+			(data || []).forEach((item: any) => {
+				mapping[`${item.stationNo}-${item.platformNo}`] = item.isAvailable;
+			});
+			setPlatformSlots(mapping);
+		} catch (err) {
+			console.error('Failed to load platform availability telemetry:', err);
+		}
 	};
 
-	const resetSlots = () => {
-		const initial: { [key: string]: boolean } = {};
-		for (let p = 1; p <= 14; p++) {
-			for (let s = 1; s <= 10; s++) {
-				initial[`${p}-${s}`] = p !== 5;
-			}
+	useEffect(() => {
+		if (token && userStr) {
+			loadPlatformTelemetry();
 		}
-		setPlatformSlots(initial);
+	}, [token, userStr]);
+
+	const resetSlots = async () => {
+		await loadPlatformTelemetry();
+		toast.success('Platform availability grid synchronized from database.');
 	};
 
 	const availableCount = Object.values(platformSlots).filter(v => v === true).length;
@@ -349,8 +356,8 @@ export default function AdminDashboard() {
 												return (
 													<button
 														key={sNum}
-														onClick={() => toggleSlot(pNum, sNum)}
-														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border outline-none cursor-pointer active:scale-95 ${
+														onClick={() => setSelectedPlatformModal({ stationNo: pNum, platformNo: sNum })}
+														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border outline-none cursor-pointer active:scale-95 border-none ${
 															isAvailable
 																? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 text-emerald-700 hover:border-emerald-250'
 																: 'bg-rose-50/70 hover:bg-rose-100/70 border-rose-150 text-rose-700 hover:border-rose-250'
@@ -551,6 +558,94 @@ export default function AdminDashboard() {
 			}}
 		>
 			{renderContent()}
+
+			{/* High-Fidelity Occupancy Details Modal */}
+			{selectedPlatformModal && (() => {
+				const details = platformOccupancies.find(
+					(item: any) => String(item.stationNo) === String(selectedPlatformModal.stationNo) && String(item.platformNo) === String(selectedPlatformModal.platformNo)
+				);
+				const isAvailable = platformSlots[`${selectedPlatformModal.stationNo}-${selectedPlatformModal.platformNo}`];
+				
+				return (
+					<div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
+						<div className="bg-white border border-zinc-200 rounded-[24px] max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+							{/* Header */}
+							<div className="bg-[#11236a] text-white px-6 py-4 flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<Activity className="w-5 h-5 text-white/90" />
+									<h3 className="font-extrabold text-sm tracking-wide uppercase">
+										Station {selectedPlatformModal.stationNo} - Platform {selectedPlatformModal.platformNo}
+									</h3>
+								</div>
+								<button 
+									onClick={() => setSelectedPlatformModal(null)}
+									className="text-white/70 hover:text-white transition-all bg-white/10 hover:bg-white/20 rounded-full w-7 h-7 flex items-center justify-center outline-none border-none cursor-pointer"
+								>
+									✕
+								</button>
+							</div>
+							
+							{/* Content */}
+							<div className="p-6 space-y-4">
+								{isAvailable ? (
+									<div className="text-center py-6 space-y-3">
+										<div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
+											<span className="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse" />
+										</div>
+										<div className="space-y-1">
+											<h4 className="text-base font-extrabold text-zinc-950">Platform is Available</h4>
+											<p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
+												This testing channel is currently free and idle. It will automatically lock when a Lab Manager assigns a passed sample during the Test Plan configuration phase.
+											</p>
+										</div>
+									</div>
+								) : (
+									<div className="space-y-4">
+										<div className="bg-rose-50/70 border border-rose-100 rounded-2xl p-4 flex items-center gap-3">
+											<span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse shrink-0" />
+											<div>
+												<h4 className="text-xs font-extrabold text-rose-950">Active Testing Reservation</h4>
+												<p className="text-[11px] text-rose-700/80 font-medium">Platform is currently occupied and running load cycles.</p>
+											</div>
+										</div>
+										
+										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
+												<span className="text-zinc-850 font-extrabold text-right">{details?.occupiedBy || 'N/A'}</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Model Number</span>
+												<span className="text-zinc-850 font-extrabold text-right">{details?.modelNo || 'N/A'}</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Test Request ID</span>
+												<span className="text-zinc-850 font-extrabold text-right">#{details?.testRequestId || 'N/A'}</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied Until</span>
+												<span className="text-rose-600 font-extrabold text-right">
+													{details?.occupiedUntil ? new Date(details.occupiedUntil).toLocaleString() : 'N/A'}
+												</span>
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+							
+							{/* Footer */}
+							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
+								<button
+									onClick={() => setSelectedPlatformModal(null)}
+									className="bg-zinc-900 hover:bg-zinc-850 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all outline-none border-none cursor-pointer active:scale-95 shadow-sm"
+								>
+									Close Details
+								</button>
+							</div>
+						</div>
+					</div>
+				);
+			})()}
 		</DashboardLayout>
 	);
 }

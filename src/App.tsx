@@ -43,8 +43,6 @@ function App() {
 				<Route path="/head/failure-decision" element={<HeadDashboard />} />
 				<Route path="/head/capa-reports" element={<HeadDashboard />} />
 				<Route path="/manager/dashboard" element={<ManagerDashboard />} />
-				<Route path="/manager/platform-tracking" element={<ManagerDashboard />} />
-				<Route path="/manager/equipment-tracking" element={<ManagerDashboard />} />
 				<Route path="/manager/approved-requests" element={<ManagerDashboard />} />
 				<Route path="/manager/approved-requests/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/assigned-samples" element={<ManagerDashboard />} />

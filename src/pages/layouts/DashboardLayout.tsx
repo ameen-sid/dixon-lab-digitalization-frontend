@@ -36,10 +36,10 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'dashboard';
 		}
 	} else if (user.role.toLowerCase() === 'lab manager') {
-		if (path.includes('/manager/platform-tracking')) {
-			derivedActiveTab = 'platform-tracking';
-		} else if (path.includes('/manager/equipment-tracking')) {
-			derivedActiveTab = 'equipment-tracking';
+		if (path.includes('/admin/platform-availability')) {
+			derivedActiveTab = 'platform-availability';
+		} else if (path.includes('/admin/equipment-availability')) {
+			derivedActiveTab = 'equipment-availability';
 		} else if (path.includes('/manager/approved-requests') || path.includes('/manager/approved-request-details')) {
 			derivedActiveTab = 'approved-requests';
 		} else if (path.includes('/manager/assigned-samples')) {
@@ -105,8 +105,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'rd-testing-equipments') navigate('/admin/rd-equipment');
 		} else if (userRoleLower === 'lab manager') {
 			if (itemId === 'dashboard') navigate('/manager/dashboard');
-			else if (itemId === 'platform-tracking') navigate('/manager/platform-tracking');
-			else if (itemId === 'equipment-tracking') navigate('/manager/equipment-tracking');
+			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
+			else if (itemId === 'equipment-availability') navigate('/admin/equipment-availability');
 			else if (itemId === 'approved-requests') navigate('/manager/approved-requests');
 			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
 			else if (itemId === 'capa-management') navigate('/manager/capa-management');
@@ -203,8 +203,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										category: 'Overview & Systems',
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
-											{ id: 'platform-tracking', label: 'Platform Tracking', icon: Server },
-											{ id: 'equipment-tracking', label: 'Equipment Tracking', icon: Activity },
+											{ id: 'platform-availability', label: 'Platform Availability', icon: Server },
+											{ id: 'equipment-availability', label: 'Equipment Availability', icon: Activity },
 										]
 									},
 									{
