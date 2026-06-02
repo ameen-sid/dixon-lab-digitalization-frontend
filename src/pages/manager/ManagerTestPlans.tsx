@@ -9,6 +9,7 @@ import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getPlatforms, reservePlatforms } from '../../services/operations/platformAvailabilityService';
+import { getTestingEquipments, reserveEquipment } from '../../services/operations/testingEquipmentService';
 
 interface ManagerTestPlansProps {
 	requests: any[];
@@ -28,14 +29,15 @@ interface TestPlanForm {
 	startDate: string;
 	endDate: string;
 	remarks: string;
+	equipmentId: string;
 }
 
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
 
 	// Resolve selected request from dynamic route parameter prop
-	const selectedReq = selectedRequestId 
-		? requests.find(r => String(r.id) === String(selectedRequestId)) 
+	const selectedReq = selectedRequestId
+		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
 
 	// Filter requests to those inspected (status UNDER_TEST or COMPLETED)
@@ -45,7 +47,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	// Component states
 	const [activeSampleIndex, setActiveSampleIndex] = useState<number | null>(null);
-	
+
 	// Search & Pagination states
 	const [searchQuery, setSearchQuery] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
@@ -56,6 +58,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
 	const [platforms, setPlatforms] = useState<any[]>([]);
+	const [equipments, setEquipments] = useState<any[]>([]);
 
 	// Saved test plans cache state
 	const [savedPlans, setSavedPlans] = useState<{ [key: string]: TestPlanForm }>(() => {
@@ -75,7 +78,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		numberOfDays: 9,
 		startDate: new Date().toISOString().split('T')[0],
 		endDate: '',
-		remarks: ''
+		remarks: '',
+		equipmentId: ''
 	});
 
 	// Fetch dynamic data parameters
@@ -85,21 +89,20 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			const categories = await getTestCategories()();
 			const protocols = await getTestProtocols()();
 			const plts = await getPlatforms()();
-			
+			const eqps = await getTestingEquipments({ limit: 100 })();
+
 			setTestTypes(types || []);
 			setTestCategories(categories || []);
 			setTestProtocols(protocols || []);
 			setPlatforms(plts || []);
+			setEquipments(eqps || []);
 
-			// Set default options if available
-			if (types && types.length > 0) {
-				setForm(f => ({ ...f, testTypeId: String(types[0].id) }));
-			}
-			if (categories && categories.length > 0) {
-				setForm(f => ({ ...f, testCategoryId: String(categories[0].id) }));
-			}
-			if (protocols && protocols.length > 0) {
-				setForm(f => ({ ...f, testProtocolId: String(protocols[0].id) }));
+			// Only pre-fill active equipment default if available
+			if (eqps && eqps.length > 0) {
+				const activeEq = eqps.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
+				if (activeEq) {
+					setForm(f => ({ ...f, equipmentId: String(activeEq.id) }));
+				}
 			}
 		} catch (err) {
 			console.error('Failed to load test planning database parameters:', err);
@@ -127,7 +130,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		try {
 			const start = new Date(form.startDate);
 			if (isNaN(start.getTime())) return;
-			
+
 			// Add days (minus 1 to include start date as day 1)
 			start.setDate(start.getDate() + Number(form.numberOfDays) - 1);
 			const calculatedStr = start.toISOString().split('T')[0];
@@ -137,17 +140,49 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	}, [form.startDate, form.numberOfDays]);
 
+	// Dependent dropdown change handlers
+	const handleTestTypeChange = (typeId: string) => {
+		const filteredCats = testCategories.filter(c => String(c.testTypeId) === String(typeId));
+		const firstCat = filteredCats[0] || null;
+		const catId = firstCat ? String(firstCat.id) : '';
+
+		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
+		const firstProto = filteredProtos[0] || null;
+		const protoId = firstProto ? String(firstProto.id) : '';
+
+		setForm(prev => ({
+			...prev,
+			testTypeId: typeId,
+			testCategoryId: catId,
+			testProtocolId: protoId
+		}));
+	};
+
+	const handleTestCategoryChange = (catId: string) => {
+		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
+		const firstProto = filteredProtos[0] || null;
+		const protoId = firstProto ? String(firstProto.id) : '';
+
+		setForm(prev => ({
+			...prev,
+			testCategoryId: catId,
+			testProtocolId: protoId
+		}));
+	};
+
 	// Open test plan modal for a passed sample
 	const handleOpenPlanForm = async (sampleIndex: number) => {
 		if (!selectedReq) return;
 		setActiveSampleIndex(sampleIndex);
 
-		// Synchronize fresh real-time platform bookings
+		// Synchronize fresh real-time platform & equipment bookings
 		try {
 			const plts = await getPlatforms()();
 			setPlatforms(plts || []);
+			const eqps = await getTestingEquipments({ limit: 100 })();
+			setEquipments(eqps || []);
 		} catch (e) {
-			console.error('Failed to refresh live platforms status:', e);
+			console.error('Failed to refresh live platforms & equipment status:', e);
 		}
 
 		const key = `${selectedReq.id}-sample-${sampleIndex}`;
@@ -156,23 +191,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		if (existing) {
 			setForm(existing);
 		} else {
-			// Find standard defaults
-			const defaultType = testTypes.find(t => t.name.toLowerCase().includes('reliability')) || testTypes[0];
-			const defaultCat = testCategories.find(c => c.name.toLowerCase().includes('pcb buttons')) || testCategories[0];
-			const defaultProtocol = testProtocols.find(p => p.name.toLowerCase().includes('reliability of pcb')) || testProtocols[0];
+			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
 
 			setForm({
-				testTypeId: defaultType ? String(defaultType.id) : '',
-				testCategoryId: defaultCat ? String(defaultCat.id) : '',
+				testTypeId: '',
+				testCategoryId: '',
 				productType: 'FATL',
 				stationNo: 1,
 				platformNos: [],
-				testProtocolId: defaultProtocol ? String(defaultProtocol.id) : '',
-				referenceStandard: 'IEC 60335-2-7',
+				testProtocolId: '',
+				referenceStandard: '',
 				numberOfDays: 9,
 				startDate: new Date().toISOString().split('T')[0],
 				endDate: '',
-				remarks: ''
+				remarks: '',
+				equipmentId: defaultEq ? String(defaultEq.id) : ''
 			});
 		}
 	};
@@ -182,8 +215,28 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		e.preventDefault();
 		if (!selectedReq || activeSampleIndex === null) return;
 
+		if (!form.testTypeId) {
+			toast.error('Please select a Test Type.');
+			return;
+		}
+
+		if (!form.testCategoryId) {
+			toast.error('Please select a Test Category.');
+			return;
+		}
+
+		if (!form.testProtocolId) {
+			toast.error('Please select a Test Protocol.');
+			return;
+		}
+
 		if (form.platformNos.length === 0) {
 			toast.error('Please assign at least one physical Platform channel.');
+			return;
+		}
+
+		if (!form.equipmentId) {
+			toast.error('Please assign a physical R&D Equipment.');
 			return;
 		}
 
@@ -199,11 +252,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			);
 			await resOp();
 
-			// 2. Perform parent status sync if callback is provided
+			// 2. Reserve physical R&D Equipment in database
+			const eqResOp = reserveEquipment(
+				Number(form.equipmentId),
+				Number(selectedReq.id),
+				`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
+				selectedReq.modelNo,
+				form.endDate
+			);
+			await eqResOp();
+
+			// 3. Perform parent status sync if callback is provided
 			if (onUpdateStatus) {
 				await onUpdateStatus(
-					selectedReq.id, 
-					'UNDER_TEST', 
+					selectedReq.id,
+					'UNDER_TEST',
 					`Test Plan configured for Sample #${activeSampleIndex + 1} at Station S${form.stationNo}.`
 				);
 			}
@@ -216,23 +279,23 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 			setSavedPlans(updatedPlans);
 			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(updatedPlans));
-			
-			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved and platforms reserved!`);
+
+			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved, platforms & equipment reserved!`);
 			setActiveSampleIndex(null);
 		} catch (error) {
-			console.error('Failed to reserve platforms for test plan:', error);
-			toast.error('Failed to reserve platform channels in database.');
+			console.error('Failed to reserve resources for test plan:', error);
+			toast.error('Failed to reserve required platform or equipment resources.');
 		}
 	};
 
 
 	// Search and Paginate filters
 	const filteredRequests = inspectedRequests.filter(r => {
-		return r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-			   r.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-			   (r.requestId && r.requestId.toLowerCase().includes(searchQuery.toLowerCase())) ||
-			   r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			   r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
+		return r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(r.requestId && r.requestId.toLowerCase().includes(searchQuery.toLowerCase())) ||
+			r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
 	});
 
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
@@ -251,8 +314,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 						<div className="relative flex-1 max-w-md">
 							<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-555" />
-							<input 
-								type="text" 
+							<input
+								type="text"
 								placeholder="Search by brand, ID, model, or description..."
 								value={searchQuery}
 								onChange={(e) => {
@@ -309,8 +372,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											const isAllPlanned = plansCreated >= passedCount;
 
 											return (
-												<tr 
-													key={req.id} 
+												<tr
+													key={req.id}
 													className="hover:bg-zinc-50/50 transition-all group cursor-pointer"
 													onClick={() => navigate(`/manager/test-plans/${req.id}`)}
 												>
@@ -349,7 +412,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														)}
 													</td>
 													<td className="py-4 px-6 text-right">
-														<button 
+														<button
 															onClick={(e) => {
 																e.stopPropagation();
 																navigate(`/manager/test-plans/${req.id}`);
@@ -386,7 +449,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				<div className="space-y-6 animate-fade-in">
 					{/* Back Navigation Bar */}
 					<div className="flex items-center gap-3">
-						<button 
+						<button
 							onClick={() => navigate('/manager/test-plans')}
 							className="w-9 h-9 bg-white border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-555 hover:text-zinc-800 hover:shadow-sm transition-all cursor-pointer outline-none"
 						>
@@ -469,7 +532,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										const sampleNo = index + 1;
 										const isFailed = report?.status === 'FAILED';
 										const isPassed = report?.status === 'PASSED';
-										
+
 										const todayStr = new Date().toISOString().split('T')[0];
 										const isTesting = plan && plan.startDate <= todayStr;
 
@@ -479,11 +542,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<div className="flex items-center gap-2 flex-wrap">
 														<span className="text-xs font-bold text-zinc-855">Sample #{sampleNo}</span>
 														{report ? (
-															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-																isPassed 
-																	? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isPassed
+																	? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
 																	: 'bg-rose-50 text-rose-700 border border-rose-100'
-															}`}>
+																}`}>
 																{report.status}
 															</span>
 														) : (
@@ -492,11 +554,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															</span>
 														)}
 														{plan && (
-															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-																isTesting 
-																	? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse' 
+															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isTesting
+																	? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
 																	: 'bg-amber-50 text-amber-700 border border-amber-100'
-															}`}>
+																}`}>
 																{isTesting ? 'Testing' : 'Scheduled'}
 															</span>
 														)}
@@ -509,7 +570,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													{plan && (
 														<div className="text-[9px] text-indigo-650 bg-indigo-50/50 border border-indigo-100/50 rounded-lg p-2 mt-2 space-y-0.5">
 															<p className="font-extrabold">Active Test Plan Configured:</p>
-															<p className="font-bold">Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})</p>
+															<p className="font-bold">
+																Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})
+																{plan.equipmentId && ` | Equipment: ${equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}`}
+															</p>
 															<p className="font-bold">Duration: {plan.numberOfDays} Days ({formatDateToDMY(plan.startDate)} to {formatDateToDMY(plan.endDate)})</p>
 														</div>
 													)}
@@ -524,11 +588,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												) : isPassed ? (
 													<button
 														onClick={() => handleOpenPlanForm(index)}
-														className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${
-															plan 
-																? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300' 
+														className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${plan
+																? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
 																: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
-														}`}
+															}`}
 													>
 														<Clipboard className="w-3.5 h-3.5 shrink-0" />
 														{plan ? 'Edit Test Plan' : 'Create Test Plan'}
@@ -564,7 +627,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			{activeSampleIndex !== null && (
 				<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center animate-fade-in backdrop-blur-xs">
 					<div className="bg-white rounded-3xl shadow-2xl p-6 max-w-2xl w-full mx-4 space-y-6 border border-zinc-200 max-h-[90vh] overflow-y-auto no-scrollbar animate-scale-up">
-						
+
 						{/* Header */}
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3 shrink-0">
 							<div className="flex items-center gap-2.5 text-[#11236a]">
@@ -576,7 +639,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<p className="text-[10px] text-zinc-555 font-bold mt-0.5">Sample Index #{activeSampleIndex + 1} allotment</p>
 								</div>
 							</div>
-							<button 
+							<button
 								onClick={() => setActiveSampleIndex(null)}
 								className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors border-none outline-none cursor-pointer"
 							>
@@ -593,13 +656,13 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<select
 										id="testType"
 										value={form.testTypeId}
-										onChange={(e) => setForm({ ...form, testTypeId: e.target.value })}
+										onChange={(e) => handleTestTypeChange(e.target.value)}
 										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
 									>
+										<option value="">-- Select Test Type --</option>
 										{testTypes.map((t: any) => (
 											<option key={t.id} value={String(t.id)}>{t.name}</option>
 										))}
-										{testTypes.length === 0 && <option value="">Reliability Test</option>}
 									</select>
 								</div>
 
@@ -609,13 +672,16 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<select
 										id="testCategory"
 										value={form.testCategoryId}
-										onChange={(e) => setForm({ ...form, testCategoryId: e.target.value })}
-										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
+										disabled={!form.testTypeId}
+										onChange={(e) => handleTestCategoryChange(e.target.value)}
+										className={`bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px] ${!form.testTypeId ? 'opacity-50 cursor-not-allowed' : ''}`}
 									>
-										{testCategories.map((c: any) => (
-											<option key={c.id} value={String(c.id)}>{c.name}</option>
-										))}
-										{testCategories.length === 0 && <option value="">PCB Buttons On-Off Test</option>}
+										<option value="">-- Select Test Category --</option>
+										{testCategories
+											.filter((c: any) => String(c.testTypeId) === String(form.testTypeId))
+											.map((c: any) => (
+												<option key={c.id} value={String(c.id)}>{c.name}</option>
+											))}
 									</select>
 								</div>
 							</div>
@@ -631,11 +697,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												key={pType}
 												type="button"
 												onClick={() => setForm({ ...form, productType: pType })}
-												className={`py-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer outline-none border-none text-center ${
-													isActive
+												className={`py-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer outline-none border-none text-center ${isActive
 														? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
 														: 'bg-white border-zinc-250 text-zinc-555 hover:bg-zinc-50'
-												}`}
+													}`}
 											>
 												{pType}
 											</button>
@@ -643,97 +708,125 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									})}
 								</div>
 							</div>
+							{/* R&D Equipment selection */}
+							<div className="flex flex-col gap-1.5">
+								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">Assign R&D Equipment</label>
+								<select
+									id="equipmentSelect"
+									value={form.equipmentId}
+									onChange={(e) => setForm({ ...form, equipmentId: e.target.value })}
+									className="bg-[#f8fafc] border border-[#d1d5db] rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
+								>
+									<option value="">-- Select R&D Equipment --</option>
+									{equipments.map((eq: any) => {
+										const isOccupied = !eq.isAvailable;
+										return (
+											<option
+												key={eq.id}
+												value={String(eq.id)}
+												disabled={isOccupied && String(form.equipmentId) !== String(eq.id)}
+											>
+												{eq.name} {isOccupied ? `(Occupied - busy)` : '(Available)'}
+											</option>
+										);
+									})}
+								</select>
+							</div>
 
-							{/* Dynamic Interactive Station selection dropdown */}
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-								<div className="flex flex-col gap-1.5">
-									<label htmlFor="stationSelect" className="text-[10px] text-zinc-500 font-extrabold">Assign Station Unit</label>
-									<select
-										id="stationSelect"
-										value={form.stationNo}
-										onChange={(e) => setForm({ ...form, stationNo: Number(e.target.value), platformNos: [] })}
-										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
-									>
-										{Array.from({ length: 14 }, (_, i) => (
-											<option key={i + 1} value={i + 1}>Station S{i + 1}</option>
-										))}
-									</select>
+							{/* Dynamic Platform Telemetry grid for ALL Stations */}
+							<div className="flex flex-col gap-3">
+								<label className="text-[10px] text-zinc-500 font-extrabold">Assign Platforms (Select platforms from a single Station unit)</label>
+								<div className="space-y-4 max-h-[350px] overflow-y-auto p-3 bg-[#f8fafc] rounded-2xl border border-zinc-150">
+									{Array.from({ length: 14 }, (_, stationIdx) => {
+										const sNum = stationIdx + 1;
+										const isStationActive = form.stationNo === sNum;
+
+										return (
+											<div key={sNum} className="bg-white border border-[#e4e4e7]/60 rounded-[22px] p-5 shadow-sm">
+												<div className="flex items-center justify-between mb-3.5">
+													<span className="text-xs font-bold text-slate-400 tracking-wider">P{sNum}</span>
+													{isStationActive && form.platformNos.length > 0 && (
+														<span className="text-[8px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+															Active (Selected: {form.platformNos.join(', ')})
+														</span>
+													)}
+												</div>
+
+												<div className="grid grid-cols-5 gap-3">
+													{Array.from({ length: 10 }, (_, platformIdx) => {
+														const pNum = platformIdx + 1;
+														const isSelected = isStationActive && form.platformNos.includes(pNum);
+														// Query real-time database state
+														const slot = platforms.find(
+															(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
+														);
+														const isOccupied = slot ? !slot.isAvailable : false;
+
+														return (
+															<button
+																key={pNum}
+																type="button"
+																onClick={() => {
+																	if (isOccupied) return;
+																	setForm(prev => {
+																		// If switching station, reset selection to only this platform
+																		if (prev.stationNo !== sNum) {
+																			return {
+																				...prev,
+																				stationNo: sNum,
+																				platformNos: [pNum]
+																			};
+																		}
+																		// If same station, toggle platform
+																		const current = prev.platformNos;
+																		const updated = current.includes(pNum)
+																			? current.filter(n => n !== pNum)
+																			: [...current, pNum];
+																		return { ...prev, platformNos: updated };
+																	});
+																}}
+																className={`h-11 rounded-2xl text-xs font-bold transition-all relative flex items-center justify-center cursor-pointer outline-none border-none ${isOccupied
+																		? 'bg-[#fff1f2] text-[#f87171] cursor-not-allowed opacity-90'
+																		: isSelected
+																			? 'bg-[#185adb] text-white shadow-md shadow-blue-500/20 font-bold'
+																			: 'bg-white border border-[#e4e4e7] text-slate-800 hover:bg-slate-50'
+																	}`}
+																title={
+																	isOccupied
+																		? `Occupied by: ${slot?.occupiedBy || 'N/A'}\nUntil: ${slot?.occupiedUntil ? new Date(slot.occupiedUntil).toLocaleDateString() : 'N/A'}`
+																		: `Station S${sNum} Platform #${pNum} (Available)`
+																}
+															>
+																<span className="text-xs">{pNum}</span>
+																{isOccupied && (
+																	<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#f43f5e] rounded-full border border-white shadow-sm"></span>
+																)}
+															</button>
+														);
+													})}
+												</div>
+											</div>
+										);
+									})}
 								</div>
 							</div>
 
-							{/* Dynamic Platform Telemetry grid for Selected Station */}
-							<div className="flex flex-col gap-2.5">
-								<label className="text-[10px] text-zinc-500 font-extrabold">Assign Platforms (Station S{form.stationNo})</label>
-								<div className="border border-zinc-150 bg-[#f8fafc]/50 rounded-2xl p-4 space-y-3">
-									<div className="flex flex-wrap gap-2">
-										{Array.from({ length: 10 }, (_, i) => {
-											const pNum = i + 1;
-											const isSelected = form.platformNos.includes(pNum);
-											// Query real-time database state
-											const slot = platforms.find(
-												(p: any) => p.stationNo === form.stationNo && p.platformNo === pNum
-											);
-											const isOccupied = slot ? !slot.isAvailable : false;
-
-											return (
-												<button
-													key={pNum}
-													type="button"
-													onClick={() => {
-														if (isOccupied) return;
-														setForm(prev => {
-															const current = prev.platformNos;
-															const updated = current.includes(pNum)
-																? current.filter(n => n !== pNum)
-																: [...current, pNum];
-															return { ...prev, platformNos: updated };
-														});
-													}}
-													className={`w-14 h-12 rounded-xl border text-xs font-bold transition-all relative flex flex-col items-center justify-center cursor-pointer outline-none border-none ${
-														isOccupied
-															? 'bg-rose-50 text-rose-500 border-rose-100 opacity-80 cursor-not-allowed'
-															: isSelected
-																? 'bg-blue-600 text-white shadow-inner font-extrabold border-blue-500'
-																: 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
-													}`}
-													title={
-														isOccupied
-															? `Occupied by: ${slot?.occupiedBy || 'N/A'}\nUntil: ${slot?.occupiedUntil ? new Date(slot.occupiedUntil).toLocaleDateString() : 'N/A'}`
-															: `Platform #${pNum} (Available)`
-													}
-												>
-													<span className="text-[10px] font-extrabold">#{pNum}</span>
-													<span className={`text-[7px] font-extrabold px-1.5 py-0.2 rounded mt-0.5 uppercase ${
-														isOccupied 
-															? 'bg-rose-100 text-rose-700' 
-															: isSelected 
-																? 'bg-blue-500 text-white' 
-																: 'bg-emerald-50 text-emerald-700'
-													}`}>
-														{isOccupied ? 'Busy' : isSelected ? 'Selected' : 'Free'}
-													</span>
-												</button>
-											);
-										})}
-									</div>
-								</div>
-							</div>
-
-							{/* Test Protocol select */}
+							{/* Test Protocol select (Dependent on Category) */}
 							<div className="flex flex-col gap-1.5">
 								<label htmlFor="testProtocol" className="text-[10px] text-zinc-500 font-extrabold">Test Protocol</label>
 								<select
 									id="testProtocol"
 									value={form.testProtocolId}
+									disabled={!form.testCategoryId}
 									onChange={(e) => setForm({ ...form, testProtocolId: e.target.value })}
-									className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
+									className={`bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px] ${!form.testCategoryId ? 'opacity-50 cursor-not-allowed' : ''}`}
 								>
-									{testProtocols.map((p: any) => (
-										<option key={p.id} value={String(p.id)}>{p.name}</option>
-									))}
-									{testProtocols.length === 0 && (
-										<option value="">Reliability of PCB sticker , PCB keys, Panel keys</option>
-									)}
+									<option value="">-- Select Test Protocol --</option>
+									{testProtocols
+										.filter((p: any) => String(p.testCategoryId) === String(form.testCategoryId))
+										.map((p: any) => (
+											<option key={p.id} value={String(p.id)}>{p.name}</option>
+										))}
 								</select>
 							</div>
 
@@ -779,12 +872,16 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</div>
 								</div>
 
-								{/* End Date (Auto-Calculated) read-only */}
+								{/* End Date (Auto-Calculated) disabled input */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="endDate" className="text-[10px] text-zinc-500 font-extrabold">End Date (Auto-Calculated)</label>
-									<div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-zinc-500 text-xs font-semibold select-none flex items-center h-[42px]">
-										{formatDateToDMY(form.endDate) || 'Awaiting Calculation'}
-									</div>
+									<input
+										id="endDate"
+										type="date"
+										value={form.endDate}
+										disabled
+										className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 text-zinc-500 text-xs font-semibold outline-none cursor-not-allowed h-[42px]"
+									/>
 								</div>
 							</div>
 
