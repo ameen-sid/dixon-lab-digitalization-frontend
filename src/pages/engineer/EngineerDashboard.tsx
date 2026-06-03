@@ -110,7 +110,7 @@ export default function EngineerDashboard() {
 	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = 'UNDER_TEST';
+			const statusTransition = 'INSPECTION_COMPLETED';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,
@@ -133,7 +133,7 @@ export default function EngineerDashboard() {
 	// Stats matching engineer specific metrics
 	const myAssignedRequests = approvedRequests.filter(r => String(r.engineerId) === currentEngineerId);
 	const activeCount = myAssignedRequests.length;
-	const pendingCount = myAssignedRequests.filter(r => r.status === 'UNDER_TEST' || r.status === 'UNDER_INSPECTION').length;
+	const pendingCount = myAssignedRequests.filter(r => r.status === 'UNDER_TESTING' || r.status === 'UNDER_TEST' || r.status === 'INSPECTION_COMPLETED' || r.status === 'UNDER_INSPECTION').length;
 	const completedCount = myAssignedRequests.filter(r => r.status === 'COMPLETED').length;
 
 	const dynamicTasks: InspectionTask[] = myAssignedRequests.map(r => ({
@@ -144,7 +144,7 @@ export default function EngineerDashboard() {
 		testMethodRef: r.testMethodRef,
 		sampleDescription: r.sampleDescription,
 		sampleQty: r.sampleQty,
-		status: r.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING',
+		status: r.status,
 		assignedDate: r.approvedDate,
 		engineerId: r.engineerId,
 		engineerName: r.engineerName

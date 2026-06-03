@@ -182,21 +182,51 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 									<td className="py-3 px-2">
 										<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{req.sampleQty} pcs</span>
 									</td>
-									<td className="py-3 px-2">
-										<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
-											req.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-											req.status === 'UNDER_TEST' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-											req.status === 'UNDER_INSPECTION' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-											req.status === 'PENDING_APPROVAL' ? 'bg-amber-50/70 text-amber-700 border-amber-200' :
-											req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-											'bg-zinc-50 text-zinc-650 border-zinc-100'
-										}`}>
-											{req.status === 'COMPLETED' && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-											{req.status === 'UNDER_TEST' && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
-											{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-											{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-											{req.status.replace('_', ' ')}
-										</span>
+									<td className="py-3.5 px-2">
+										{(() => {
+											const getStatusStyle = (status: string) => {
+												switch (status) {
+													case 'COMPLETED':
+													case 'PASS':
+													case 'TESTING_PASSED':
+													case 'INSPECTION_COMPLETED':
+														return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+													case 'FAIL':
+													case 'TESTING_FAILED':
+													case 'REJECTED':
+														return 'bg-rose-50 text-rose-600 border-rose-100';
+													case 'PARTIAL':
+													case 'TESTING_PARTIAL':
+														return 'bg-amber-50 text-amber-600 border-amber-100';
+													case 'UNDER_TEST':
+													case 'UNDER_TESTING':
+														return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+													case 'UNDER_INSPECTION':
+														return 'bg-blue-50 text-blue-600 border-blue-100';
+													case 'PENDING_APPROVAL':
+														return 'bg-amber-50/70 text-amber-700 border-amber-200';
+													default:
+														return 'bg-zinc-50 text-zinc-650 border-zinc-100';
+												}
+											};
+											return (
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
+													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
+													{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
+														? 'TESTING PASSED' 
+														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' 
+															? 'TESTING FAILED' 
+															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL' 
+																? 'TESTING PARTIAL' 
+																: req.status.replace('_', ' ')}
+												</span>
+											);
+										})()}
 									</td>
 									<td className="py-3 px-2 text-right">
 										<button 

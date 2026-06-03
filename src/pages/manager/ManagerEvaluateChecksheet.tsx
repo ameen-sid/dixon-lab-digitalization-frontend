@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, XCircle } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { getTestRequests } from '../../services/operations/testRequestService';
+import { getTestRequests, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
@@ -152,7 +152,7 @@ export default function ManagerEvaluateChecksheet() {
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
 
-	const handleEvaluate = (status: 'PASSED' | 'FAILED') => {
+	const handleEvaluate = async (status: 'PASSED' | 'FAILED') => {
 		if (!planKey || !planInfo) return;
 		if (!evaluationRemarks.trim()) {
 			toast.error('Please enter evaluation remarks.');
@@ -186,6 +186,79 @@ export default function ManagerEvaluateChecksheet() {
 				status: status
 			};
 			localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+
+			// 3. Check if all samples for this request are completed/evaluated
+			const request = requests.find(r => String(r.id) === String(requestId));
+			if (request) {
+				const qty = request.sampleQty || 1;
+				let allSamplesComplete = true;
+
+				const cachedManager = localStorage.getItem('dixon_sample_inspections');
+				const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+				const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+				const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+
+				for (let i = 0; i < qty; i++) {
+					const cacheKey = `${requestId}-sample-${i}`;
+					const dbReport = (request.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+					const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
+					const plan = plansMap[cacheKey];
+
+					if (mergedReport) {
+						if (mergedReport.status === 'FAILED') {
+							// Sample failed inspection initially, so it's completed (closed as failed)
+							continue;
+						} else if (mergedReport.status === 'PASSED') {
+							// Sample passed inspection, must have an evaluated test plan
+							if (plan && (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED')) {
+								continue;
+							}
+						}
+					}
+					// If we reach here, this sample is not finished yet
+					allSamplesComplete = false;
+					break;
+				}
+
+				if (allSamplesComplete) {
+					let passedCount = 0;
+					let failedCount = 0;
+
+					for (let i = 0; i < qty; i++) {
+						const cacheKey = `${requestId}-sample-${i}`;
+						const dbReport = (request.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+						const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
+						const plan = plansMap[cacheKey];
+
+						if (mergedReport) {
+							if (mergedReport.status === 'FAILED') {
+								failedCount++;
+							} else if (mergedReport.status === 'PASSED') {
+								if (plan && plan.evaluationStatus === 'PASSED') {
+									passedCount++;
+								} else if (plan && plan.evaluationStatus === 'FAILED') {
+									failedCount++;
+								}
+							}
+						}
+					}
+
+					let finalStatus = 'TESTING_PARTIAL';
+					if (failedCount === qty) {
+						finalStatus = 'TESTING_FAILED';
+					} else if (passedCount === qty) {
+						finalStatus = 'TESTING_PASSED';
+					}
+
+					// All samples completed/evaluated, update request status from UNDER_TEST to PASS/FAIL/PARTIAL
+					const statusUpdateOp = updateTestRequestStatus(
+						Number(requestId),
+						finalStatus,
+						`Testing fully evaluated: ${passedCount} passed, ${failedCount} failed.`
+					);
+					await statusUpdateOp();
+				}
+			}
 
 			toast.success(`Sample test evaluated as ${status}!`);
 			navigate(`/manager/test-plans/${requestId}`);

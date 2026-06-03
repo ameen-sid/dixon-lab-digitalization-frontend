@@ -38,6 +38,8 @@ interface RequestRecord {
 	status: string;
 	remarks?: string | null;
 	createdDate: string;
+	createdAt?: string;
+	updatedAt?: string;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
 }
@@ -118,6 +120,8 @@ export default function RequesterDashboard() {
 				status: db.status,
 				remarks: db.remarks || 'Awaiting lab supervisor allocation.',
 				createdDate: new Date(db.createdAt).toISOString().split('T')[0],
+				createdAt: db.createdAt,
+				updatedAt: db.updatedAt,
 				telemetry: db.telemetry || [],
 				attachments: db.attachments || []
 			}));

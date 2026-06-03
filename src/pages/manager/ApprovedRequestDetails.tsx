@@ -39,6 +39,7 @@ interface ApprovedRequest {
 	engineerName?: string;
 	inspectionResult?: string;
 	inspectionRemarks?: string;
+	remarks?: string | null;
 	inspectionDate?: string;
 	attachments?: AttachmentRecord[];
 }
@@ -56,10 +57,10 @@ interface ApprovedRequestDetailsProps {
 	onSimulateInspectionCompletion: (requestId: string, result: 'PASSED' | 'FAILED', remarks: string) => void;
 }
 
-export default function ApprovedRequestDetails({ 
-	request, 
+export default function ApprovedRequestDetails({
+	request,
 	engineers,
-	onAssignEngineer, 
+	onAssignEngineer,
 	onSimulateInspectionCompletion: _onSimulateInspectionCompletion
 }: ApprovedRequestDetailsProps) {
 	const navigate = useNavigate();
@@ -132,52 +133,52 @@ export default function ApprovedRequestDetails({
 	const timelineSteps = (() => {
 		if (activeTimelineSampleIndex === null) return [];
 		const steps = [
-			{ 
-				step: 'Testing Request Submitted', 
-				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(), 
-				completed: true 
+			{
+				step: 'Testing Request Submitted',
+				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(),
+				completed: true
 			},
-			{ 
-				step: 'Testing Request Approved', 
-				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(), 
-				completed: true 
+			{
+				step: 'Testing Request Approved',
+				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(),
+				completed: true
 			},
-			{ 
-				step: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`, 
-				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check', 
-				completed: !!sampleReport 
+			{
+				step: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
+				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
+				completed: !!sampleReport
 			},
-			{ 
-				step: 'Test Plan Configured', 
-				date: testPlan 
-					? `Allotted - Station P${testPlan.stationNo}, Platform Nos: [${testPlan.platformNos.join(', ')}]` 
-					: 'Awaiting plan', 
-				completed: !!testPlan 
+			{
+				step: 'Test Plan Configured',
+				date: testPlan
+					? `Allotted - Station P${testPlan.stationNo}, Platform Nos: [${testPlan.platformNos.join(', ')}]`
+					: 'Awaiting plan',
+				completed: !!testPlan
 			},
-			{ 
-				step: 'Testing execution', 
-				date: request.status === 'COMPLETED' 
-					? 'Testing completed successfully' 
-					: testPlan 
+			{
+				step: 'Testing execution',
+				date: request.status === 'COMPLETED'
+					? 'Testing completed successfully'
+					: testPlan
 						? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
 							? `In testing phase (Ends: ${new Date(testPlan.endDate).toLocaleDateString()})`
 							: new Date() < new Date(testPlan.startDate)
 								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
 								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
-						: 'Awaiting start', 
+						: 'Awaiting start',
 				completed: request.status === 'COMPLETED' || !!(testPlan && new Date() > new Date(testPlan.endDate))
 			},
-			{ 
-				step: 'Reliability Evaluation', 
+			{
+				step: 'Reliability Evaluation',
 				date: testPlan && testPlan.evaluationStatus
 					? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
-					: 'Awaiting checksheet completion and evaluation', 
+					: 'Awaiting checksheet completion and evaluation',
 				completed: !!(testPlan && testPlan.evaluationStatus)
 			},
-			{ 
-				step: 'Approved Final Report by Head', 
-				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off', 
-				completed: request.status === 'COMPLETED' 
+			{
+				step: 'Approved Final Report by Head',
+				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				completed: request.status === 'COMPLETED'
 			}
 		];
 		return steps;
@@ -223,7 +224,7 @@ export default function ApprovedRequestDetails({
 		<div className="space-y-6">
 			{/* Back bar */}
 			<div className="flex items-center gap-3">
-				<button 
+				<button
 					onClick={() => navigate('/manager/approved-requests')}
 					className="w-9 h-9 bg-white border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-555 hover:text-zinc-800 hover:shadow-sm transition-all cursor-pointer outline-none"
 				>
@@ -240,7 +241,7 @@ export default function ApprovedRequestDetails({
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Details Panel */}
 				<div className="lg:col-span-2 space-y-6">
-					
+
 					{/* Applicant Details */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
@@ -308,9 +309,9 @@ export default function ApprovedRequestDetails({
 							<div>
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Collect Back Scheme</p>
 								<p className="font-bold text-zinc-800 mt-1 text-xs">
-									{request.collectBack === 'Yes' ? 'Collect back after testing' : 
-									 request.collectBack === 'No_Retain' ? 'Retain in archives' : 
-									 'Discard / Recycle sample'}
+									{request.collectBack === 'Yes' ? 'Collect back after testing' :
+										request.collectBack === 'No_Retain' ? 'Retain in archives' :
+											'Discard / Recycle sample'}
 								</p>
 							</div>
 							<div className="border-t border-zinc-100 pt-3">
@@ -333,6 +334,8 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					</div>
+
+
 
 					{/* Sample Description */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-2">
@@ -360,7 +363,7 @@ export default function ApprovedRequestDetails({
 							</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 								{request.attachments.map((file) => (
-									<a 
+									<a
 										key={file.id}
 										href={`http://127.0.0.1:3001/${(() => {
 											const idx = file.filePath.toLowerCase().indexOf('uploads');
@@ -383,6 +386,16 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					)}
+
+					{/* Remarks from Head of Lab */}
+					{request.remarks && request.remarks.trim() !== '' && (
+						<div className="bg-amber-50/60 border border-amber-200/60 rounded-2xl p-5 shadow-sm space-y-2">
+							<p className="text-[9px] text-amber-700 font-extrabold uppercase tracking-wider">Remarks from Head of Lab</p>
+							<p className="text-xs text-amber-900 font-bold leading-relaxed bg-white/70 rounded-xl p-3 border border-amber-100/40">
+								{request.remarks}
+							</p>
+						</div>
+					)}
 				</div>				{/* Assignment Actions Panel */}
 				<div className="space-y-6">
 					{/* Assignment Box */}
@@ -396,9 +409,6 @@ export default function ApprovedRequestDetails({
 								<div className="bg-blue-50 border border-blue-100 text-blue-900 rounded-2xl p-4 text-xs font-semibold">
 									<p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider leading-none mb-1">Assigned Inspector/Engineer</p>
 									<p className="font-extrabold text-zinc-900">{request.engineerName}</p>
-									<span className="inline-block text-[8px] font-bold px-1.5 py-0.5 bg-[#11236a]/10 text-[#11236a] rounded mt-2 uppercase tracking-wide">
-										ID: {request.engineerId}
-									</span>
 								</div>
 								{!isCompleted && (
 									<p className="text-[10px] text-zinc-555 leading-relaxed italic">
@@ -410,14 +420,14 @@ export default function ApprovedRequestDetails({
 							<form onSubmit={handleAssignSubmit} className="mt-4 space-y-4">
 								<div className="space-y-2">
 									<label className="text-[10px] text-zinc-555 font-bold uppercase tracking-wider block">Select Duty Engineer</label>
-									<CustomSelect 
+									<CustomSelect
 										value={selectedEngineerId}
 										onChange={setSelectedEngineerId}
 										options={selectOptions}
 										placeholder="-- Select Specialist --"
 									/>
 								</div>
-								<button 
+								<button
 									type="submit"
 									className="w-full bg-[#11236a] text-white text-xs font-bold py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all border-none outline-none cursor-pointer active:scale-[0.98]"
 								>
@@ -433,21 +443,21 @@ export default function ApprovedRequestDetails({
 							<span>Sample Results</span>
 							<span className="text-xs font-bold text-zinc-400">Total: {request.sampleQty || 1}</span>
 						</h4>
-						
+
 						<div className="divide-y divide-zinc-150/70">
 							{(() => {
 								const cachedManager = localStorage.getItem('dixon_sample_inspections');
 								const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
 								const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-								
+
 								const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
 								const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
 								const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-								
+
 								const merged = { ...engineerReports, ...managerReports, ...completedReports };
 								const qty = request.sampleQty || 1;
 								const list = [];
-								
+
 								for (let i = 0; i < qty; i++) {
 									const cacheKey = `${request.id}-sample-${i}`;
 									list.push({
@@ -455,7 +465,7 @@ export default function ApprovedRequestDetails({
 										report: merged[cacheKey]
 									});
 								}
-								
+
 								return list.map(({ index, report }) => {
 									const sampleNumber = index + 1;
 									if (!report) {
@@ -489,11 +499,10 @@ export default function ApprovedRequestDetails({
 												</div>
 											</div>
 											<div className="flex items-center gap-2">
-												<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${
-													report.status === 'PASSED' 
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
+												<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
 														: 'bg-rose-50 border border-rose-100 text-rose-700'
-												}`}>
+													}`}>
 													{report.status}
 												</span>
 												{report.status === 'PASSED' && (
@@ -517,7 +526,7 @@ export default function ApprovedRequestDetails({
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
 					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
-						<button 
+						<button
 							onClick={() => setActiveTimelineSampleIndex(null)}
 							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-555 hover:text-slate-850 cursor-pointer border-none outline-none"
 						>
@@ -543,25 +552,22 @@ export default function ApprovedRequestDetails({
 									const isActive = idx === activeIdx;
 									return (
 										<div key={idx} className="relative">
-											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${
-												item.completed 
-													? 'bg-emerald-500 border-emerald-500' 
+											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${item.completed
+													? 'bg-emerald-500 border-emerald-500'
 													: isActive
 														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
 														: 'bg-white border-zinc-300'
-											}`} />
-											<p className={`text-sm font-extrabold leading-tight ${
-												item.completed 
-													? 'text-zinc-900' 
-													: isActive 
-														? 'text-[#11236a]' 
+												}`} />
+											<p className={`text-sm font-extrabold leading-tight ${item.completed
+													? 'text-zinc-900'
+													: isActive
+														? 'text-[#11236a]'
 														: 'text-zinc-555'
-											}`}>
+												}`}>
 												{item.step}
 											</p>
-											<span className={`text-xs font-bold block mt-1 ${
-												isActive ? 'text-[#11236a]' : 'text-zinc-400'
-											}`}>{item.date}</span>
+											<span className={`text-xs font-bold block mt-1 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'
+												}`}>{item.date}</span>
 										</div>
 									);
 								})}

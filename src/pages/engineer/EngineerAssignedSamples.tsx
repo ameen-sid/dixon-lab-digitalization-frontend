@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, ClipboardList, CheckCircle, XCircle, ArrowLeft, Eye, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
 import toast from 'react-hot-toast';
 
 interface InspectionTask {
@@ -57,7 +58,19 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 	const basePath = location.pathname.startsWith('/engineer') ? '/engineer' : '/manager';
 	const activePlanId = planId || null;
 	const activeSampleIndex = sampleIndex !== undefined ? parseInt(sampleIndex, 10) : null;
-	const isViewOnly = new URLSearchParams(location.search).get('view') === 'true';
+
+	const activePlan = tasks.find(t => t.id === activePlanId);
+	const isPlanCompleted = activePlan ? [
+		'INSPECTION_COMPLETED',
+		'UNDER_TESTING',
+		'TESTING_PASSED',
+		'TESTING_FAILED',
+		'TESTING_PARTIAL',
+		'COMPLETED',
+		'REJECTED'
+	].includes(activePlan.status) : false;
+
+	const isViewOnly = new URLSearchParams(location.search).get('view') === 'true' || isPlanCompleted;
 
 	// Dictionary mapping unique key `${planId}-sample-${sampleIndex}` to SampleReport
 	const [sampleInspections, setSampleInspections] = useState<{ [key: string]: SampleReport }>(() => {
@@ -128,23 +141,93 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 	// savedImagePaths: server paths already persisted in the DB
 	const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]);
 
+	// Filter state
+	const [statusFilter, setStatusFilter] = useState('All');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
+
+	// Dictionary/cache of inspections compiled for statistics and list badges
+	const mergedReports = (() => {
+		const cachedManager = localStorage.getItem('dixon_sample_inspections');
+		const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+		const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+		
+		const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+		const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+		const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+		return { ...engineerReports, ...managerReports, ...completedReports };
+	})();
+
+	const getSampleInspectionStatus = (taskId: string, qty: number) => {
+		let passedCount = 0;
+		let failedCount = 0;
+		let pendingCount = 0;
+
+		for (let i = 0; i < qty; i++) {
+			const cacheKey = `${taskId}-sample-${i}`;
+			const report = mergedReports[cacheKey];
+			if (!report) {
+				pendingCount++;
+			} else if (report.status === 'PASSED') {
+				passedCount++;
+			} else if (report.status === 'FAILED') {
+				failedCount++;
+			}
+		}
+
+		if (pendingCount > 0) {
+			return 'Pending';
+		}
+		if (passedCount === qty) {
+			return 'Passed';
+		}
+		if (failedCount === qty) {
+			return 'Failed';
+		}
+		return 'Partial';
+	};
+
+	const matchesDateRange = (taskDate: string) => {
+		if (!startDate && !endDate) return true;
+		if (!taskDate) return false;
+		const tDate = new Date(taskDate);
+		tDate.setHours(0, 0, 0, 0);
+		if (startDate) {
+			const sDate = new Date(startDate);
+			sDate.setHours(0, 0, 0, 0);
+			if (tDate < sDate) return false;
+		}
+		if (endDate) {
+			const eDate = new Date(endDate);
+			eDate.setHours(0, 0, 0, 0);
+			if (tDate > eDate) return false;
+		}
+		return true;
+	};
+
 	// Filter tasks dynamically
 	const filteredTasks = tasks.filter(t => {
 		const q = searchQuery.toLowerCase();
-		return t.brandName.toLowerCase().includes(q) || 
+		const matchesSearch = t.brandName.toLowerCase().includes(q) || 
 			   t.requestId.toLowerCase().includes(q) || 
 			   t.modelNo.toLowerCase().includes(q) ||
 			   t.testMethodRef.toLowerCase().includes(q);
+
+		const status = getSampleInspectionStatus(t.id, t.sampleQty || 1);
+		const matchesStatus = statusFilter === 'All' || status === statusFilter;
+
+		const matchesDate = matchesDateRange(t.assignedDate);
+
+		return matchesSearch && matchesStatus && matchesDate;
 	});
+
+
 
 	const maxPage = Math.ceil(filteredTasks.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	const startIndex = (activePage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedTasks = filteredTasks.slice(startIndex, endIndex);
-
-	// Find current active plan
-	const activePlan = tasks.find(t => t.id === activePlanId);
 
 	// Handler to start inspecting a specific sample
 	const handleStartSampleInspection = (sampleIdx: number, readOnly = false) => {
@@ -261,7 +344,7 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 	};
 
 	// Compile and submit all sample reports to complete final plan
-	const handleSubmitFinalInspectionPlan = () => {
+	const handleSubmitFinalInspectionPlan = async () => {
 		if (!activePlanId || !activePlan) return;
 
 		const qty = activePlan.sampleQty || 1;
@@ -285,32 +368,36 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 		const finalRemarks = `Integrated Calibration Report: Completed visual checklist checks for all ${qty} samples. ` +
 			`Overall outcome: ${result}. Details of sample allotments: ${compiledReports.map(r => r.allottedId).join(', ')}.`;
 
-		onCompleteInspection(
-			activePlanId,
-			result,
-			finalRemarks,
-			{ compiledReports }
-		);
+		try {
+			await onCompleteInspection(
+				activePlanId,
+				result,
+				finalRemarks,
+				{ compiledReports }
+			);
 
-		// Save completed reports to permanent history cache before clearing active cache
-		const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
-		const completedDict = completedCached ? JSON.parse(completedCached) : {};
-		compiledReports.forEach((report, i) => {
-			completedDict[`${activePlanId}-sample-${i}`] = report;
-		});
-		localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+			// Save completed reports to permanent history cache before clearing active cache
+			const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
+			const completedDict = completedCached ? JSON.parse(completedCached) : {};
+			compiledReports.forEach((report, i) => {
+				completedDict[`${activePlanId}-sample-${i}`] = report;
+			});
+			localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
 
-		// Clear local storage cache for this plan
-		setSampleInspections(prev => {
-			const updated = { ...prev };
-			for (let i = 0; i < qty; i++) {
-				delete updated[`${activePlanId}-sample-${i}`];
-			}
-			return updated;
-		});
+			// Clear local storage cache for this plan
+			setSampleInspections(prev => {
+				const updated = { ...prev };
+				for (let i = 0; i < qty; i++) {
+					delete updated[`${activePlanId}-sample-${i}`];
+				}
+				return updated;
+			});
 
-		toast.success(`Final calibration report for ${activePlan.requestId} successfully synchronized to server!`);
-		navigate(`${basePath}/assigned-samples`);
+			toast.success(`Final calibration report for ${activePlan.requestId} successfully synchronized to server!`);
+			navigate(`${basePath}/assigned-samples`);
+		} catch (error) {
+			console.error("Failed to compile and submit final report:", error);
+		}
 	};
 
 	// ==========================================
@@ -604,15 +691,37 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 						</div>
 					</div>
 
-					{allCompleted && (
-						<button 
-							onClick={handleSubmitFinalInspectionPlan}
-							className="bg-[#11236a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all cursor-pointer active:scale-95 outline-none border-none flex items-center gap-1.5 shadow-sm"
-						>
-							<CheckCircle className="w-4 h-4 shrink-0" />
-							Compile & Submit Final Report
-						</button>
-					)}
+					{(() => {
+						const isPlanCompleted = [
+							'INSPECTION_COMPLETED',
+							'UNDER_TESTING',
+							'TESTING_PASSED',
+							'TESTING_FAILED',
+							'TESTING_PARTIAL',
+							'COMPLETED',
+							'REJECTED'
+						].includes(activePlan.status);
+						if (isPlanCompleted) {
+							return (
+								<div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 font-extrabold text-xs px-4 py-2 rounded-xl">
+									<CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+									Final Report Submitted
+								</div>
+							);
+						}
+						if (allCompleted) {
+							return (
+								<button 
+									onClick={handleSubmitFinalInspectionPlan}
+									className="bg-[#11236a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all cursor-pointer active:scale-95 outline-none border-none flex items-center gap-1.5 shadow-sm"
+								>
+									<CheckCircle className="w-4 h-4 shrink-0" />
+									Compile & Submit Final Report
+								</button>
+							);
+						}
+						return null;
+					})()}
 				</div>
 
 				{/* Parent specs details header */}
@@ -718,10 +827,11 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 	// ==========================================
 	return (
 		<div className="space-y-6">
-			{/* Toolbar */}
-			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-md">
-					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
+			{/* Filters toolbar */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+				{/* Search input (Left side) */}
+				<div className="relative w-full lg:max-w-xs">
+					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-555" />
 					<input 
 						type="text" 
 						placeholder="Search assigned inspection plans..."
@@ -730,11 +840,71 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 							setSearchQuery(e.target.value);
 							setCurrentPage(1);
 						}}
-						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-500 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-805 placeholder-zinc-500 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 					/>
 				</div>
-				<div className="text-xs text-zinc-550 font-semibold bg-zinc-50 border border-zinc-200 px-3.5 py-2 rounded-xl shrink-0">
-					Duty Inspection Plans: <strong className="text-zinc-850 font-extrabold">{tasks.length}</strong>
+
+				{/* Other filters (Right side) */}
+				<div className="flex flex-col sm:flex-row gap-4 items-center w-full lg:w-auto lg:justify-end">
+					<div className="flex items-center gap-2 w-full sm:w-auto">
+						<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">Status:</span>
+						<CustomSelect
+							value={statusFilter}
+							onChange={(val) => {
+								setStatusFilter(val);
+								setCurrentPage(1);
+							}}
+							options={[
+								{ value: "All", label: "All Statuses" },
+								{ value: "Passed", label: "Passed" },
+								{ value: "Failed", label: "Failed" },
+								{ value: "Partial", label: "Partial" },
+								{ value: "Pending", label: "Pending" }
+							]}
+							className="w-full sm:w-36"
+						/>
+					</div>
+
+					<div className="flex items-center gap-2 w-full sm:w-auto">
+						<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">From:</span>
+						<input
+							type="date"
+							value={startDate}
+							onChange={(e) => {
+								setStartDate(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-zinc-800 outline-none focus:bg-white focus:border-[#11236a] transition-all w-full sm:w-auto"
+						/>
+					</div>
+
+					<div className="flex items-center gap-2 w-full sm:w-auto">
+						<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">To:</span>
+						<input
+							type="date"
+							value={endDate}
+							onChange={(e) => {
+								setEndDate(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-zinc-805 outline-none focus:bg-white focus:border-[#11236a] transition-all w-full sm:w-auto"
+						/>
+					</div>
+
+					{(searchQuery || statusFilter !== 'All' || startDate || endDate) && (
+						<button
+							onClick={() => {
+								setSearchQuery('');
+								setStatusFilter('All');
+								setStartDate('');
+								setEndDate('');
+								setCurrentPage(1);
+							}}
+							className="text-xs font-bold text-red-655 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/50 px-3.5 py-2 rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-center"
+						>
+							Clear Filters
+						</button>
+					)}
 				</div>
 			</div>
 
@@ -755,16 +925,26 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 									<th className="py-4 px-6">Brand & Model</th>
 									<th className="py-4 px-6">Method Standard</th>
 									<th className="py-4 px-6">Sample Qty</th>
+									<th className="py-4 px-6 text-center">Inspection Status</th>
 									<th className="py-4 px-6 text-center">Assigned Date</th>
 									<th className="py-4 px-6 text-right">Action</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-zinc-100 text-xs font-semibold text-zinc-700">
 								{paginatedTasks.map((task) => {
-									const isCompleted = task.status === 'COMPLETED' || task.status === 'PASSED' || task.status === 'FAILED';
+									const isCompleted = [
+										'INSPECTION_COMPLETED',
+										'UNDER_TESTING',
+										'TESTING_PASSED',
+										'TESTING_FAILED',
+										'TESTING_PARTIAL',
+										'COMPLETED',
+										'REJECTED'
+									].includes(task.status);
+									const inspStatus = getSampleInspectionStatus(task.id, task.sampleQty || 1);
 									return (
 										<tr key={task.id} className="hover:bg-zinc-50/50 transition-all group">
-											<td className="py-4 px-6 font-extrabold text-zinc-950">{task.requestId}</td>
+											<td className="py-4 px-6 font-extrabold text-zinc-955">{task.requestId}</td>
 											<td className="py-4 px-6">
 												<div className="font-extrabold text-zinc-900">{task.brandName}</div>
 												<span className="text-[10px] text-zinc-500 font-semibold">{task.modelNo}</span>
@@ -777,22 +957,36 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 													{task.sampleQty} pcs
 												</span>
 											</td>
+											<td className="py-4 px-6 text-center">
+												<span className={`text-[9px] font-extrabold px-2.5 py-0.5 border rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
+													inspStatus === 'Passed' 
+														? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+														: inspStatus === 'Failed'
+															? 'bg-rose-50 text-rose-700 border-rose-100'
+															: inspStatus === 'Partial'
+																? 'bg-amber-50 text-amber-705 border-amber-100 animate-pulse'
+																: 'bg-zinc-50 text-zinc-600 border-zinc-200'
+												}`}>
+													{inspStatus}
+												</span>
+											</td>
 											<td className="py-4 px-6 text-center text-zinc-500 font-bold">{task.assignedDate}</td>
 											<td className="py-4 px-6 text-right">
-												{isCompleted ? (
-													<span className="text-zinc-400 font-bold italic text-xs flex items-center justify-end gap-1.5">
-														<CheckCircle className="w-4 h-4 text-emerald-500" />
-														Certified Done
-													</span>
-												) : (
+												<div className="flex items-center justify-end gap-3">
+													{isCompleted && (
+														<span className="text-emerald-600 font-extrabold text-[10px] uppercase tracking-wider bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+															<CheckCircle className="w-3 h-3 text-emerald-600" />
+															Certified Done
+														</span>
+													)}
 													<button 
 														onClick={() => navigate(`${basePath}/assigned-samples/${task.id}`)}
-														className="bg-[#11236a] text-white font-bold text-[11px] px-3.5 py-1.5 rounded-lg hover:bg-[#0c1a52] transition-all cursor-pointer border-none outline-none active:scale-[0.97] flex items-center gap-1 ml-auto"
+														className="bg-[#11236a] text-white font-bold text-[11px] px-3.5 py-1.5 rounded-lg hover:bg-[#0c1a52] transition-all cursor-pointer border-none outline-none active:scale-[0.97] flex items-center gap-1 shrink-0"
 													>
 														<Eye className="w-3.5 h-3.5" />
-														View Details
+														{isCompleted ? 'View Checklist' : 'View Details'}
 													</button>
-												)}
+												</div>
 											</td>
 										</tr>
 									);

@@ -32,6 +32,7 @@ interface ApprovedRequest {
 	engineerName?: string;
 	inspectionResult?: string;
 	inspectionRemarks?: string;
+	remarks?: string | null;
 	inspectionDate?: string;
 	customerContactDetails?: string;
 	manufacturerNameAddress?: string;
@@ -108,7 +109,6 @@ export default function ManagerDashboard() {
 			const fetchOp = getTestRequests();
 			const data = await fetchOp();
 			
-			// Map the database format to the component expectations
 			const mapped = data.map((req: any) => ({
 				id: String(req.id),
 				requestId: req.requestId,
@@ -125,8 +125,95 @@ export default function ManagerDashboard() {
 				engineerName: req.assignedTo ? req.assignedTo.name : undefined,
 				inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
 				inspectionRemarks: req.remarks,
+				remarks: req.remarks,
 				sampleInspections: req.sampleInspections
 			}));
+
+			// Perform an automatic check for completed requests that are still UNDER_TEST
+			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
+			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
+			const cachedManager = localStorage.getItem('dixon_sample_inspections');
+			const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+			const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+			const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+			const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+			const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+			for (const req of mapped) {
+				if (req.status === 'UNDER_TESTING' || req.status === 'UNDER_TEST') {
+					const qty = req.sampleQty || 1;
+					let allSamplesComplete = true;
+					let hasPlans = false;
+
+					for (let i = 0; i < qty; i++) {
+						const cacheKey = `${req.id}-sample-${i}`;
+						const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+						const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedReports[cacheKey];
+						const plan = plansMap[cacheKey];
+
+						if (plan) {
+							hasPlans = true;
+						}
+
+						if (mergedReport) {
+							if (mergedReport.status === 'FAILED') {
+								// Failed inspection means it's complete/failed
+								continue;
+							} else if (mergedReport.status === 'PASSED') {
+								// Passed inspection means it must have a completed evaluation status
+								if (plan && (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED')) {
+									continue;
+								}
+							}
+						}
+						allSamplesComplete = false;
+						break;
+					}
+
+					// We only auto-transition if it actually had plans configured and all are completed
+					if (allSamplesComplete && hasPlans) {
+						let passedCount = 0;
+						let failedCount = 0;
+
+						for (let i = 0; i < qty; i++) {
+							const cacheKey = `${req.id}-sample-${i}`;
+							const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+							const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedReports[cacheKey];
+							const plan = plansMap[cacheKey];
+
+							if (mergedReport) {
+								if (mergedReport.status === 'FAILED') {
+									failedCount++;
+								} else if (mergedReport.status === 'PASSED') {
+									if (plan && plan.evaluationStatus === 'PASSED') {
+										passedCount++;
+									} else if (plan && plan.evaluationStatus === 'FAILED') {
+										failedCount++;
+									}
+								}
+							}
+						}
+
+						let finalStatus = 'TESTING_PARTIAL';
+						if (failedCount === qty) {
+							finalStatus = 'TESTING_FAILED';
+						} else if (passedCount === qty) {
+							finalStatus = 'TESTING_PASSED';
+						}
+
+						try {
+							const statusUpdateOp = updateTestRequestStatus(
+								Number(req.id),
+								finalStatus,
+								`Testing fully evaluated: ${passedCount} passed, ${failedCount} failed.`
+							);
+							await statusUpdateOp();
+							req.status = finalStatus;
+						} catch (e) {
+							console.error(`Failed to auto-update request ${req.id} status to ${finalStatus}:`, e);
+						}
+					}
+				}
+			}
 
 			// Approved requests are those which have been signed off by the Lab Head 
 			// (Status is NOT PENDING_APPROVAL and NOT REJECTED)
@@ -196,6 +283,7 @@ export default function ManagerDashboard() {
 					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
 					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
 					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
 					manufacturerNameAddress: req.manufacturerNameAddress
@@ -291,6 +379,7 @@ export default function ManagerDashboard() {
 					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
 					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
 					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
 					manufacturerNameAddress: req.manufacturerNameAddress
@@ -337,6 +426,7 @@ export default function ManagerDashboard() {
 					engineerId: req.assignedTo ? String(req.assignedTo.id) : undefined,
 					engineerName: req.assignedTo ? req.assignedTo.name : undefined,
 					inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
+					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
 					manufacturerNameAddress: req.manufacturerNameAddress
@@ -352,7 +442,7 @@ export default function ManagerDashboard() {
 	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = 'UNDER_TEST';
+			const statusTransition = 'INSPECTION_COMPLETED';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,
@@ -434,7 +524,7 @@ export default function ManagerDashboard() {
 						navigate={navigate}
 						stats={{
 							approvedCount: approvedRequests.filter(r => !r.engineerId).length,
-							assignedCount: approvedRequests.filter(r => !!r.engineerId && (r.status === 'UNDER_TEST' || r.status === 'UNDER_INSPECTION')).length,
+							assignedCount: approvedRequests.filter(r => !!r.engineerId && (r.status === 'UNDER_TESTING' || r.status === 'UNDER_TEST' || r.status === 'UNDER_INSPECTION' || r.status === 'INSPECTION_COMPLETED')).length,
 							completedCount: approvedRequests.filter(r => !!r.inspectionResult).length,
 							capaCount: capas.filter(c => c.status === 'OPEN').length
 						}}
@@ -487,7 +577,7 @@ export default function ManagerDashboard() {
 						testMethodRef: r.testMethodRef,
 						sampleDescription: r.sampleDescription,
 						sampleQty: r.sampleQty || 1,
-						status: r.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING',
+						status: r.status,
 						assignedDate: r.approvedDate,
 						engineerId: r.engineerId,
 						engineerName: r.engineerName

@@ -112,7 +112,11 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 							{ value: 'ALL',              label: 'All Statuses' },
 							{ value: 'PENDING_APPROVAL', label: 'Pending Approval' },
 							{ value: 'UNDER_INSPECTION', label: 'Under Inspection' },
-							{ value: 'UNDER_TEST',       label: 'Under Test' },
+							{ value: 'INSPECTION_COMPLETED', label: 'Inspection Completed' },
+							{ value: 'UNDER_TESTING',    label: 'Under Testing' },
+							{ value: 'TESTING_PASSED',   label: 'Testing Passed' },
+							{ value: 'TESTING_FAILED',   label: 'Testing Failed' },
+							{ value: 'TESTING_PARTIAL',  label: 'Testing Partial' },
 							{ value: 'COMPLETED',        label: 'Completed' },
 							{ value: 'REJECTED',         label: 'Rejected' }
 						]}
@@ -190,43 +194,71 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
-								{paginatedRequests.map((req) => (
-									<tr key={req.id} className="hover:bg-zinc-50/50 transition-all group">
-										<td className="py-4 px-6 font-bold text-zinc-800">{req.id}</td>
-										<td className="py-4 px-6">
-											<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
-											{req.serialNumber && <span className="text-[9px] text-zinc-650 font-bold block">S/N: {req.serialNumber}</span>}
-										</td>
-										<td className="py-4 px-6 text-zinc-700 font-medium">{req.customerNameAddress}</td>
-										<td className="py-4 px-6">
-											<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
-												req.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-												req.status === 'UNDER_TEST' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-												req.status === 'UNDER_INSPECTION' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-												req.status === 'PENDING_APPROVAL' ? 'bg-amber-50/70 text-amber-700 border-amber-200' :
-												req.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-												'bg-zinc-50 text-zinc-650 border-zinc-100'
-											}`}>
-												{req.status === 'COMPLETED' && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-												{req.status === 'UNDER_TEST' && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
-												{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-												{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-												{req.status.replace('_', ' ')}
-											</span>
-										</td>
-										<td className="py-4 px-6 text-right">
-											<button 
-												onClick={() => {
-													setSelectedRequest(req);
-													setActiveTab('view-request-details');
-												}}
-												className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer group-hover:underline bg-transparent border-none outline-none"
-											>
-												Track Request
-											</button>
-										</td>
-									</tr>
-								))}
+								{paginatedRequests.map((req) => {
+									const getStatusStyle = (status: string) => {
+										switch (status) {
+											case 'COMPLETED':
+											case 'PASS':
+											case 'TESTING_PASSED':
+											case 'INSPECTION_COMPLETED':
+												return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+											case 'FAIL':
+											case 'TESTING_FAILED':
+											case 'REJECTED':
+												return 'bg-rose-50 text-rose-600 border-rose-100';
+											case 'PARTIAL':
+											case 'TESTING_PARTIAL':
+												return 'bg-amber-50 text-amber-600 border-amber-100';
+											case 'UNDER_TEST':
+											case 'UNDER_TESTING':
+												return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+											case 'UNDER_INSPECTION':
+												return 'bg-blue-50 text-blue-600 border-blue-100';
+											case 'PENDING_APPROVAL':
+												return 'bg-amber-50/70 text-amber-700 border-amber-200';
+											default:
+												return 'bg-zinc-50 text-zinc-650 border-zinc-100';
+										}
+									};
+									return (
+										<tr key={req.id} className="hover:bg-zinc-50/50 transition-all group">
+											<td className="py-4 px-6 font-bold text-zinc-800">{req.id}</td>
+											<td className="py-4 px-6">
+												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
+												{req.serialNumber && <span className="text-[9px] text-zinc-650 font-bold block">S/N: {req.serialNumber}</span>}
+											</td>
+											<td className="py-4 px-6 text-zinc-700 font-medium">{req.customerNameAddress}</td>
+											<td className="py-4 px-6">
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
+													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
+													{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
+														? 'TESTING PASSED' 
+														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' 
+															? 'TESTING FAILED' 
+															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL' 
+																? 'TESTING PARTIAL' 
+																: req.status.replace('_', ' ')}
+												</span>
+											</td>
+											<td className="py-4 px-6 text-right">
+												<button 
+													onClick={() => {
+														setSelectedRequest(req);
+														setActiveTab('view-request-details');
+													}}
+													className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer group-hover:underline bg-transparent border-none outline-none"
+												>
+													Track Request
+												</button>
+											</td>
+										</tr>
+									);
+								})}
 							</tbody>
 						</table>
 

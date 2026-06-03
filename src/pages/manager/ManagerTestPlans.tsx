@@ -42,9 +42,17 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
 
-	// Filter requests to those inspected (status UNDER_TEST or COMPLETED)
-	const inspectedRequests = requests.filter(
-		(r: any) => r.status === 'UNDER_TEST' || r.status === 'COMPLETED'
+	// Filter requests to those inspected (status INSPECTION_COMPLETED, UNDER_TESTING, or other testing states)
+	const inspectedRequests = requests.filter((r: any) =>
+		[
+			'INSPECTION_COMPLETED',
+			'UNDER_TEST',
+			'UNDER_TESTING',
+			'TESTING_PASSED',
+			'TESTING_FAILED',
+			'TESTING_PARTIAL',
+			'COMPLETED'
+		].includes(r.status)
 	);
 
 	// Component states
@@ -265,7 +273,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			if (onUpdateStatus) {
 				await onUpdateStatus(
 					selectedReq.id,
-					'UNDER_TEST',
+					'UNDER_TESTING',
 					`Test Plan configured for Sample #${activeSampleIndex + 1} at Station S${form.stationNo}.`
 				);
 			}
@@ -290,8 +298,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	// Search and Paginate filters
 	const filteredRequests = inspectedRequests.filter(r => {
+		const idStr = String(r.id).toLowerCase();
 		return r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			idStr.includes(searchQuery.toLowerCase()) ||
 			(r.requestId && r.requestId.toLowerCase().includes(searchQuery.toLowerCase())) ||
 			r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());

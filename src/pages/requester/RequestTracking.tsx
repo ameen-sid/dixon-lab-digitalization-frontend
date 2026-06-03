@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText } from 'lucide-react';
+import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText, XCircle } from 'lucide-react';
 
 interface RequestRecord {
 	id: string;
@@ -24,9 +24,23 @@ interface RequestRecord {
 	status: string;
 	remarks?: string | null;
 	createdDate: string;
+	createdAt?: string;
+	updatedAt?: string;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
 }
+
+const formatCompletionDate = (dateString: string | undefined) => {
+	if (!dateString) return '';
+	const date = new Date(dateString);
+	if (isNaN(date.getTime())) return dateString;
+
+	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const year = date.getFullYear();
+
+	return `${day}-${month}-${year}`;
+};
 
 interface RequestTrackingProps {
 	selectedRequest: RequestRecord | null;
@@ -58,7 +72,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 		return (
 			<div className="bg-white border border-zinc-200/50 rounded-3xl p-8 text-center">
 				<p className="text-zinc-655 text-xs font-semibold">No request selected for tracking.</p>
-				<button 
+				<button
 					onClick={() => setActiveTab('my-requests')}
 					className="mt-4 px-4 py-2 bg-[#11236a] text-white text-xs font-bold rounded-xl outline-none border-none cursor-pointer hover:bg-[#0c1a52] transition-colors"
 				>
@@ -72,7 +86,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 		<div className="space-y-6">
 			{/* Back bar */}
 			<div className="flex items-center justify-between">
-				<button 
+				<button
 					onClick={() => setActiveTab('my-requests')}
 					className="text-xs font-bold text-zinc-705 hover:text-zinc-955 flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none transition-colors"
 				>
@@ -80,7 +94,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				</button>
 
 				{selectedRequest.status === 'COMPLETED' && (
-					<button 
+					<button
 						onClick={() => onInitiateCapa(selectedRequest)}
 						className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm"
 					>
@@ -113,20 +127,49 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								<span className="text-[10px] font-bold text-zinc-650 tracking-wider uppercase">{selectedRequest.id}</span>
 								<h3 className="text-base font-extrabold text-zinc-955 mt-0.5 leading-tight">{selectedRequest.brandName} - {selectedRequest.modelNo}</h3>
 							</div>
-							<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
-								selectedRequest.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-								selectedRequest.status === 'UNDER_TEST' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-								selectedRequest.status === 'UNDER_INSPECTION' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-								selectedRequest.status === 'PENDING_APPROVAL' ? 'bg-amber-50/70 text-amber-700 border-amber-200' :
-								selectedRequest.status === 'REJECTED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
-								'bg-zinc-50 text-zinc-650 border-zinc-100'
-							}`}>
-								{selectedRequest.status === 'COMPLETED' && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-								{selectedRequest.status === 'UNDER_TEST' && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />}
-								{selectedRequest.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />}
-								{selectedRequest.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />}
-								{selectedRequest.status.replace('_', ' ')}
-							</span>
+							{(() => {
+								const getStatusStyle = (status: string) => {
+									switch (status) {
+										case 'COMPLETED':
+										case 'PASS':
+										case 'TESTING_PASSED':
+										case 'INSPECTION_COMPLETED':
+											return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+										case 'FAIL':
+										case 'TESTING_FAILED':
+										case 'REJECTED':
+											return 'bg-rose-50 text-rose-600 border-rose-100';
+										case 'PARTIAL':
+										case 'TESTING_PARTIAL':
+											return 'bg-amber-50 text-amber-600 border-amber-100';
+										case 'UNDER_TEST':
+										case 'UNDER_TESTING':
+											return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+										case 'UNDER_INSPECTION':
+											return 'bg-blue-50 text-blue-600 border-blue-100';
+										case 'PENDING_APPROVAL':
+											return 'bg-amber-50/70 text-amber-700 border-amber-200';
+										default:
+											return 'bg-zinc-50 text-zinc-650 border-zinc-100';
+									}
+								};
+								return (
+									<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(selectedRequest.status)}`}>
+										{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(selectedRequest.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
+										{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(selectedRequest.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
+										{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(selectedRequest.status) && (
+											<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
+										)}
+										{selectedRequest.status === 'PASS' || selectedRequest.status === 'TESTING_PASSED' 
+											? 'TESTING PASSED' 
+											: selectedRequest.status === 'FAIL' || selectedRequest.status === 'TESTING_FAILED' 
+												? 'TESTING FAILED' 
+												: selectedRequest.status === 'PARTIAL' || selectedRequest.status === 'TESTING_PARTIAL' 
+													? 'TESTING PARTIAL' 
+													: selectedRequest.status.replace('_', ' ')}
+									</span>
+								);
+							})()}
 						</div>
 
 						{/* Applicant details */}
@@ -190,9 +233,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								<div>
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Sample Disposal Scheme</p>
 									<p className="font-bold text-zinc-855 mt-0.5">
-										{selectedRequest.collectBack === 'Yes' ? 'Collect Back after test' : 
-										 selectedRequest.collectBack === 'No_Retain' ? 'Retain in lab archives' : 
-										 'Discard after testing cycle'}
+										{selectedRequest.collectBack === 'Yes' ? 'Collect Back after test' :
+											selectedRequest.collectBack === 'No_Retain' ? 'Retain in lab archives' :
+												'Discard after testing cycle'}
 									</p>
 								</div>
 								<div className="border-t border-zinc-200 pt-2.5">
@@ -211,8 +254,8 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										<p className="text-[10px] text-zinc-655 font-semibold mt-1 bg-white p-2 border border-zinc-150 rounded-lg">
 											Decision Rule: <span className="font-bold text-zinc-800">
 												{selectedRequest.decisionRule === 'A' ? 'A (Measurement of uncertainty)' :
-												 selectedRequest.decisionRule === 'B' ? 'B (As per standard)' :
-												 'C (As per customer specification, if better)'}
+													selectedRequest.decisionRule === 'B' ? 'B (As per standard)' :
+														'C (As per customer specification, if better)'}
 											</span>
 										</p>
 									)}
@@ -244,7 +287,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								<p className="text-[9px] text-zinc-700 font-extrabold uppercase mb-2">Submitted File Attachments</p>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 									{selectedRequest.attachments.map((file) => (
-										<a 
+										<a
 											key={file.id}
 											href={`http://127.0.0.1:3001/${(() => {
 												const idx = file.filePath.toLowerCase().indexOf('uploads');
@@ -279,55 +322,67 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							{(() => {
 								const isRejected = selectedRequest.status === 'REJECTED';
 								const steps = [
-									{ 
-										step: 'Testing Request Submitted', 
-										date: selectedRequest.createdDate, 
-										completed: true 
+									{
+										step: 'Testing Request Submitted',
+										date: formatCompletionDate(selectedRequest.createdAt || selectedRequest.createdDate),
+										completed: true
 									},
-									{ 
-										step: 'Approved Testing Request by Head of Lab', 
-										date: isRejected 
-											? 'Rejected' 
-											: (selectedRequest.status !== 'PENDING_APPROVAL' ? selectedRequest.createdDate : 'Awaiting approval'), 
-										completed: selectedRequest.status !== 'PENDING_APPROVAL' && !isRejected,
+									{
+										step: 'Approved Testing Request by Head of Lab',
+										date: isRejected
+											? `Rejected (${formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)})`
+											: (selectedRequest.status !== 'PENDING_APPROVAL' 
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+												: 'Awaiting approval'),
+										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status),
 										failed: isRejected
 									},
 									...(!isRejected ? [
-										{ 
-											step: 'Sample Checked', 
-											date: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
-												? selectedRequest.createdDate 
-												: (selectedRequest.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'), 
-											completed: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST',
+										{
+											step: 'Samples Checked',
+											date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+												: (selectedRequest.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
+											completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status),
 										},
-										{ 
-											step: 'Test Plan Created', 
-											date: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
-												? selectedRequest.createdDate 
-												: 'Awaiting plan', 
-											completed: selectedRequest.status === 'COMPLETED' || selectedRequest.status === 'UNDER_TEST'
+										{
+											step: 'Test Plan Created',
+											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+												: 'Awaiting plan',
+											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
-										{ 
-											step: 'Testing', 
-											date: selectedRequest.status === 'COMPLETED' 
-												? selectedRequest.createdDate 
-												: (selectedRequest.status === 'UNDER_TEST' ? 'In testing phase' : 'Awaiting start'), 
-											completed: selectedRequest.status === 'COMPLETED'
+										{
+											step: 'Testing',
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+												: (selectedRequest.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
-										{ 
-											step: selectedRequest.status === 'COMPLETED' ? 'Testing Passed' : 'Testing Failed / Testing Passed', 
-											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Awaiting results', 
-											completed: selectedRequest.status === 'COMPLETED' 
+										{
+											step: selectedRequest.status === 'TESTING_PASSED' || (selectedRequest.status === 'COMPLETED' && !selectedRequest.remarks?.toLowerCase().includes('fail') && !selectedRequest.remarks?.toLowerCase().includes('partial')) 
+												? 'Testing Passed' 
+												: (selectedRequest.status === 'TESTING_FAILED' || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail')) 
+													? 'Testing Failed' 
+													: (selectedRequest.status === 'TESTING_PARTIAL' || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status) 
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+												: 'Awaiting results',
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
-										{ 
-											step: 'Report Generation', 
-											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending release', 
-											completed: selectedRequest.status === 'COMPLETED' 
+										{
+											step: 'Report Generation',
+											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status) 
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+												: 'Pending release',
+											completed: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
-										{ 
-											step: 'Approved Final Report by Head', 
-											date: selectedRequest.status === 'COMPLETED' ? selectedRequest.createdDate : 'Pending final sign-off', 
-											completed: selectedRequest.status === 'COMPLETED' 
+										{
+											step: 'Approved Final Report',
+											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status) 
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+												: 'Pending final sign-off',
+											completed: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										}
 									] : [])
 								];
@@ -338,28 +393,25 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									const isActive = idx === activeIdx;
 									return (
 										<div key={idx} className="relative">
-											<div className={`absolute -left-[25px] top-0.5 w-2.5 h-2.5 rounded-full border-2 ${
-												item.failed
+											<div className={`absolute -left-[25px] top-0.5 w-2.5 h-2.5 rounded-full border-2 ${item.failed
 													? 'bg-rose-500 border-rose-500 animate-pulse'
-													: item.completed 
-														? 'bg-emerald-500 border-emerald-500' 
+													: item.completed
+														? 'bg-emerald-500 border-emerald-500'
 														: isActive
 															? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
 															: 'bg-white border-zinc-300'
-											}`} />
-											<p className={`text-xs font-bold leading-tight ${
-												item.failed 
-													? 'text-rose-600' 
-													: item.completed 
-														? 'text-zinc-900' 
-														: isActive 
-															? 'text-indigo-650' 
+												}`} />
+											<p className={`text-xs font-bold leading-tight ${item.failed
+													? 'text-rose-600'
+													: item.completed
+														? 'text-zinc-900'
+														: isActive
+															? 'text-indigo-650'
 															: 'text-zinc-500'
-											}`}>
+												}`}>
 												{item.step}
 											</p>
-											<span className={`text-[10px] font-semibold block mt-0.5 ${
-												isActive ? 'text-indigo-500' : 'text-zinc-400'
+											<span className={`text-[10px] font-semibold block mt-0.5 ${isActive ? 'text-indigo-500' : 'text-zinc-400'
 											}`}>{item.date}</span>
 										</div>
 									);
@@ -375,12 +427,12 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								<span>Sample Inspection Results</span>
 								<span className="text-[10px] font-bold text-zinc-400">Total: {selectedRequest.sampleQty || 1}</span>
 							</h4>
-							
+
 							<div className="divide-y divide-zinc-150/70">
 								{(() => {
 									const qty = selectedRequest.sampleQty || 1;
 									const list = [];
-									
+
 									for (let i = 0; i < qty; i++) {
 										// 1. Try finding in real database-fetched inspections
 										const dbReport = realSampleInspections.find((r: any) => Number(r.sampleIndex) === i);
@@ -399,11 +451,11 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											const cachedManager = localStorage.getItem('dixon_sample_inspections');
 											const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
 											const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-											
+
 											const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
 											const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
 											const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-											
+
 											const merged = { ...engineerReports, ...managerReports, ...completedReports };
 											list.push({
 												index: i,
@@ -411,7 +463,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											});
 										}
 									}
-									
+
 									return list.map(({ index, report }) => {
 										const sampleNumber = index + 1;
 										if (!report) {
@@ -444,11 +496,10 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 														</p>
 													</div>
 												</div>
-												<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-													report.status === 'PASSED' 
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700' 
+												<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
 														: 'bg-rose-50 border border-rose-100 text-rose-700'
-												}`}>
+													}`}>
 													{report.status}
 												</span>
 											</div>
