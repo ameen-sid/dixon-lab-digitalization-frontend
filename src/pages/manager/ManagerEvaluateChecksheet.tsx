@@ -7,6 +7,8 @@ import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
+import { releasePlatforms } from '../../services/operations/platformAvailabilityService';
+import { releaseEquipment } from '../../services/operations/testingEquipmentService';
 import toast from 'react-hot-toast';
 
 interface ColumnDef {
@@ -186,6 +188,28 @@ export default function ManagerEvaluateChecksheet() {
 				status: status
 			};
 			localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+
+			// Release reserved platform channels and equipment
+			if (planInfo.plan.stationNo && planInfo.plan.platformNos && planInfo.plan.platformNos.length > 0) {
+				try {
+					const releasePlatOp = releasePlatforms(
+						Number(planInfo.plan.stationNo),
+						planInfo.plan.platformNos.map(Number)
+					);
+					await releasePlatOp();
+				} catch (platErr) {
+					console.error('Failed to release platforms on evaluation:', platErr);
+				}
+			}
+
+			if (planInfo.plan.equipmentId) {
+				try {
+					const releaseEqOp = releaseEquipment(Number(planInfo.plan.equipmentId));
+					await releaseEqOp();
+				} catch (eqErr) {
+					console.error('Failed to release equipment on evaluation:', eqErr);
+				}
+			}
 
 			// 3. Check if all samples for this request are completed/evaluated
 			const request = requests.find(r => String(r.id) === String(requestId));

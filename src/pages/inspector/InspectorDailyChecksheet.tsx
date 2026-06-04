@@ -91,7 +91,13 @@ export default function InspectorDailyChecksheet() {
 			isReliability,
 			isTodayInRange
 		};
-	}).filter(item => item.isReliability && item.request && item.isTodayInRange);
+	}).filter(
+		item =>
+			item.isReliability &&
+			item.request &&
+			item.isTodayInRange &&
+			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
+	);
 
 	// Format platforms list text
 	const getPlatformsText = (plan: any) => {

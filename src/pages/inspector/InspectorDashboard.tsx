@@ -79,9 +79,16 @@ export default function InspectorDashboard() {
 		return {
 			isReliability,
 			request,
-			isTodayInRange
+			isTodayInRange,
+			plan
 		};
-	}).filter(item => item.isReliability && item.request && item.isTodayInRange);
+	}).filter(
+		item =>
+			item.isReliability &&
+			item.request &&
+			item.isTodayInRange &&
+			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
+	);
 
 	// Count statistics
 	const totalReliabilityCount = reliabilityPlans.length;
