@@ -59,11 +59,11 @@ export const getCapaById = (id: string | number) => {
 	};
 };
 
-export const updateCapaStatus = (id: string | number, status: string) => {
+export const updateCapaStatus = (id: string | number, status: string, remark?: string) => {
 	return async () => {
 		const toastId = toast.loading('Updating CAPA status...');
 		try {
-			const response = await apiConnector('PATCH', UPDATE_CAPA_STATUS_API(id), { status });
+			const response = await apiConnector('PATCH', UPDATE_CAPA_STATUS_API(id), { status, remark });
 			toast.success('CAPA status updated!');
 			return response.data.data || response.data;
 		} catch (error) {

@@ -42,6 +42,12 @@ interface RequestRecord {
 	remarks?: string | null;
 	createdAt: string;
 	attachments?: AttachmentRecord[];
+	requester?: {
+		name: string;
+		department?: {
+			name: string;
+		} | null;
+	} | null;
 }
 
 export default function HeadSampleTests() {
@@ -49,7 +55,7 @@ export default function HeadSampleTests() {
 	const [requests, setRequests] = useState<RequestRecord[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL');
+	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
 
@@ -228,7 +234,7 @@ export default function HeadSampleTests() {
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">ID</th>
 									<th className="py-4 px-6">Product Details</th>
-									<th className="py-4 px-6">Supplier / Customer</th>
+									<th className="py-4 px-6">Requester Name</th>
 									<th className="py-4 px-6">Status</th>
 									<th className="py-4 px-6 text-right">Actions</th>
 								</tr>
@@ -257,7 +263,7 @@ export default function HeadSampleTests() {
 											case 'PENDING_APPROVAL':
 												return 'bg-amber-50/70 text-amber-700 border-amber-200';
 											default:
-												return 'bg-zinc-50 text-zinc-650 border-zinc-100';
+												return 'bg-zinc-50 text-zinc-655 border-zinc-100';
 										}
 									};
 									return (
@@ -269,8 +275,11 @@ export default function HeadSampleTests() {
 												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
 												<span className="text-[9px] text-zinc-655 font-bold block mt-0.5">Qty: {req.sampleQty} Pcs • Ref: {req.testMethodRef}</span>
 											</td>
-											<td className="py-4 px-6 text-zinc-700 font-medium truncate max-w-[200px]">
-												{req.customerNameAddress}
+											<td className="py-4 px-6">
+												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.requester?.name || 'General'}</p>
+												{req.requester?.department?.name && (
+													<span className="text-[9px] text-zinc-400 font-bold block mt-0.5 uppercase">{req.requester.department.name}</span>
+												)}
 											</td>
 											<td className="py-4 px-6">
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>

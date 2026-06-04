@@ -47,6 +47,13 @@ interface RequestRecord {
 	updatedAt: string;
 	attachments?: AttachmentRecord[];
 	sampleInspections?: any[];
+	requester?: {
+		name: string;
+		email: string;
+		department?: {
+			name: string;
+		} | null;
+	} | null;
 }
 
 const formatCompletionDate = (dateString: string | undefined) => {
@@ -328,116 +335,150 @@ export default function HeadRequestDetails() {
 				{/* Left column: core specifications */}
 				<div className="lg:col-span-2 space-y-6">
 
-					{/* Applicant Details */}
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
-						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
-							Applicant & Manufacturer Profile
-						</h4>
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Applicant / Customer Details</p>
-								<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.customerNameAddress}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Contact Details</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.customerContactDetails}</p>
-							</div>
-							<div className="sm:col-span-2 border-t border-zinc-100 pt-3">
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer Details</p>
-								<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.manufacturerNameAddress}</p>
+					{/* Consolidated Request Details Card */}
+					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm space-y-6">
+						<div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
+							<h3 className="text-sm font-black text-zinc-950 uppercase tracking-wide">
+								Testing Request Specifications
+							</h3>
+							<span className="text-[10px] text-zinc-400 font-bold uppercase">
+								REQ ID: {request.requestId || `REQ-00${request.id}`}
+							</span>
+						</div>
+
+						{/* Section 1: Requester Profile */}
+						<div className="space-y-3">
+							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
+								Requester Profile
+							</h4>
+							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Requester Name</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.requester?.name || 'General User'}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Department</p>
+									<p className="font-bold text-[#11236a] mt-1">{request.requester?.department?.name || 'General Department'}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Contact Email</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.requester?.email || 'N/A'}</p>
+								</div>
 							</div>
 						</div>
-					</div>
 
-					{/* Product Specifications */}
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
-						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
-							Product & Sample Details
-						</h4>
-						<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold">
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Brand Name</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.brandName}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Model No</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.modelNo}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Family Model</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.familyModel || 'None'}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Serial Number</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.serialNumber || 'None'}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Product Rating</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.productRating}</p>
-							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Sample Qty</p>
-								<p className="font-bold text-[#11236a] mt-1">{request.sampleQty} pcs</p>
+						{/* Section 2: Applicant & Manufacturer Details */}
+						<div className="border-t border-zinc-100/85 pt-4 space-y-3">
+							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
+								Applicant & Manufacturer Profile
+							</h4>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Applicant / Customer Details</p>
+									<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.customerNameAddress}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Contact Details</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.customerContactDetails}</p>
+								</div>
+								<div className="sm:col-span-2 border-t border-zinc-50 pt-3">
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer Details</p>
+									<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.manufacturerNameAddress}</p>
+								</div>
 							</div>
 						</div>
-					</div>
 
-					{/* Test Configuration */}
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
-						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
-							Test Protocol Configuration
-						</h4>
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Ref</p>
-								<p className="font-bold text-zinc-800 mt-1 leading-relaxed">{request.testMethodRef}</p>
+						{/* Section 3: Product Specifications */}
+						<div className="border-t border-zinc-100/85 pt-4 space-y-3">
+							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
+								Product & Sample Details
+							</h4>
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold">
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Brand Name</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.brandName}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Model No</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.modelNo}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Family Model</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.familyModel || 'None'}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Serial Number</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.serialNumber || 'None'}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Product Rating</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.productRating}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Sample Qty</p>
+									<p className="font-bold text-[#11236a] mt-1">{request.sampleQty} pcs</p>
+								</div>
 							</div>
-							<div>
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Collect Back Scheme</p>
-								<p className="font-bold text-zinc-800 mt-1">
-									{request.collectBack === 'Yes' ? 'Collect back after testing' :
-										request.collectBack === 'No_Retain' ? 'Retain in archives' :
-											'Discard / Recycle sample'}
+						</div>
+
+						{/* Section 4: Test Protocol Configuration */}
+						<div className="border-t border-zinc-100/85 pt-4 space-y-3">
+							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
+								Test Protocol Configuration
+							</h4>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Ref</p>
+									<p className="font-bold text-zinc-800 mt-1 leading-relaxed">{request.testMethodRef}</p>
+								</div>
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Collect Back Scheme</p>
+									<p className="font-bold text-zinc-800 mt-1">
+										{request.collectBack === 'Yes' ? 'Collect back after testing' :
+											request.collectBack === 'No_Retain' ? 'Retain in archives' :
+												'Discard / Recycle sample'}
+									</p>
+								</div>
+								<div className="border-t border-zinc-50 pt-3">
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Witness Requirement</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.witnessRequired}</p>
+									{request.witnessRequired === 'Yes' && request.witnessPersonDetails && (
+										<div className="mt-1.5 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-700 font-bold">
+											Details: {request.witnessPersonDetails}
+										</div>
+									)}
+								</div>
+								<div className="border-t border-zinc-50 pt-3">
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Statement of Conformity</p>
+									<p className="font-bold text-zinc-800 mt-1">{request.conformityStatement}</p>
+									{request.conformityStatement === 'Required' && request.decisionRule && (
+										<div className="mt-1.5 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-700 font-bold">
+											Decision Rule: {request.decisionRule}
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+
+						{/* Section 5: Detailed Description & Attachments Mentioned */}
+						<div className="border-t border-zinc-100/85 pt-4 space-y-4">
+							<div className="space-y-2">
+								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Detailed Sample Description</p>
+								<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-200/60">
+									{request.sampleDescription}
 								</p>
 							</div>
-							<div className="border-t border-zinc-100 pt-3">
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Witness Requirement</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.witnessRequired}</p>
-								{request.witnessRequired === 'Yes' && request.witnessPersonDetails && (
-									<div className="mt-1.5 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-700 font-bold">
-										Details: {request.witnessPersonDetails}
-									</div>
-								)}
-							</div>
-							<div className="border-t border-zinc-100 pt-3">
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Statement of Conformity</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.conformityStatement}</p>
-								{request.conformityStatement === 'Required' && request.decisionRule && (
-									<div className="mt-1.5 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-700 font-bold">
-										Decision Rule: {request.decisionRule}
-									</div>
-								)}
-							</div>
+
+							{request.attachmentMention && (
+								<div className="space-y-2">
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Attachments Mentioned / Remarks</p>
+									<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-200/60">
+										{request.attachmentMention}
+									</p>
+								</div>
+							)}
 						</div>
 					</div>
-
-					{/* Sample Description */}
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-						<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Detailed Sample Description</p>
-						<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-200/60">
-							{request.sampleDescription}
-						</p>
-					</div>
-
-					{/* Attachment Mentions */}
-					{request.attachmentMention && (
-						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-2">
-							<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Attachments Mentioned / Remarks</p>
-							<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-200/60">
-								{request.attachmentMention}
-							</p>
-						</div>
-					)}
 
 					{/* File Attachments */}
 					{request.attachments && request.attachments.length > 0 && (

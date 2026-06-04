@@ -2,12 +2,18 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XCircle, Search, RefreshCw, Eye, FileText, AlertTriangle } from 'lucide-react';
 import { getTestRequests } from '../../services/operations/testRequestService';
+import CustomSelect from '../../components/CustomSelect';
+import Pagination from '../../components/Pagination';
 
 export default function HeadFailureDecision() {
 	const navigate = useNavigate();
 	const [requests, setRequests] = useState<any[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [search, setSearch] = useState('');
+	const [statusFilter, setStatusFilter] = useState('ALL');
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const [itemsPerPage, setItemsPerPage] = useState(5);
 
 	const loadRequests = async () => {
 		setLoading(true);
@@ -43,15 +49,29 @@ export default function HeadFailureDecision() {
 		return isFailedStatus || isFullyFailed;
 	});
 
-	// Filter based on search query
+	// Filter based on search and status filter dropdown (Pending Decision vs Decision Taken)
 	const filtered = failedRequests.filter((r: any) => {
 		const q = search.toLowerCase();
-		return (
+		const matchesSearch = (
 			(r.requestId || '').toLowerCase().includes(q) ||
 			(r.brandName || '').toLowerCase().includes(q) ||
 			(r.modelNo || '').toLowerCase().includes(q) ||
 			(r.customerNameAddress || '').toLowerCase().includes(q)
 		);
+
+		const statusLower = (r.status || '').toLowerCase();
+		const isRetest = statusLower === 'retest';
+		const isCompleted = ['completed', 'failed'].includes(statusLower);
+		const hasDecisionBeenTaken = isRetest || isCompleted;
+
+		let matchesStatus = true;
+		if (statusFilter === 'PENDING_DECISION') {
+			matchesStatus = !hasDecisionBeenTaken;
+		} else if (statusFilter === 'DECISION_TAKEN') {
+			matchesStatus = hasDecisionBeenTaken;
+		}
+
+		return matchesSearch && matchesStatus;
 	});
 
 	const formatDate = (dateStr: string) => {
@@ -63,6 +83,14 @@ export default function HeadFailureDecision() {
 		const year = d.getFullYear();
 		return `${day}/${month}/${year}`;
 	};
+
+	// Pagination Math
+	const maxPage = Math.ceil(filtered.length / itemsPerPage);
+	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
+	
+	const startIndex = (activePage - 1) * itemsPerPage;
+	const endIndex = startIndex + itemsPerPage;
+	const paginatedFiltered = filtered.slice(startIndex, endIndex);
 
 	return (
 		<div className="space-y-5">
@@ -86,18 +114,36 @@ export default function HeadFailureDecision() {
 				</button>
 			</div>
 
-			{/* Search */}
-			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex items-center gap-3">
+			{/* Search & Filters */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
 				<div className="relative flex-1 max-w-sm">
 					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 					<input
 						type="text"
 						placeholder="Search by ID, brand, model or customer..."
 						value={search}
-						onChange={e => setSearch(e.target.value)}
+						onChange={e => {
+							setSearch(e.target.value);
+							setCurrentPage(1);
+						}}
 						className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
 					/>
 				</div>
+
+				<CustomSelect
+					value={statusFilter}
+					onChange={(val) => {
+						setStatusFilter(val);
+						setCurrentPage(1);
+					}}
+					options={[
+						{ value: 'ALL', label: 'All Failures' },
+						{ value: 'PENDING_DECISION', label: 'Pending Decision' },
+						{ value: 'DECISION_TAKEN', label: 'Decisions Taken' }
+					]}
+					className="w-44 shrink-0"
+				/>
+
 				<span className="ml-auto text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} requests found</span>
 			</div>
 
@@ -123,9 +169,10 @@ export default function HeadFailureDecision() {
 								</tr>
 							</thead>
 							<tbody>
-								{filtered.map((rep, i) => {
-									const isRetest = (rep.status || '').toLowerCase() === 'retest';
-									const isCompleted = ['completed', 'failed', 'fail'].includes((rep.status || '').toLowerCase());
+								{paginatedFiltered.map((rep, i) => {
+									const statusLower = (rep.status || '').toLowerCase();
+									const isRetest = statusLower === 'retest';
+									const isCompleted = ['completed', 'failed'].includes(statusLower);
 
 									let badgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
 									let badgeText = 'ALL SAMPLES FAILED';
@@ -150,7 +197,7 @@ export default function HeadFailureDecision() {
 											<td className="py-4 px-5 text-zinc-600 font-medium truncate max-w-[150px]">{rep.customerNameAddress}</td>
 											<td className="py-4 px-5 font-bold text-zinc-700">RPT-{rep.requestId || `00${rep.id}`}</td>
 											<td className="py-4 px-5">
-												<span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
 													{badgeText}
 												</span>
 											</td>
@@ -179,9 +226,20 @@ export default function HeadFailureDecision() {
 						{filtered.length === 0 && (
 							<div className="py-16 text-center bg-white">
 								<AlertTriangle className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-								<p className="text-sm font-bold text-zinc-400">No failed requests pending adjudication.</p>
+								<p className="text-sm font-bold text-zinc-400">No requests found matching your filter criteria.</p>
 							</div>
 						)}
+						<Pagination
+							totalItems={filtered.length}
+							itemsPerPage={itemsPerPage}
+							currentPage={currentPage}
+							onPageChange={setCurrentPage}
+							onItemsPerPageChange={(limit) => {
+								setItemsPerPage(limit);
+								setCurrentPage(1);
+							}}
+							itemNamePlural="requests"
+						/>
 					</>
 				)}
 			</div>

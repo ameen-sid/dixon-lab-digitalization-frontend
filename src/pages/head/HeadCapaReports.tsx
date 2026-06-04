@@ -3,6 +3,7 @@ import { AlertTriangle, Search, CheckCircle, RefreshCw, X } from 'lucide-react';
 import { getCapas, updateCapaStatus } from '../../services/operations/capaService';
 import CapaReports from '../requester/CapaReports';
 import CustomSelect from '../../components/CustomSelect';
+import Pagination from '../../components/Pagination';
 
 export default function HeadCapaReports() {
 	const [capas, setCapas] = useState<any[]>([]);
@@ -12,6 +13,10 @@ export default function HeadCapaReports() {
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [remarks, setRemarks] = useState('');
 
 	const loadCapas = async () => {
 		setLoading(true);
@@ -41,7 +46,12 @@ export default function HeadCapaReports() {
 			(c.capaId || '').toLowerCase().includes(search.toLowerCase()) ||
 			(c.productName || '').toLowerCase().includes(search.toLowerCase()) ||
 			(c.relatedRequest || '').toLowerCase().includes(search.toLowerCase());
-		const matchStatus = statusFilter === 'ALL' || c.status === statusFilter;
+		let matchStatus = true;
+		if (statusFilter === 'OPEN') {
+			matchStatus = (c.status || '').toUpperCase() !== 'COMPLETED';
+		} else if (statusFilter === 'COMPLETED') {
+			matchStatus = (c.status || '').toUpperCase() === 'COMPLETED';
+		}
 		let matchDate = true;
 		const createdDate = c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '';
 		if (startDate) {
@@ -59,8 +69,67 @@ export default function HeadCapaReports() {
 		catch { return d; }
 	};
 
+	// Pagination Math
+	const maxPage = Math.ceil(filtered.length / itemsPerPage);
+	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
+	
+	const startIndex = (activePage - 1) * itemsPerPage;
+	const endIndex = startIndex + itemsPerPage;
+	const paginatedFiltered = filtered.slice(startIndex, endIndex);
+
+	const handleApproveCapa = async () => {
+		if (!selectedCapa) return;
+		try {
+			await updateCapaStatus(selectedCapa.id, 'COMPLETED', remarks)();
+			const updatedCapa = { ...selectedCapa, status: 'COMPLETED', remark: remarks };
+			setSelectedCapa(updatedCapa);
+			await loadCapas();
+			setRemarks('');
+		} catch (err) {
+			console.error('Failed to approve CAPA:', err);
+		}
+	};
+
 	if (selectedCapa) {
-		return <CapaReports selectedCapa={selectedCapa} setActiveTab={() => setSelectedCapa(null)} />;
+		return (
+			<div className="space-y-6">
+				<CapaReports selectedCapa={selectedCapa} setActiveTab={() => setSelectedCapa(null)} />
+				{(selectedCapa.status || '').toUpperCase() !== 'COMPLETED' && (
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 max-w-6xl mx-auto">
+						<div>
+							<h3 className="text-sm font-bold text-zinc-900">Lab Head Adjudication & Certification</h3>
+							<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Review the corrective and preventive actions submitted. Provide remarks and click Approve to certify this CAPA report.</p>
+						</div>
+						
+						<div className="space-y-2">
+							<label className="block text-[10px] font-bold text-zinc-700 uppercase tracking-wider">Approval / Verification Remarks</label>
+							<textarea
+								value={remarks}
+								onChange={e => setRemarks(e.target.value)}
+								placeholder="Enter verification comments or approval remarks..."
+								className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all resize-none h-24"
+							/>
+						</div>
+
+						<div className="flex justify-end gap-3 pt-2">
+							<button
+								onClick={() => setSelectedCapa(null)}
+								className="px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-xl cursor-pointer transition-colors border-none outline-none"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleApproveCapa}
+								disabled={!remarks.trim()}
+								className="px-5 py-2 text-xs font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] rounded-xl cursor-pointer disabled:opacity-50 transition-colors border-none outline-none"
+							>
+								Approve & Close CAPA
+							</button>
+						</div>
+					</div>
+				)}
+			</div>
+		);
 	}
 
 	return (
@@ -74,12 +143,18 @@ export default function HeadCapaReports() {
 							type="text"
 							placeholder="Search CAPA ID, product, or request..."
 							value={search}
-							onChange={e => setSearch(e.target.value)}
+							onChange={e => {
+								setSearch(e.target.value);
+								setCurrentPage(1);
+							}}
 							className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
 						/>
 						{search && (
 							<button 
-								onClick={() => setSearch('')}
+								onClick={() => {
+									setSearch('');
+									setCurrentPage(1);
+								}}
 								className="absolute right-3 top-2.5 text-zinc-400 hover:text-red-655 bg-transparent border-none cursor-pointer outline-none"
 							>
 								<X className="w-4 h-4" />
@@ -89,7 +164,10 @@ export default function HeadCapaReports() {
 
 					<CustomSelect
 						value={statusFilter}
-						onChange={(val) => setStatusFilter(val)}
+						onChange={(val) => {
+							setStatusFilter(val);
+							setCurrentPage(1);
+						}}
 						options={[
 							{ value: 'ALL', label: 'All Statuses' },
 							{ value: 'OPEN', label: 'Open' },
@@ -103,7 +181,10 @@ export default function HeadCapaReports() {
 						<input 
 							type="date" 
 							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
+							onChange={(e) => {
+								setStartDate(e.target.value);
+								setCurrentPage(1);
+							}}
 							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
 						/>
 					</div>
@@ -113,7 +194,10 @@ export default function HeadCapaReports() {
 						<input 
 							type="date" 
 							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
+							onChange={(e) => {
+								setEndDate(e.target.value);
+								setCurrentPage(1);
+							}}
 							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
 						/>
 					</div>
@@ -134,8 +218,9 @@ export default function HeadCapaReports() {
 								setStatusFilter('ALL');
 								setStartDate('');
 								setEndDate('');
+								setCurrentPage(1);
 							}}
-							className="text-xs font-bold text-red-650 hover:text-red-755 hover:underline bg-transparent border-none cursor-pointer text-left"
+							className="text-xs font-bold text-red-655 hover:text-red-755 hover:underline bg-transparent border-none cursor-pointer text-left"
 						>
 							Clear Filters
 						</button>
@@ -144,91 +229,94 @@ export default function HeadCapaReports() {
 				</div>
 			</div>
 
-			{/* Loading */}
-			{loading && (
-				<div className="bg-white border border-zinc-200/50 rounded-2xl py-12 text-center shadow-sm">
-					<div className="w-6 h-6 border-2 border-[#11236a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-					<p className="text-xs font-bold text-zinc-400">Loading CAPA reports...</p>
-				</div>
-			)}
-
-			{/* Cards */}
-			{!loading && (
-				<div className="space-y-4">
-					{filtered.map((capa, i) => (
-						<div key={i} className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
-							{/* Header */}
-							<div className="flex items-start justify-between gap-4 border-b border-zinc-100 pb-3">
-								<div>
-									<div className="flex items-center gap-2 flex-wrap">
-										<span className="text-[10px] font-bold text-indigo-700">{capa.capaId}</span>
-										<span className="text-zinc-300">|</span>
-										<span className="text-[10px] font-bold text-[#11236a]">REF: {capa.relatedRequest}</span>
-										<span className="text-zinc-300">|</span>
-										<span className="text-[10px] text-zinc-400 font-medium">
-											Submitted by: {capa.submittedBy?.name || 'Unknown'} · {formatDate(capa.createdAt)}
-										</span>
-									</div>
-									<h4 className="text-sm font-bold text-zinc-900 mt-1">{capa.productName}</h4>
-									{capa.title && <p className="text-[11px] text-zinc-500 font-medium mt-0.5">{capa.title}</p>}
-								</div>
-								<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border shrink-0 ${capa.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-									{capa.status === 'COMPLETED' ? <CheckCircle className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-									{capa.status}
-								</span>
+			{/* Table */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl shadow-sm overflow-hidden">
+				{loading ? (
+					<div className="flex flex-col items-center justify-center py-20 gap-3">
+						<RefreshCw className="w-8 h-8 text-[#11236a] animate-spin" />
+						<p className="text-xs text-zinc-550 font-bold">Retrieving CAPA records...</p>
+					</div>
+				) : (
+					<>
+						<table className="w-full text-xs">
+							<thead>
+								<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+									<th className="py-3 px-5 text-left">CAPA ID</th>
+									<th className="py-3 px-5 text-left">Related Request</th>
+									<th className="py-3 px-5 text-left">Product / Title</th>
+									<th className="py-3 px-5 text-left">Submitted By</th>
+									<th className="py-3 px-5 text-left">Target Date</th>
+									<th className="py-3 px-5 text-left">Status</th>
+									<th className="py-3 px-5 text-right">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{paginatedFiltered.map((capa, i) => {
+									const isCompleted = capa.status === 'COMPLETED';
+									return (
+										<tr key={i} className="border-t border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+											<td className="py-4 px-5 font-bold text-indigo-700">
+												{capa.capaId}
+											</td>
+											<td className="py-4 px-5 font-bold text-[#11236a]">
+												{capa.relatedRequest || 'N/A'}
+											</td>
+											<td className="py-4 px-5">
+												<p className="font-bold text-zinc-800">{capa.productName}</p>
+												{capa.title && <p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{capa.title}</p>}
+											</td>
+											<td className="py-4 px-5">
+												<p className="font-bold text-zinc-700">{capa.submittedBy?.name || 'Unknown'}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{formatDate(capa.createdAt)}</p>
+											</td>
+											<td className="py-4 px-5 text-zinc-700 font-semibold">
+												{formatDate(capa.targetedDate)}
+											</td>
+											<td className="py-4 px-5">
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
+													isCompleted 
+														? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+														: 'bg-rose-50 text-rose-700 border-rose-100'
+												}`}>
+													{isCompleted ? <CheckCircle className="w-2.5 h-2.5" /> : <AlertTriangle className="w-2.5 h-2.5" />}
+													{capa.status}
+												</span>
+											</td>
+											<td className="py-4 px-5 text-right">
+												<div className="flex items-center justify-end gap-2">
+													<button 
+														onClick={() => setSelectedCapa(capa)}
+														className="inline-flex items-center gap-1 text-[10px] font-extrabold text-indigo-700 hover:text-white px-2.5 py-1.5 rounded-lg border border-indigo-700/20 bg-white hover:bg-indigo-700 transition-all cursor-pointer outline-none"
+													>
+														View Report
+													</button>
+												</div>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+						{filtered.length === 0 && (
+							<div className="py-16 text-center bg-white">
+								<AlertTriangle className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+								<p className="text-sm font-bold text-zinc-400">No CAPA records found.</p>
 							</div>
-
-							{/* Details Grid */}
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-								<div className="bg-rose-50/50 border border-rose-100 rounded-xl p-3">
-									<p className="text-[9px] font-bold text-rose-700 uppercase tracking-wider mb-1">Non-Conformity / Problem</p>
-									<p className="font-semibold text-zinc-700 leading-relaxed">{capa.nonConformity || capa.problem || '—'}</p>
-								</div>
-								<div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3">
-									<p className="text-[9px] font-bold text-amber-700 uppercase tracking-wider mb-1">Root Cause (Why 1)</p>
-									<p className="font-semibold text-zinc-700 leading-relaxed">{capa.rootCause || capa.why1 || '—'}</p>
-								</div>
-								<div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3">
-									<p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Corrective Action</p>
-									<p className="font-semibold text-zinc-700 leading-relaxed">{capa.correctiveAction || capa.tempCountermeasure || '—'}</p>
-								</div>
-							</div>
-
-							{/* Footer */}
-							<div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-								<div className="flex items-center gap-4 text-[10px] font-semibold text-zinc-500">
-									<span>Owner: <span className="text-zinc-700 font-bold">{capa.owner || '—'}</span></span>
-									<span>Target: <span className="text-zinc-700 font-bold">{capa.targetedDate || '—'}</span></span>
-									{capa.improvementType && <span>Type: <span className="text-zinc-700 font-bold">{capa.improvementType}</span></span>}
-								</div>
-								<div className="flex items-center gap-2">
-									<button
-										onClick={() => setSelectedCapa(capa)}
-										className="text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-3 py-1.5 outline-none cursor-pointer border border-indigo-200 transition-colors"
-									>
-										View Full Report
-									</button>
-									{capa.status === 'OPEN' && (
-										<button
-											onClick={() => handleResolve(capa.id)}
-											className="text-[10px] font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] rounded-lg px-3 py-1.5 outline-none cursor-pointer border-none transition-colors"
-										>
-											Mark as Resolved
-										</button>
-									)}
-								</div>
-							</div>
-						</div>
-					))}
-					{filtered.length === 0 && (
-						<div className="bg-white border border-zinc-200/50 rounded-2xl py-12 text-center shadow-sm">
-							<AlertTriangle className="w-8 h-8 text-zinc-300 mx-auto mb-3" />
-							<p className="text-sm font-bold text-zinc-400">No CAPA records found.</p>
-							<p className="text-xs text-zinc-400 mt-1">CAPA reports submitted by requesters will appear here.</p>
-						</div>
-					)}
-				</div>
-			)}
+						)}
+						<Pagination
+							totalItems={filtered.length}
+							itemsPerPage={itemsPerPage}
+							currentPage={currentPage}
+							onPageChange={setCurrentPage}
+							onItemsPerPageChange={(limit) => {
+								setItemsPerPage(limit);
+								setCurrentPage(1);
+							}}
+							itemNamePlural="CAPA reports"
+						/>
+					</>
+				)}
+			</div>
 		</div>
 	);
 }
