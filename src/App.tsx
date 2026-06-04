@@ -145,6 +145,7 @@ function App() {
 				<Route path="/head/completed-reports" element={<HeadDashboard />} />
 				<Route path="/head/completed-reports/:id" element={<HeadDashboard />} />
 				<Route path="/head/failure-decision" element={<HeadDashboard />} />
+				<Route path="/head/failure-decision/:id" element={<HeadDashboard />} />
 				<Route path="/head/capa-reports" element={<HeadDashboard />} />
 				<Route path="/manager/dashboard" element={<ManagerDashboard />} />
 				<Route path="/manager/approved-requests" element={<ManagerDashboard />} />

@@ -48,8 +48,8 @@ interface RequesterOverviewProps {
 }
 
 export default function RequesterOverview({ requests, capas, setActiveTab, setSelectedRequest }: RequesterOverviewProps) {
-	const completedCount = requests.filter(r => r.status === 'COMPLETED').length;
-	const underTestCount = requests.filter(r => r.status === 'UNDER_TEST').length;
+	const completedCount = requests.filter(r => ['COMPLETED', 'FAILED', 'FAIL'].includes(r.status)).length;
+	const underTestCount = requests.filter(r => ['UNDER_TEST', 'RETEST'].includes(r.status)).length;
 	const activeCapasCount = capas.filter(c => c.status === 'OPEN').length;
 
 	return (

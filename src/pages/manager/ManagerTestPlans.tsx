@@ -51,7 +51,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			'TESTING_PASSED',
 			'TESTING_FAILED',
 			'TESTING_PARTIAL',
-			'COMPLETED'
+			'COMPLETED',
+			'RETEST'
 		].includes(r.status)
 	);
 
@@ -362,7 +363,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 											for (let i = 0; i < qty; i++) {
 												const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-												if (report) {
+												if (req.status === 'RETEST') {
+													passedCount++;
+												} else if (report) {
 													if (report.status === 'PASSED') passedCount++;
 													else if (report.status === 'FAILED') failedCount++;
 												}
@@ -392,13 +395,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															<span className="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">
 																Qty: {qty}
 															</span>
-															<span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100">
-																Passed: {passedCount}
-															</span>
-															{failedCount > 0 && (
-																<span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-100">
-																	Failed: {failedCount}
+															{req.status === 'RETEST' ? (
+																<span className="text-[9px] font-black px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded border border-rose-200 animate-pulse uppercase">
+																	RETEST
 																</span>
+															) : (
+																<>
+																	<span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100">
+																		Passed: {passedCount}
+																	</span>
+																	{failedCount > 0 && (
+																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-100">
+																			Failed: {failedCount}
+																		</span>
+																	)}
+																</>
 															)}
 														</div>
 													</td>
@@ -471,6 +482,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						{/* Left: Request Details Card */}
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1 flex flex-col justify-between">
 							<div className="space-y-4">
+								{selectedReq.status === 'RETEST' && (
+									<div className="bg-rose-50 border border-rose-100 rounded-xl p-3 flex items-start gap-2.5">
+										<AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+										<div>
+											<p className="text-[10px] font-bold text-rose-800 uppercase tracking-wide">Retest Authorized</p>
+											<p className="text-[9px] text-rose-500 font-semibold mt-0.5">This request failed previous testing. Head of Lab authorized a complete retest.</p>
+										</div>
+									</div>
+								)}
 								<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
 									Request Details
 								</h4>
@@ -532,8 +552,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 									return list.map(({ index, report, plan }) => {
 										const sampleNo = index + 1;
-										const isFailed = report?.status === 'FAILED';
-										const isPassed = report?.status === 'PASSED';
+										const isFailed = report?.status === 'FAILED' && selectedReq.status !== 'RETEST';
+										const isPassed = report?.status === 'PASSED' || selectedReq.status === 'RETEST';
 
 										const todayStr = new Date().toISOString().split('T')[0];
 										const isTesting = plan && plan.startDate <= todayStr;

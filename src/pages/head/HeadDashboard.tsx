@@ -9,6 +9,7 @@ import HeadFailureDecision from './HeadFailureDecision';
 import HeadCapaReports from './HeadCapaReports';
 import HeadRequestDetails from './HeadRequestDetails';
 import HeadReportDetails from './HeadReportDetails';
+import HeadFailureDetails from './HeadFailureDetails';
 
 const navItems = [
 	{ id: 'dashboard',          label: 'Dashboard',           icon: Compass,       path: '/head/dashboard' },
@@ -49,18 +50,23 @@ export default function HeadDashboard() {
 	// Check if this is a sub-page details route
 	const isDetailsPage = pathSegment.startsWith('sample-tests/') && pathSegment !== 'sample-tests';
 	const isReportDetailsPage = pathSegment.startsWith('completed-reports/') && pathSegment !== 'completed-reports';
+	const isFailureDetailsPage = pathSegment.startsWith('failure-decision/') && pathSegment !== 'failure-decision';
 	
 	const activeId = isDetailsPage 
 		? 'sample-tests' 
 		: isReportDetailsPage 
 			? 'completed-reports' 
-			: (navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard');
+			: isFailureDetailsPage
+				? 'failure-decision'
+				: (navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard');
 	
 	const { title, desc } = isDetailsPage 
 		? { title: 'Review Testing Request Details', desc: 'Inspect request specifications, attachments, timeline, and issue approvals/rejections.' }
 		: isReportDetailsPage
 			? { title: 'Certify & Release Test Report', desc: 'Inspect sample test plans, view individual or overall report previews, and issue final sign-off approval.' }
-			: (titleMap[activeId] ?? titleMap['dashboard']);
+			: isFailureDetailsPage
+				? { title: 'Failure Decision Adjudication', desc: 'Review failed sample test plans, and choose to return to testing (retest) or return to requester.' }
+				: (titleMap[activeId] ?? titleMap['dashboard']);
 
 	const handleLogout = async () => { await logout()(); navigate('/'); };
 
@@ -68,6 +74,7 @@ export default function HeadDashboard() {
 		if (pathSegment === 'dashboard' || location.pathname === '/head/dashboard') return <HeadOverview navigate={navigate} />;
 		if (isDetailsPage)                       return <HeadRequestDetails />;
 		if (isReportDetailsPage)                 return <HeadReportDetails />;
+		if (isFailureDetailsPage)                return <HeadFailureDetails />;
 		if (pathSegment === 'sample-tests')      return <HeadSampleTests />;
 		if (pathSegment === 'completed-reports') return <HeadCompletedReports />;
 		if (pathSegment === 'failure-decision')  return <HeadFailureDecision />;

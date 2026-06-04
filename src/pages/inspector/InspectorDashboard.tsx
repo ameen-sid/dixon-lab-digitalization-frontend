@@ -93,7 +93,7 @@ export default function InspectorDashboard() {
 	// Count statistics
 	const totalReliabilityCount = reliabilityPlans.length;
 	const pendingInspectionRequestsCount = requests.filter(r => r.status === 'PENDING_APPROVAL').length;
-	const completedTestingRequestsCount = requests.filter(r => r.status === 'COMPLETED').length;
+	const completedTestingRequestsCount = requests.filter(r => ['COMPLETED', 'FAILED', 'FAIL'].includes(r.status)).length;
 
 	if (loading) {
 		return (

@@ -41,9 +41,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 
 	// Calculate live KPIs
 	const awaitingApprovalCount = requests.filter(r => r.status === 'PENDING_APPROVAL' || ['PASS', 'FAIL', 'PARTIAL'].includes(r.status)).length;
-	const completedCount = requests.filter(r => r.status === 'COMPLETED').length;
+	const completedCount = requests.filter(r => ['COMPLETED', 'FAILED', 'FAIL'].includes(r.status)).length;
 	const rejectedCount = requests.filter(r => r.status === 'REJECTED').length;
-	const inProgressCount = requests.filter(r => r.status === 'UNDER_INSPECTION' || r.status === 'UNDER_TEST').length;
+	const inProgressCount = requests.filter(r => ['UNDER_INSPECTION', 'UNDER_TEST', 'RETEST'].includes(r.status)).length;
 
 	const kpis = [
 		{

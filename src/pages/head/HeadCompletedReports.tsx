@@ -26,10 +26,22 @@ export default function HeadCompletedReports() {
 		loadRequests();
 	}, []);
 
-	// Filter completed and partial completed requests
+	// Filter completed and partial completed requests (exclude fully failed requests)
 	const completedOrPartialRequests = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
-		return ['completed', 'testing_partial', 'partial'].includes(statusLower);
+		if (!['completed', 'testing_partial', 'partial'].includes(statusLower)) return false;
+
+		// Exclude if all samples are failed (fully failed request)
+		const qty = req.sampleQty || 1;
+		let failedCount = 0;
+		for (let i = 0; i < qty; i++) {
+			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+			if (report && report.status === 'FAILED') {
+				failedCount++;
+			}
+		}
+		const isFullyFailed = failedCount === qty;
+		return !isFullyFailed;
 	});
 
 	// Filter based on search query
