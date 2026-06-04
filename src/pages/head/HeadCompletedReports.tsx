@@ -1,36 +1,78 @@
-import { useState } from 'react';
-import { CheckCircle, Download, Search } from 'lucide-react';
-
-const completedReports = [
-	{ id: 'REQ-2026-013', brand: 'LED Driver Unit V2', model: 'LDU-48V', customer: 'Philips Lighting', reportNo: 'RPT-2026-013', completedDate: '2026-05-29' },
-	{ id: 'REQ-2026-011', brand: 'Relay Switch Pack', model: 'RSP-24DC', customer: 'Schneider Electric', reportNo: 'RPT-2026-011', completedDate: '2026-05-27' },
-	{ id: 'REQ-2026-009', brand: 'Motor Drive Unit', model: 'MDU-380V', customer: 'ABB India', reportNo: 'RPT-2026-009', completedDate: '2026-05-25' },
-	{ id: 'REQ-2026-007', brand: 'Surge Protector SPD', model: 'SPD-40KA', customer: 'Legrand India', reportNo: 'RPT-2026-007', completedDate: '2026-05-23' },
-	{ id: 'REQ-2026-005', brand: 'EV Charging Module', model: 'EVM-7.4KW', customer: 'Tata Power EV', reportNo: 'RPT-2026-005', completedDate: '2026-05-21' },
-	{ id: 'REQ-2026-003', brand: 'Capacitor Bank Unit', model: 'CBU-440VAC', customer: 'Siemens India', reportNo: 'RPT-2026-003', completedDate: '2026-05-19' },
-	{ id: 'REQ-2026-001', brand: 'SMT Control Board', model: 'SCB-X90', customer: 'Dixon Electronics', reportNo: 'RPT-2026-001', completedDate: '2026-05-15' },
-];
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Search, RefreshCw, Eye, FileText, AlertTriangle } from 'lucide-react';
+import { getTestRequests } from '../../services/operations/testRequestService';
 
 export default function HeadCompletedReports() {
+	const navigate = useNavigate();
+	const [requests, setRequests] = useState<any[]>([]);
+	const [loading, setLoading] = useState(false);
 	const [search, setSearch] = useState('');
 
-	const filtered = completedReports.filter(r =>
-		r.id.toLowerCase().includes(search.toLowerCase()) ||
-		r.brand.toLowerCase().includes(search.toLowerCase()) ||
-		r.reportNo.toLowerCase().includes(search.toLowerCase())
-	);
+	const loadRequests = async () => {
+		setLoading(true);
+		try {
+			const fetchRequests = getTestRequests();
+			const data = await fetchRequests();
+			setRequests(data || []);
+		} catch (error) {
+			console.error('Failed to fetch completed/partial requests:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		loadRequests();
+	}, []);
+
+	// Filter completed and partial completed requests
+	const completedOrPartialRequests = requests.filter((req: any) => {
+		const statusLower = (req.status || '').toLowerCase();
+		return ['completed', 'testing_partial', 'partial'].includes(statusLower);
+	});
+
+	// Filter based on search query
+	const filtered = completedOrPartialRequests.filter((r: any) => {
+		const q = search.toLowerCase();
+		return (
+			(r.requestId || '').toLowerCase().includes(q) ||
+			(r.brandName || '').toLowerCase().includes(q) ||
+			(r.modelNo || '').toLowerCase().includes(q) ||
+			(r.customerNameAddress || '').toLowerCase().includes(q)
+		);
+	});
+
+	const formatDate = (dateStr: string) => {
+		if (!dateStr) return 'N/A';
+		const d = new Date(dateStr);
+		if (isNaN(d.getTime())) return dateStr;
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		return `${day}/${month}/${year}`;
+	};
 
 	return (
 		<div className="space-y-5">
 			{/* Summary Banner */}
-			<div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-3">
-				<div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
-					<CheckCircle className="w-5 h-5 text-emerald-600" />
+			<div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+				<div className="flex items-center gap-3">
+					<div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0">
+						<CheckCircle className="w-5 h-5 text-emerald-600" />
+					</div>
+					<div>
+						<p className="text-xs font-bold text-emerald-800">{completedOrPartialRequests.length} Certified & Released Reports</p>
+						<p className="text-[10px] text-emerald-600 font-medium mt-0.5">All NABL test reports and partial outcomes approved by the Head of Lab.</p>
+					</div>
 				</div>
-				<div>
-					<p className="text-xs font-bold text-emerald-800">{completedReports.length} Test Plans Passed & Reports Released</p>
-					<p className="text-[10px] text-emerald-600 font-medium mt-0.5">All reports have been approved and are available for download.</p>
-				</div>
+				<button 
+					onClick={loadRequests} 
+					disabled={loading}
+					className="p-2 text-zinc-550 hover:text-[#11236a] hover:bg-zinc-100 rounded-lg cursor-pointer transition-all border-none outline-none disabled:opacity-50"
+				>
+					<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+				</button>
 			</div>
 
 			{/* Search */}
@@ -39,58 +81,88 @@ export default function HeadCompletedReports() {
 					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 					<input
 						type="text"
-						placeholder="Search by ID, brand, or report no..."
+						placeholder="Search by ID, brand, model or customer..."
 						value={search}
 						onChange={e => setSearch(e.target.value)}
 						className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
 					/>
 				</div>
-				<span className="ml-auto text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} reports</span>
+				<span className="ml-auto text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} reports found</span>
 			</div>
 
 			{/* Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl shadow-sm overflow-hidden">
-				<table className="w-full text-xs">
-					<thead>
-						<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
-							<th className="py-3 px-5 text-left">Request ID</th>
-							<th className="py-3 px-5 text-left">Brand / Model</th>
-							<th className="py-3 px-5 text-left">Customer</th>
-							<th className="py-3 px-5 text-left">Report No.</th>
-							<th className="py-3 px-5 text-left">Result</th>
-							<th className="py-3 px-5 text-left">Completed Date</th>
-							<th className="py-3 px-5 text-right">Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{filtered.map((rep, i) => (
-							<tr key={i} className="border-t border-zinc-100 hover:bg-zinc-50/50 transition-colors">
-								<td className="py-4 px-5 font-bold text-[#11236a]">{rep.id}</td>
-								<td className="py-4 px-5">
-									<p className="font-bold text-zinc-800">{rep.brand}</p>
-									<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{rep.model}</p>
-								</td>
-								<td className="py-4 px-5 text-zinc-600 font-medium">{rep.customer}</td>
-								<td className="py-4 px-5 font-bold text-zinc-700">{rep.reportNo}</td>
-								<td className="py-4 px-5">
-									<span className="inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">
-										<CheckCircle className="w-3 h-3 shrink-0" /> PASS
-									</span>
-								</td>
-								<td className="py-4 px-5 text-zinc-400 font-medium">{rep.completedDate}</td>
-								<td className="py-4 px-5 text-right">
-									<button className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] rounded-lg px-3 py-1.5 transition-all outline-none cursor-pointer border-none">
-										<Download className="w-3.5 h-3.5" /> Download
-									</button>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-				{filtered.length === 0 && (
-					<div className="py-12 text-center">
-						<p className="text-sm font-bold text-zinc-400">No completed reports found.</p>
+				{loading ? (
+					<div className="flex flex-col items-center justify-center py-20 gap-3">
+						<RefreshCw className="w-8 h-8 text-[#11236a] animate-spin" />
+						<p className="text-xs text-zinc-550 font-bold">Retrieving completed records...</p>
 					</div>
+				) : (
+					<>
+						<table className="w-full text-xs">
+							<thead>
+								<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+									<th className="py-3 px-5 text-left">Request ID</th>
+									<th className="py-3 px-5 text-left">Brand / Model</th>
+									<th className="py-3 px-5 text-left">Customer</th>
+									<th className="py-3 px-5 text-left">Report No.</th>
+									<th className="py-3 px-5 text-left">Result Status</th>
+									<th className="py-3 px-5 text-left">Completion Date</th>
+									<th className="py-3 px-5 text-right">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								{filtered.map((rep, i) => {
+									const isPartial = ['testing_partial', 'partial'].includes((rep.status || '').toLowerCase());
+									return (
+										<tr key={i} className="border-t border-zinc-100 hover:bg-zinc-50/50 transition-colors">
+											<td className="py-4 px-5 font-bold text-[#11236a]">
+												{rep.requestId || `REQ-00${rep.id}`}
+											</td>
+											<td className="py-4 px-5">
+												<p className="font-bold text-zinc-800">{rep.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{rep.modelNo}</p>
+											</td>
+											<td className="py-4 px-5 text-zinc-600 font-medium truncate max-w-[150px]">{rep.customerNameAddress}</td>
+											<td className="py-4 px-5 font-bold text-zinc-700">RPT-{rep.requestId || `00${rep.id}`}</td>
+											<td className="py-4 px-5">
+												<span className={`inline-flex items-center gap-1 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${
+													isPartial 
+														? 'bg-amber-50 text-amber-700 border-amber-100' 
+														: 'bg-emerald-50 text-emerald-700 border-emerald-100'
+												}`}>
+													{isPartial ? 'PARTIAL COMPLETED' : 'COMPLETED'}
+												</span>
+											</td>
+											<td className="py-4 px-5 text-zinc-400 font-medium">{formatDate(rep.updatedAt || rep.createdAt)}</td>
+											<td className="py-4 px-5 text-right">
+												<div className="flex items-center justify-end gap-2">
+													<button 
+														onClick={() => navigate(`/head/completed-reports/${rep.id}`)}
+														className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#11236a] hover:text-white px-2.5 py-1.5 rounded-lg border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
+													>
+														<Eye className="w-3.5 h-3.5" /> Details
+													</button>
+													<button 
+														onClick={() => window.open(`/reports/preview?type=request&id=${rep.id}`, '_blank')}
+														className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-750 rounded-lg px-2.5 py-1.5 transition-all outline-none cursor-pointer border-none"
+													>
+														<FileText className="w-3.5 h-3.5" /> Report
+													</button>
+												</div>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+						{filtered.length === 0 && (
+							<div className="py-16 text-center bg-white">
+								<AlertTriangle className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+								<p className="text-sm font-bold text-zinc-400">No completed reports found.</p>
+							</div>
+						)}
+					</>
 				)}
 			</div>
 		</div>

@@ -185,14 +185,24 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 					<ChevronLeft className="w-4 h-4" /> Back to Submission Register
 				</button>
 
-				{['COMPLETED', 'REJECTED', 'FAIL', 'TESTING_FAILED'].includes(selectedRequest.status) && (
-					<button
-						onClick={() => onInitiateCapa(selectedRequest)}
-						className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm animate-pulse"
-					>
-						<Clipboard className="w-4 h-4" /> Initiate CAPA Report
-					</button>
-				)}
+				<div className="flex items-center gap-2">
+					{['COMPLETED', 'PASS', 'FAIL', 'PARTIAL', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(selectedRequest.status) && (
+						<button
+							onClick={() => window.open(`/reports/preview?type=request&id=${reqDbIdVal}`, '_blank')}
+							className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm flex items-center justify-center"
+						>
+							<FileText className="w-4 h-4" /> Overall Report
+						</button>
+					)}
+					{['COMPLETED', 'REJECTED'].includes(selectedRequest.status) && (
+						<button
+							onClick={() => onInitiateCapa(selectedRequest)}
+							className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm animate-pulse"
+						>
+							<Clipboard className="w-4 h-4" /> Initiate CAPA Report
+						</button>
+					)}
+				</div>
 			</div>
 
 			{/* Rejection Remarks from Head */}
@@ -252,12 +262,12 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(selectedRequest.status) && (
 											<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
 										)}
-										{selectedRequest.status === 'PASS' || selectedRequest.status === 'TESTING_PASSED' 
-											? 'TESTING PASSED' 
-											: selectedRequest.status === 'FAIL' || selectedRequest.status === 'TESTING_FAILED' 
-												? 'TESTING FAILED' 
-												: selectedRequest.status === 'PARTIAL' || selectedRequest.status === 'TESTING_PARTIAL' 
-													? 'TESTING PARTIAL' 
+										{selectedRequest.status === 'PASS' || selectedRequest.status === 'TESTING_PASSED'
+											? 'TESTING PASSED'
+											: selectedRequest.status === 'FAIL' || selectedRequest.status === 'TESTING_FAILED'
+												? 'TESTING FAILED'
+												: selectedRequest.status === 'PARTIAL' || selectedRequest.status === 'TESTING_PARTIAL'
+													? 'TESTING PARTIAL'
 													: selectedRequest.status.replace('_', ' ')}
 									</span>
 								);
@@ -423,8 +433,8 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										step: 'Approved Testing Request by Head of Lab',
 										date: isRejected
 											? `Rejected (${formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)})`
-											: (selectedRequest.status !== 'PENDING_APPROVAL' 
-												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+											: (selectedRequest.status !== 'PENDING_APPROVAL'
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Awaiting approval'),
 										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status),
 										failed: isRejected
@@ -452,27 +462,27 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
 										{
-											step: selectedRequest.status === 'TESTING_PASSED' || (selectedRequest.status === 'COMPLETED' && !selectedRequest.remarks?.toLowerCase().includes('fail') && !selectedRequest.remarks?.toLowerCase().includes('partial')) 
-												? 'Testing Passed' 
-												: (selectedRequest.status === 'TESTING_FAILED' || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail')) 
-													? 'Testing Failed' 
+											step: selectedRequest.status === 'TESTING_PASSED' || (selectedRequest.status === 'COMPLETED' && !selectedRequest.remarks?.toLowerCase().includes('fail') && !selectedRequest.remarks?.toLowerCase().includes('partial'))
+												? 'Testing Passed'
+												: (selectedRequest.status === 'TESTING_FAILED' || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail'))
+													? 'Testing Failed'
 													: (selectedRequest.status === 'TESTING_PARTIAL' || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status) 
-												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Awaiting results',
 											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
 										{
 											step: 'Report Generation',
-											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status) 
-												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Pending release',
 											completed: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										},
 										{
 											step: 'Approved Final Report',
-											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status) 
-												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate) 
+											date: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
+												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Pending final sign-off',
 											completed: ["COMPLETED", "REJECTED"].includes(selectedRequest.status)
 										}
@@ -486,25 +496,25 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									return (
 										<div key={idx} className="relative">
 											<div className={`absolute -left-[25px] top-0.5 w-2.5 h-2.5 rounded-full border-2 ${item.failed
-													? 'bg-rose-500 border-rose-500 animate-pulse'
-													: item.completed
-														? 'bg-emerald-500 border-emerald-500'
-														: isActive
-															? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
-															: 'bg-white border-zinc-300'
+												? 'bg-rose-500 border-rose-500 animate-pulse'
+												: item.completed
+													? 'bg-emerald-500 border-emerald-500'
+													: isActive
+														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+														: 'bg-white border-zinc-300'
 												}`} />
 											<p className={`text-xs font-bold leading-tight ${item.failed
-													? 'text-rose-600'
-													: item.completed
-														? 'text-zinc-900'
-														: isActive
-															? 'text-indigo-650'
-															: 'text-zinc-500'
+												? 'text-rose-600'
+												: item.completed
+													? 'text-zinc-900'
+													: isActive
+														? 'text-indigo-650'
+														: 'text-zinc-500'
 												}`}>
 												{item.step}
 											</p>
 											<span className={`text-[10px] font-semibold block mt-0.5 ${isActive ? 'text-indigo-500' : 'text-zinc-400'
-											}`}>{item.date}</span>
+												}`}>{item.date}</span>
 										</div>
 									);
 								});
@@ -590,19 +600,28 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 												</div>
 												<div className="flex items-center gap-2">
 													<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-															? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-															: 'bg-rose-50 border border-rose-100 text-rose-700'
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+														: 'bg-rose-50 border border-rose-100 text-rose-700'
 														}`}>
 														{report.status}
 													</span>
 													{report.status === 'PASSED' && (
-														<button
-															type="button"
-															onClick={() => setActiveTimelineSampleIndex(index)}
-															className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
-														>
-															View More
-														</button>
+														<div className="flex items-center gap-1.5">
+															<button
+																type="button"
+																onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
+																className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+															>
+																<FileText className="w-2.5 h-2.5" /> Report
+															</button>
+															<button
+																type="button"
+																onClick={() => setActiveTimelineSampleIndex(index)}
+																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
+															>
+																View More
+															</button>
+														</div>
 													)}
 												</div>
 											</div>
@@ -632,9 +651,18 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								<span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
 									Telemetry Tracking
 								</span>
-								<h3 className="text-xl font-extrabold text-[#11236a] mt-2 leading-tight">
-									Sample #{activeTimelineSampleIndex + 1} Testing Timeline
-								</h3>
+								<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
+									<h3 className="text-xl font-extrabold text-[#11236a] leading-tight">
+										Sample #{activeTimelineSampleIndex + 1} Testing Timeline
+									</h3>
+									<button
+										onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${activeTimelineSampleIndex}`, '_blank')}
+										className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
+									>
+										<FileText className="w-3.5 h-3.5" />
+										<span>View Report</span>
+									</button>
+								</div>
 								<p className="text-xs font-bold text-zinc-400 uppercase mt-1">
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
 								</p>
@@ -647,16 +675,16 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									return (
 										<div key={idx} className="relative">
 											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${item.completed
-													? 'bg-emerald-500 border-emerald-500'
-													: isActive
-														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
-														: 'bg-white border-zinc-300'
+												? 'bg-emerald-500 border-emerald-500'
+												: isActive
+													? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+													: 'bg-white border-zinc-300'
 												}`} />
 											<p className={`text-sm font-extrabold leading-tight ${item.completed
-													? 'text-zinc-900'
-													: isActive
-														? 'text-[#11236a]'
-														: 'text-zinc-555'
+												? 'text-zinc-900'
+												: isActive
+													? 'text-[#11236a]'
+													: 'text-zinc-555'
 												}`}>
 												{item.step}
 											</p>

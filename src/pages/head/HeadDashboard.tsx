@@ -8,6 +8,7 @@ import HeadCompletedReports from './HeadCompletedReports';
 import HeadFailureDecision from './HeadFailureDecision';
 import HeadCapaReports from './HeadCapaReports';
 import HeadRequestDetails from './HeadRequestDetails';
+import HeadReportDetails from './HeadReportDetails';
 
 const navItems = [
 	{ id: 'dashboard',          label: 'Dashboard',           icon: Compass,       path: '/head/dashboard' },
@@ -47,18 +48,26 @@ export default function HeadDashboard() {
 	
 	// Check if this is a sub-page details route
 	const isDetailsPage = pathSegment.startsWith('sample-tests/') && pathSegment !== 'sample-tests';
+	const isReportDetailsPage = pathSegment.startsWith('completed-reports/') && pathSegment !== 'completed-reports';
 	
-	const activeId = isDetailsPage ? 'sample-tests' : (navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard');
+	const activeId = isDetailsPage 
+		? 'sample-tests' 
+		: isReportDetailsPage 
+			? 'completed-reports' 
+			: (navItems.find(n => n.path === location.pathname)?.id ?? 'dashboard');
 	
 	const { title, desc } = isDetailsPage 
 		? { title: 'Review Testing Request Details', desc: 'Inspect request specifications, attachments, timeline, and issue approvals/rejections.' }
-		: (titleMap[activeId] ?? titleMap['dashboard']);
+		: isReportDetailsPage
+			? { title: 'Certify & Release Test Report', desc: 'Inspect sample test plans, view individual or overall report previews, and issue final sign-off approval.' }
+			: (titleMap[activeId] ?? titleMap['dashboard']);
 
 	const handleLogout = async () => { await logout()(); navigate('/'); };
 
 	const renderPage = () => {
 		if (pathSegment === 'dashboard' || location.pathname === '/head/dashboard') return <HeadOverview navigate={navigate} />;
 		if (isDetailsPage)                       return <HeadRequestDetails />;
+		if (isReportDetailsPage)                 return <HeadReportDetails />;
 		if (pathSegment === 'sample-tests')      return <HeadSampleTests />;
 		if (pathSegment === 'completed-reports') return <HeadCompletedReports />;
 		if (pathSegment === 'failure-decision')  return <HeadFailureDecision />;

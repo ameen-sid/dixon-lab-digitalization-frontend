@@ -296,12 +296,12 @@ export default function HeadRequestDetails() {
 								{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(request.status) && (
 									<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
 								)}
-								{request.status === 'PASS' || request.status === 'TESTING_PASSED' 
-									? 'TESTING PASSED' 
-									: request.status === 'FAIL' || request.status === 'TESTING_FAILED' 
-										? 'TESTING FAILED' 
-										: request.status === 'PARTIAL' || request.status === 'TESTING_PARTIAL' 
-											? 'TESTING PARTIAL' 
+								{request.status === 'PASS' || request.status === 'TESTING_PASSED'
+									? 'TESTING PASSED'
+									: request.status === 'FAIL' || request.status === 'TESTING_FAILED'
+										? 'TESTING FAILED'
+										: request.status === 'PARTIAL' || request.status === 'TESTING_PARTIAL'
+											? 'TESTING PARTIAL'
 											: request.status.replace('_', ' ')}
 							</span>
 						);
@@ -556,8 +556,8 @@ export default function HeadRequestDetails() {
 										step: 'Approved Testing Request by Head of Lab',
 										date: isRejected
 											? `Rejected (${formatCompletionDate(request.updatedAt || request.createdAt)})`
-											: (request.status !== 'PENDING_APPROVAL' 
-												? formatCompletionDate(request.updatedAt || request.createdAt) 
+											: (request.status !== 'PENDING_APPROVAL'
+												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting approval'),
 										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status),
 										failed: isRejected
@@ -585,27 +585,27 @@ export default function HeadRequestDetails() {
 											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
 										},
 										{
-											step: request.status === 'TESTING_PASSED' || (request.status === 'COMPLETED' && !request.remarks?.toLowerCase().includes('fail') && !request.remarks?.toLowerCase().includes('partial')) 
-												? 'Testing Passed' 
-												: (request.status === 'TESTING_FAILED' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail')) 
-													? 'Testing Failed' 
+											step: request.status === 'TESTING_PASSED' || (request.status === 'COMPLETED' && !request.remarks?.toLowerCase().includes('fail') && !request.remarks?.toLowerCase().includes('partial'))
+												? 'Testing Passed'
+												: (request.status === 'TESTING_FAILED' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'))
+													? 'Testing Failed'
 													: (request.status === 'TESTING_PARTIAL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status) 
-												? formatCompletionDate(request.updatedAt || request.createdAt) 
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting results',
 											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
 										},
 										{
 											step: 'Report Generation',
-											date: ["COMPLETED", "REJECTED"].includes(request.status) 
-												? formatCompletionDate(request.updatedAt || request.createdAt) 
+											date: ["COMPLETED", "REJECTED"].includes(request.status)
+												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Pending release',
 											completed: ["COMPLETED", "REJECTED"].includes(request.status)
 										},
 										{
 											step: 'Approved Final Report',
-											date: ["COMPLETED", "REJECTED"].includes(request.status) 
-												? formatCompletionDate(request.updatedAt || request.createdAt) 
+											date: ["COMPLETED", "REJECTED"].includes(request.status)
+												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Pending final sign-off',
 											completed: ["COMPLETED", "REJECTED"].includes(request.status)
 										}
@@ -619,25 +619,25 @@ export default function HeadRequestDetails() {
 									return (
 										<div key={idx} className="relative">
 											<div className={`absolute -left-[25px] top-1 w-2.5 h-2.5 rounded-full border-2 ${item.failed
-													? 'bg-rose-500 border-rose-500 animate-pulse'
-													: item.completed
-														? 'bg-emerald-500 border-emerald-500'
-														: isActive
-															? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
-															: 'bg-white border-zinc-300'
+												? 'bg-rose-500 border-rose-500 animate-pulse'
+												: item.completed
+													? 'bg-emerald-500 border-emerald-500'
+													: isActive
+														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+														: 'bg-white border-zinc-300'
 												}`} />
 											<p className={`text-xs font-bold leading-tight ${item.failed
-													? 'text-rose-600'
-													: item.completed
-														? 'text-zinc-900'
-														: isActive
-															? 'text-[#11236a]'
-															: 'text-zinc-500'
+												? 'text-rose-600'
+												: item.completed
+													? 'text-zinc-900'
+													: isActive
+														? 'text-[#11236a]'
+														: 'text-zinc-500'
 												}`}>
 												{item.step}
 											</p>
 											<span className={`text-[10px] font-bold block mt-0.5 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'
-											}`}>{item.date}</span>
+												}`}>{item.date}</span>
 										</div>
 									);
 								});
@@ -722,8 +722,8 @@ export default function HeadRequestDetails() {
 												</div>
 												<div className="flex items-center gap-2">
 													<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-															? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-															: 'bg-rose-50 border border-rose-100 text-rose-700'
+														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+														: 'bg-rose-50 border border-rose-100 text-rose-700'
 														}`}>
 														{report.status}
 													</span>
@@ -779,16 +779,16 @@ export default function HeadRequestDetails() {
 									return (
 										<div key={idx} className="relative">
 											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${item.completed
-													? 'bg-emerald-500 border-emerald-500'
-													: isActive
-														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
-														: 'bg-white border-zinc-300'
+												? 'bg-emerald-500 border-emerald-500'
+												: isActive
+													? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+													: 'bg-white border-zinc-300'
 												}`} />
 											<p className={`text-sm font-extrabold leading-tight ${item.completed
-													? 'text-zinc-900'
-													: isActive
-														? 'text-[#11236a]'
-														: 'text-zinc-555'
+												? 'text-zinc-900'
+												: isActive
+													? 'text-[#11236a]'
+													: 'text-zinc-555'
 												}`}>
 												{item.step}
 											</p>

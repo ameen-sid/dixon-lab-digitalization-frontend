@@ -165,11 +165,17 @@ export default function ManagerEvaluateChecksheet() {
 			// 1. Update dixon_sample_test_plans
 			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
 			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
+			
+			const userStr = localStorage.getItem('user');
+			const currentUser = userStr ? JSON.parse(userStr) : null;
+			const managerName = currentUser ? currentUser.name : 'Lab Manager';
+
 			plansMap[planKey] = {
 				...plansMap[planKey],
 				evaluationStatus: status,
 				evaluationRemarks,
-				evaluatedAt: new Date().toISOString()
+				evaluatedAt: new Date().toISOString(),
+				evaluatedBy: managerName
 			};
 			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(plansMap));
 

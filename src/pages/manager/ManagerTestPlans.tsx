@@ -107,13 +107,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			setPlatforms(plts || []);
 			setEquipments(eqps || []);
 
-			// Only pre-fill active equipment default if available
-			if (eqps && eqps.length > 0) {
-				const activeEq = eqps.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
-				if (activeEq) {
-					setForm(f => ({ ...f, equipmentId: String(activeEq.id) }));
-				}
-			}
+			// Do not auto-prefill equipment so it remains optional unless explicitly chosen
 		} catch (err) {
 			console.error('Failed to load test planning database parameters:', err);
 		}

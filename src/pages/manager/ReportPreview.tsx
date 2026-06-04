@@ -5,6 +5,7 @@ import { getTestRequests } from '../../services/operations/testRequestService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
+import { getUsers } from '../../services/operations/userService';
 
 
 export default function ReportPreview() {
@@ -21,6 +22,7 @@ export default function ReportPreview() {
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
 	const [equipments, setEquipments] = useState<any[]>([]);
+	const [users, setUsers] = useState<any[]>([]);
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 	const [loading, setLoading] = useState(true);
 
@@ -32,6 +34,7 @@ export default function ReportPreview() {
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
 				const eqs = await getTestingEquipments()();
+				const userList = await getUsers()();
 				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
 
 				if (isMounted) {
@@ -39,6 +42,7 @@ export default function ReportPreview() {
 					setTestCategories(categories || []);
 					setTestProtocols(protocols || []);
 					setEquipments(eqs || []);
+					setUsers(userList || []);
 					setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
 				}
 			} catch (err) {
@@ -87,6 +91,7 @@ export default function ReportPreview() {
 	let targetPlan: any = null;
 	let samplesList: any[] = [];
 	let isOverallPassed = true;
+	let isOverallPartial = false;
 
 	if (type === 'sample' && key) {
 		const [reqIdStr, sampleIdxStr] = key.split('-sample-');
@@ -101,6 +106,8 @@ export default function ReportPreview() {
 		if (request) {
 			const qty = request.sampleQty || 1;
 			let hasFailure = false;
+			let passedCount = 0;
+			let failedCount = 0;
 			for (let i = 0; i < qty; i++) {
 				const cacheKey = `${request.id}-sample-${i}`;
 				const plan = plans[cacheKey];
@@ -113,15 +120,18 @@ export default function ReportPreview() {
 						finalOutcome = 'FAILED';
 						remarks = inspectionReport.remarks || 'Failed visual verification check.';
 						hasFailure = true;
+						failedCount++;
 					} else if (inspectionReport.status === 'PASSED') {
 						if (plan) {
 							if (plan.evaluationStatus === 'PASSED') {
 								finalOutcome = 'PASSED';
 								remarks = plan.evaluationRemarks || 'Endurance specifications complied.';
+								passedCount++;
 							} else if (plan.evaluationStatus === 'FAILED') {
 								finalOutcome = 'FAILED';
 								remarks = plan.evaluationRemarks || 'Physical parameter out of tolerance.';
 								hasFailure = true;
+								failedCount++;
 							}
 						}
 					}
@@ -136,13 +146,23 @@ export default function ReportPreview() {
 				});
 			}
 			isOverallPassed = !hasFailure;
-			// Use first sample's plan for metadata template fields
-			const firstPlanKey = `${request.id}-sample-0`;
-			targetPlan = plans[firstPlanKey];
+			isOverallPartial = passedCount > 0 && failedCount > 0;
+			
+			// Use first non-null sample's plan for metadata template fields
+			let foundPlan = null;
+			for (let i = 0; i < qty; i++) {
+				const cacheKey = `${request.id}-sample-${i}`;
+				const plan = plans[cacheKey];
+				if (plan) {
+					foundPlan = plan;
+					break;
+				}
+			}
+			targetPlan = foundPlan;
 		}
 	}
 
-	if (!request || !targetPlan) {
+	if (!request || (type === 'sample' && !targetPlan)) {
 		return (
 			<div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 text-center">
 				<AlertTriangle className="w-12 h-12 text-rose-500 mb-2" />
@@ -153,25 +173,89 @@ export default function ReportPreview() {
 		);
 	}
 
-	const testCategory = testCategories.find(c => String(c.id) === String(targetPlan.testCategoryId));
-	const testProtocol = testProtocols.find(p => String(p.id) === String(targetPlan.testProtocolId));
-	const equipmentUsed = equipments.find(e => String(e.id) === String(targetPlan.equipmentId));
+	const testCategory = targetPlan ? testCategories.find(c => String(c.id) === String(targetPlan.testCategoryId)) : null;
+	const testProtocol = targetPlan ? testProtocols.find(p => String(p.id) === String(targetPlan.testProtocolId)) : null;
+	const equipmentUsed = targetPlan ? equipments.find(e => String(e.id) === String(targetPlan.equipmentId)) : null;
+
+	// Dynamic equipment helper
+	const getEquipmentDetails = (eq: any) => {
+		if (!eq) {
+			return {
+				name: 'Not Assigned',
+				make: '-',
+				model: '-',
+				calibration: '-'
+			};
+		}
+		const nameLower = eq.name.toLowerCase();
+		let make = 'Dixon Quality';
+		let model = `DX-${eq.id || '01'}`;
+
+		if (nameLower.includes('needle') || nameLower.includes('flame')) {
+			make = 'LISHUN GROUP';
+			model = 'ZY-3';
+		} else if (nameLower.includes('glow') || nameLower.includes('wire')) {
+			make = 'SANS';
+			model = 'ZRS-2';
+		} else if (nameLower.includes('chamber') || nameLower.includes('humidity')) {
+			make = 'ESPEC';
+			model = 'EPL-4H';
+		} else if (nameLower.includes('tracking') || nameLower.includes('index')) {
+			make = 'LISUN';
+			model = 'TTC-1';
+		}
+
+		let calibration = 'Valid';
+		if (eq.calibrationDueDate) {
+			const dueDate = new Date(eq.calibrationDueDate);
+			const now = new Date();
+			const formatted = formatDate(eq.calibrationDueDate);
+			if (dueDate >= now) {
+				calibration = `Valid (Due: ${formatted})`;
+			} else {
+				calibration = `Expired (Due: ${formatted})`;
+			}
+		}
+
+		return {
+			name: eq.name,
+			make,
+			model,
+			calibration
+		};
+	};
 
 	// DQL constants & template variables
 	const testDescription = testCategory?.name || 'NEEDLE FLAME TEST';
-	const issueDate = formatDate(new Date().toISOString());
+	const issueNo = request ? String(request.id).padStart(2, '0') : '01';
+	const issueDate = formatDate(request?.updatedAt || request?.createdAt || new Date().toISOString());
 	const testPurpose = 'New Development Test';
 	const testItemDescription = request.sampleDescription || 'Spin Lid Switch';
 	const associateModel = request.modelNo || 'All Semi-Automatic Washing Machine';
 	const testSpecification = `${testDescription} AS PER ${request.testMethodRef || 'IEC 60695-11-5'}`;
 	const sampleQuantity = String(request.sampleQty || 1).padStart(2, '0');
-	const startOfTestDate = formatDate(targetPlan.startDate);
-	const endOfTestDate = formatDate(targetPlan.endDate);
-	const otherAspects = targetPlan.remarks || 'Nil';
+	const startOfTestDate = targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt);
+	const endOfTestDate = targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt);
+	const otherAspects = targetPlan?.remarks || 'Nil';
 
 	// Signatures
-	const testedBy = 'Shaukat';
-	const approvedBy = 'Prasunanand';
+	const testedBy = request?.engineerName || 'Quality Inspector';
+	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
+	let managerWhoEvaluated = '';
+	if (type === 'request' && samplesList.length > 0) {
+		for (let i = samplesList.length - 1; i >= 0; i--) {
+			if (samplesList[i].plan?.evaluatedBy) {
+				managerWhoEvaluated = samplesList[i].plan.evaluatedBy;
+				break;
+			}
+		}
+	}
+	const dbManager = users.find(u => u.role === 'Lab Manager' || u.role === 'Head')?.name;
+	const userStr = localStorage.getItem('user');
+	const currentUser = userStr ? JSON.parse(userStr) : null;
+	const localManager = (currentUser?.role === 'Lab Manager' || currentUser?.role === 'Head') ? currentUser.name : null;
+	const fallbackManager = dbManager || localManager || 'Lab Manager';
+	const approvedBy = managerWhoEvaluated || targetPlan?.evaluatedBy || fallbackManager;
 
 	// Collect specimen images
 	const specimenImages: string[] = [];
@@ -199,17 +283,17 @@ export default function ReportPreview() {
 		<div className="w-full border-2 border-black text-black select-none">
 			{/* Top Row: Logo & Lab Details */}
 			<div className="grid grid-cols-12 border-b-2 border-black divide-x-2 divide-black">
-				<div className="col-span-4 p-2.5 flex items-center justify-center">
+				<div className="col-span-5 p-2 flex items-center justify-center">
 					<div className="flex items-center gap-2">
-						<img src="/logo.png" alt="Dixon Logo" className="h-9 object-contain" />
+						<img src="/logo.png" alt="Dixon Logo" className="h-9 object-contain shrink-0" />
 						<div className="w-[1px] h-8 bg-zinc-400 mx-1"></div>
-						<div className="flex items-center gap-1">
+						<div className="flex items-center gap-1 shrink-0">
 							<div className="w-6.5 h-6.5 rounded-full bg-[#e11d48] flex items-center justify-center text-white text-[9px] font-black italic">25+</div>
-							<div className="text-[8px] text-[#e11d48] font-black italic leading-none">Years</div>
+							<div className="text-[8px] text-[#e11d48] font-black italic leading-none whitespace-nowrap">Years</div>
 						</div>
 					</div>
 				</div>
-				<div className="col-span-8 p-2 text-center flex flex-col justify-center items-center">
+				<div className="col-span-7 p-2 text-center flex flex-col justify-center items-center">
 					<h2 className="text-[13.5px] font-black tracking-tight uppercase text-zinc-900 leading-tight">
 						PERFORMANCE & SAFETY LAB,
 					</h2>
@@ -220,8 +304,8 @@ export default function ReportPreview() {
 			</div>
 			{/* Bottom Row: Metadata info */}
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
-				<div className="py-1 px-1">ISSUE NO: 01</div>
-				<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
+				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
+				<div className="py-1 px-1">ISSUE DATE: {issueDate}</div>
 				<div className="py-1 px-1">REV NO: 00</div>
 				<div className="py-1 px-1">REV DATE: 00</div>
 				<div className="py-1 px-1">DOC NO: PSL/QSP/07/TR-02</div>
@@ -286,6 +370,10 @@ export default function ReportPreview() {
 					flex: 1;
 				}
 				@media print {
+					@page {
+						size: A4;
+						margin: 0;
+					}
 					body {
 						background: white !important;
 						margin: 0 !important;
@@ -295,13 +383,14 @@ export default function ReportPreview() {
 						display: none !important;
 					}
 					.a4-page {
-						margin: 0 !important;
+						margin: 0 auto !important;
 						border: none !important;
 						box-shadow: none !important;
-						width: 100% !important;
-						height: 100vh !important;
+						width: 210mm !important;
+						height: 297mm !important;
 						page-break-after: always !important;
-						padding: 12mm !important;
+						padding: 15mm !important;
+						box-sizing: border-box !important;
 					}
 					.a4-page:last-child {
 						page-break-after: avoid !important;
@@ -408,9 +497,20 @@ export default function ReportPreview() {
 											<span className="inline-block w-48 text-zinc-650">Test Result:</span> 
 											<span className="text-black font-semibold">
 												The test item{' '}
-												<span className="font-extrabold uppercase" style={{ textDecoration: isOverallPassed ? 'none' : 'line-through', color: isOverallPassed ? '#059669' : '#000' }}>Passed</span>
-												{' / '}
-												<span className="font-extrabold uppercase" style={{ textDecoration: !isOverallPassed ? 'none' : 'line-through', color: !isOverallPassed ? '#dc2626' : '#000' }}>Failed</span>
+												{isOverallPartial ? (
+													<>
+														<span className="font-extrabold uppercase text-[#059669]">Passed</span>
+														{' / '}
+														<span className="font-extrabold uppercase text-[#dc2626]">Failed</span>
+														<span className="text-amber-600 font-extrabold ml-1.5 uppercase tracking-wide text-[10px]">(Partial)</span>
+													</>
+												) : (
+													<>
+														<span className="font-extrabold uppercase" style={{ textDecoration: isOverallPassed ? 'none' : 'line-through', color: isOverallPassed ? '#059669' : '#000' }}>Passed</span>
+														{' / '}
+														<span className="font-extrabold uppercase" style={{ textDecoration: !isOverallPassed ? 'none' : 'line-through', color: !isOverallPassed ? '#dc2626' : '#000' }}>Failed</span>
+													</>
+												)}
 												{' as per the test specification(s).'}
 											</span>
 										</td>
@@ -508,7 +608,7 @@ export default function ReportPreview() {
 							<div className="text-xs font-bold text-black mb-6">
 								Conclusion: Tested samples{' '}
 								<span className="underline uppercase">
-									{isOverallPassed ? 'meets' : 'does not meet'}
+									{isOverallPartial ? 'partially meets' : (isOverallPassed ? 'meets' : 'does not meet')}
 								</span>{' '}
 								the test specification requirement.
 							</div>
@@ -558,14 +658,38 @@ export default function ReportPreview() {
 										</tr>
 									</thead>
 									<tbody className="divide-y-2 divide-black font-semibold text-center">
-										<tr className="divide-x-2 divide-black">
-											<td className="p-2.5 font-bold uppercase text-left">
-												{equipmentUsed?.name || 'Needle Flame Test Apparatus'}
-											</td>
-											<td className="p-2.5 uppercase">LISHUN GROUP</td>
-											<td className="p-2.5 uppercase">ZY-3</td>
-											<td className="p-2.5 uppercase text-emerald-700 font-extrabold">Valid</td>
-										</tr>
+										{type === 'sample' ? (() => {
+											const details = getEquipmentDetails(equipmentUsed);
+											return (
+												<tr className="divide-x-2 divide-black">
+													<td className="p-2.5 font-bold uppercase text-left">
+														{details.name}
+													</td>
+													<td className="p-2.5 uppercase">{details.make}</td>
+													<td className="p-2.5 uppercase">{details.model}</td>
+													<td className="p-2.5 uppercase text-emerald-700 font-extrabold">{details.calibration}</td>
+												</tr>
+											);
+										})() : (
+											samplesList.map((_, idx) => {
+												const samplePlanKey = `${request.id}-sample-${idx}`;
+												const planObj = plans[samplePlanKey];
+												const eq = planObj?.equipmentId 
+													? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
+													: null;
+												const details = getEquipmentDetails(eq);
+												return (
+													<tr key={idx} className="divide-x-2 divide-black">
+														<td className="p-2.5 font-bold uppercase text-left">
+															Sample #{idx + 1}: {details.name}
+														</td>
+														<td className="p-2.5 uppercase">{details.make}</td>
+														<td className="p-2.5 uppercase">{details.model}</td>
+														<td className="p-2.5 uppercase text-emerald-700 font-extrabold">{details.calibration}</td>
+													</tr>
+												);
+											})
+										)}
 									</tbody>
 								</table>
 							</div>
