@@ -164,6 +164,22 @@ export default function InspectorDailyChecksheet() {
 
 										<div className="grid grid-cols-2 gap-2 border-t border-zinc-100 pt-3 text-[11px] font-bold text-zinc-650">
 											<div>
+												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Request ID</span>
+												<span className="text-zinc-900">{item.request.requestId || `REQ-2026-${item.request.id}`}</span>
+											</div>
+											<div>
+												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Sample ID</span>
+												<span className="text-zinc-900">
+													{(() => {
+														const sampleIndex = Number(item.key.split('-sample-')[1]);
+														const inspection = item.request.sampleInspections?.find(
+															(si: any) => Number(si.sampleIndex) === sampleIndex
+														);
+														return inspection?.allottedId || `Sample #${sampleIndex + 1}`;
+													})()}
+												</span>
+											</div>
+											<div>
 												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Platforms</span>
 												<span>{getPlatformsText(item.plan)}</span>
 											</div>

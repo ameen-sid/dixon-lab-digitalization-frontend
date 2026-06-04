@@ -335,6 +335,22 @@ export default function InspectorChecksheet() {
 					<div className="border-x border-b border-zinc-900 -mt-6 grid grid-cols-3 text-zinc-900 text-xs font-bold">
 						<div className="col-span-2 divide-y divide-zinc-900">
 							<div className="grid grid-cols-3 divide-x divide-zinc-900">
+								<span className="p-2.5 text-zinc-500 uppercase tracking-wider text-[9px]">Request ID</span>
+								<span className="p-2.5 col-span-2 text-zinc-900 uppercase font-black">{planInfo.request?.requestId || `REQ-2026-${planInfo.request?.id}`}</span>
+							</div>
+							<div className="grid grid-cols-3 divide-x divide-zinc-900">
+								<span className="p-2.5 text-zinc-500 uppercase tracking-wider text-[9px]">Sample ID</span>
+								<span className="p-2.5 col-span-2 text-zinc-900 uppercase font-black">
+									{(() => {
+										const sampleIndex = Number(planKey?.split('-sample-')[1]);
+										const inspection = planInfo.request?.sampleInspections?.find(
+											(si: any) => Number(si.sampleIndex) === sampleIndex
+										);
+										return inspection?.allottedId || `Sample #${sampleIndex + 1}`;
+									})()}
+								</span>
+							</div>
+							<div className="grid grid-cols-3 divide-x divide-zinc-900">
 								<span className="p-2.5 text-zinc-500 uppercase tracking-wider text-[9px]">Model / Cap.</span>
 								<span className="p-2.5 col-span-2 text-zinc-900 uppercase font-black">{planInfo.request?.modelNo || 'N/A'}</span>
 							</div>
