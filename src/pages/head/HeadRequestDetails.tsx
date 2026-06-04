@@ -7,7 +7,8 @@ import {
 	FileText,
 	AlertTriangle,
 	RefreshCw,
-	Eye
+	Eye,
+	X
 } from 'lucide-react';
 import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
@@ -21,6 +22,7 @@ interface AttachmentRecord {
 
 interface RequestRecord {
 	id: number;
+	dbId?: number;
 	requestId: string;
 	customerNameAddress: string;
 	manufacturerNameAddress: string;
@@ -70,6 +72,10 @@ export default function HeadRequestDetails() {
 	const [showRejectModal, setShowRejectModal] = useState(false);
 	const [remarksText, setRemarksText] = useState('');
 
+	// Telemetry and active sample timeline details
+	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
+
+
 	const loadRequestDetails = async () => {
 		if (!id) return;
 		setLoading(true);
@@ -88,6 +94,97 @@ export default function HeadRequestDetails() {
 	useEffect(() => {
 		loadRequestDetails();
 	}, [id]);
+
+	const reqDbIdVal = request?.dbId || (request?.id ? (typeof request.id === 'string' && isNaN(Number(request.id)) ? Number((request.id as string).split('-').pop()) : Number(request.id)) : null);
+	const sampleKey = (request && activeTimelineSampleIndex !== null && reqDbIdVal) ? `${reqDbIdVal}-sample-${activeTimelineSampleIndex}` : '';
+
+	const testPlan = (() => {
+		if (!sampleKey) return null;
+		try {
+			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
+			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
+			return plansMap[sampleKey] || null;
+		} catch (e) {
+			return null;
+		}
+	})();
+
+
+
+	const sampleReport = (() => {
+		if (!sampleKey || !request) return null;
+		try {
+			const dbInspections = request.sampleInspections || [];
+			const dbReport = dbInspections.find((r: any) => Number(r.sampleIndex) === activeTimelineSampleIndex);
+			if (dbReport) {
+				return {
+					allottedId: dbReport.allottedId,
+					status: dbReport.status,
+					remarks: dbReport.remarks
+				};
+			}
+
+			const cachedManager = localStorage.getItem('dixon_sample_inspections');
+			const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+			const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+			const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+			const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+			const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+			const merged = { ...engineerReports, ...managerReports, ...completedReports };
+			return merged[sampleKey] || null;
+		} catch (e) {
+			return null;
+		}
+	})();
+
+	const timelineSteps = (() => {
+		if (activeTimelineSampleIndex === null || !request) return [];
+		const steps = [
+			{
+				step: 'Testing Request Submitted',
+				date: request.createdAt ? new Date(request.createdAt).toLocaleDateString() : new Date().toLocaleDateString(),
+				completed: true
+			},
+			{
+				step: 'Testing Request Approved',
+				date: request.updatedAt ? new Date(request.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+				completed: !['PENDING_APPROVAL', 'REJECTED'].includes(request.status)
+			},
+			{
+				step: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
+				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
+				completed: !!sampleReport
+			},
+			{
+				step: 'Testing execution',
+				date: request.status === 'COMPLETED'
+					? 'Testing completed successfully'
+					: testPlan
+						? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
+							? `In testing phase (Ends: ${new Date(testPlan.endDate).toLocaleDateString()})`
+							: new Date() < new Date(testPlan.startDate)
+								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
+								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
+						: 'Awaiting start',
+				completed: request.status === 'COMPLETED' || !!(testPlan && new Date() > new Date(testPlan.endDate))
+			},
+			{
+				step: 'Reliability Evaluation',
+				date: testPlan && testPlan.evaluationStatus
+					? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
+					: 'Awaiting checksheet completion and evaluation',
+				completed: !!(testPlan && testPlan.evaluationStatus)
+			},
+			{
+				step: 'Approved Final Report by Head',
+				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				completed: request.status === 'COMPLETED'
+			}
+		];
+		return steps;
+	})();
+
+	const activeIdx = timelineSteps.findIndex(s => !s.completed);
 
 	// Handle Approval Submit
 	const handleApproveSubmit = async () => {
@@ -549,10 +646,10 @@ export default function HeadRequestDetails() {
 					</div>
 
 					{/* Individual Sample Inspection Results */}
-					{(request.status === 'UNDER_TEST' || request.status === 'COMPLETED') && (
+					{request.status !== 'PENDING_APPROVAL' && request.status !== 'REJECTED' && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
-								<span>Sample Inspection Results</span>
+								<span>Sample Inspection & Testing Results</span>
 								<span className="text-[10px] font-bold text-zinc-400">Total: {request.sampleQty || 1}</span>
 							</h4>
 
@@ -623,12 +720,23 @@ export default function HeadRequestDetails() {
 														</p>
 													</div>
 												</div>
-												<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-														: 'bg-rose-50 border border-rose-100 text-rose-700'
-													}`}>
-													{report.status}
-												</span>
+												<div className="flex items-center gap-2">
+													<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+															? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+															: 'bg-rose-50 border border-rose-100 text-rose-700'
+														}`}>
+														{report.status}
+													</span>
+													{report.status === 'PASSED' && (
+														<button
+															type="button"
+															onClick={() => setActiveTimelineSampleIndex(index)}
+															className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
+														>
+															View More
+														</button>
+													)}
+												</div>
 											</div>
 										);
 									});
@@ -639,6 +747,63 @@ export default function HeadRequestDetails() {
 
 				</div>
 			</div>
+
+			{/* Sample Progression Timeline Modal */}
+			{activeTimelineSampleIndex !== null && (
+				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto animate-scale-up">
+						<button
+							onClick={() => setActiveTimelineSampleIndex(null)}
+							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-555 hover:text-slate-850 cursor-pointer border-none outline-none"
+						>
+							<X className="w-4 h-4" />
+						</button>
+
+						<div className="space-y-5">
+							<div>
+								<span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
+									Telemetry Tracking
+								</span>
+								<h3 className="text-xl font-extrabold text-[#11236a] mt-2 leading-tight">
+									Sample #{activeTimelineSampleIndex + 1} Testing Timeline
+								</h3>
+								<p className="text-xs font-bold text-zinc-400 uppercase mt-1">
+									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
+								</p>
+							</div>
+
+							{/* Steps progression */}
+							<div className="space-y-6 relative pl-6 border-l border-zinc-200 ml-2 pt-1">
+								{timelineSteps.map((item, idx) => {
+									const isActive = idx === activeIdx;
+									return (
+										<div key={idx} className="relative">
+											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${item.completed
+													? 'bg-emerald-500 border-emerald-500'
+													: isActive
+														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+														: 'bg-white border-zinc-300'
+												}`} />
+											<p className={`text-sm font-extrabold leading-tight ${item.completed
+													? 'text-zinc-900'
+													: isActive
+														? 'text-[#11236a]'
+														: 'text-zinc-555'
+												}`}>
+												{item.step}
+											</p>
+											<span className={`text-xs font-bold block mt-1 ${isActive ? 'text-[#11236a]' : 'text-zinc-400'
+												}`}>{item.date}</span>
+										</div>
+									);
+								})}
+							</div>
+
+
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* ========================================================================= */}
 			{/* APPROVAL ACTION MODAL */}

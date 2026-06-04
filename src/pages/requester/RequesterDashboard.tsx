@@ -56,6 +56,36 @@ interface CapaRecord {
 	status: string;
 	owner: string;
 	createdDate: string;
+
+	// new format fields
+	partProduct?: string;
+	modelName?: string;
+	customerSupplier?: string;
+	date?: string;
+	result?: string;
+	title?: string;
+	improvementType?: string;
+	partName?: string;
+	problem?: string;
+	model?: string;
+	defectQty?: string;
+	venue?: string;
+	imageUrl?: string;
+	why1?: string;
+	why2?: string;
+	why3?: string;
+	why4?: string;
+	undetectedWhy1?: string;
+	undetectedWhy2?: string;
+	undetectedWhy3?: string;
+	tempCountermeasure?: string;
+	radicalCountermeasure?: string;
+	inspectionControl?: string;
+	processControl?: string;
+	beforeImprovementImgUrl?: string;
+	afterImprovementImgUrl?: string;
+	preventionImgUrl?: string;
+	remark?: string;
 }
 
 export default function RequesterDashboard() {
@@ -218,7 +248,10 @@ export default function RequesterDashboard() {
 	};
 
 	const handleCreateCapaSubmit = (input: any) => {
-		if (!input.nonConformity || !input.rootCause || !input.correctiveAction || !input.preventiveAction || !input.targetedDate) {
+		const isOldFormatComplete = input.nonConformity && input.rootCause && input.correctiveAction && input.preventiveAction && input.targetedDate;
+		const isNewFormatComplete = input.title && input.problem && input.partName;
+
+		if (!isOldFormatComplete && !isNewFormatComplete) {
 			triggerNotification('Please complete all mandatory fields.', 'info');
 			return;
 		}
@@ -227,15 +260,45 @@ export default function RequesterDashboard() {
 		const newCapaItem: CapaRecord = {
 			id: newCapaId,
 			relatedRequest: input.relatedRequest,
-			productName: input.productName,
-			nonConformity: input.nonConformity,
-			rootCause: input.rootCause,
-			correctiveAction: input.correctiveAction,
-			preventiveAction: input.preventiveAction,
-			targetedDate: input.targetedDate,
-			status: 'OPEN',
+			productName: input.productName || input.partProduct || 'SMT Control Board X-90',
+			nonConformity: input.nonConformity || input.problem || 'Test failure observed.',
+			rootCause: input.rootCause || input.why1 || 'Analysis in progress.',
+			correctiveAction: input.correctiveAction || input.tempCountermeasure || 'Immediate check sheet adjustments.',
+			preventiveAction: input.preventiveAction || input.radicalCountermeasure || 'Preventive actions in progress.',
+			targetedDate: input.targetedDate || input.targetDate || new Date().toISOString().split('T')[0],
+			status: input.status ? (input.status === 'Done' ? 'COMPLETED' : 'OPEN') : 'OPEN',
 			owner: 'SMT Engineering Dept',
-			createdDate: new Date().toISOString().split('T')[0]
+			createdDate: new Date().toISOString().split('T')[0],
+
+			// Include new format fields
+			partProduct: input.partProduct,
+			modelName: input.modelName,
+			customerSupplier: input.customerSupplier,
+			date: input.date,
+			result: input.result,
+			title: input.title,
+			improvementType: input.improvementType,
+			partName: input.partName,
+			problem: input.problem,
+			model: input.model,
+			defectQty: input.defectQty,
+			venue: input.venue,
+			imageUrl: input.imageUrl,
+			why1: input.why1,
+			why2: input.why2,
+			why3: input.why3,
+			why4: input.why4,
+			undetectedWhy1: input.undetectedWhy1,
+			undetectedWhy2: input.undetectedWhy2,
+			undetectedWhy3: input.undetectedWhy3,
+			tempCountermeasure: input.tempCountermeasure,
+			radicalCountermeasure: input.radicalCountermeasure,
+			inspectionControl: input.inspectionControl,
+			processControl: input.processControl,
+			beforeImprovementImgUrl: input.beforeImprovementImgUrl,
+			afterImprovementImgUrl: input.afterImprovementImgUrl,
+			preventionImgUrl: input.preventionImgUrl,
+			remark: input.remark
 		};
 
 		setCapas([newCapaItem, ...capas]);
