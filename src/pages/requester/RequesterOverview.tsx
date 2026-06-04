@@ -48,53 +48,109 @@ interface RequesterOverviewProps {
 }
 
 export default function RequesterOverview({ requests, capas, setActiveTab, setSelectedRequest }: RequesterOverviewProps) {
-	const completedCount = requests.filter(r => ['COMPLETED', 'FAILED', 'FAIL'].includes(r.status)).length;
-	const underTestCount = requests.filter(r => ['UNDER_TEST', 'RETEST'].includes(r.status)).length;
-	const activeCapasCount = capas.filter(c => c.status === 'OPEN').length;
+	const totalCount = requests.length;
+	const pendingCount = requests.filter(r => ['PENDING', 'PENDING_APPROVAL'].includes(r.status)).length;
+	const approvedCount = requests.filter(r => ['APPROVED', 'PENDING_TEST_SPEC', 'READY_FOR_TESTING'].includes(r.status)).length;
+	const rejectedCount = requests.filter(r => ['REJECTED'].includes(r.status)).length;
+	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'RETEST', 'INSPECTION_COMPLETED'].includes(r.status)).length;
+	const completedCount = requests.filter(r => ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(r.status)).length;
+	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(r.status)).length;
+
+	const totalCapas = capas.length;
+	const openCapas = capas.filter(c => c.status === 'OPEN').length;
+	const completedCapas = capas.filter(c => c.status === 'COMPLETED').length;
 
 	return (
 		<div className="space-y-6">
-			{/* Overview Summary Badges */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">				
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-					<div>
-						<span className="text-zinc-700 text-[10px] font-bold uppercase tracking-wider">My Submissions</span>
-						<h3 className="text-2xl font-bold text-zinc-950 mt-1">{requests.length} Requests</h3>
-						<p className="text-zinc-650 text-xs mt-2 font-medium">
-							<span className="font-semibold text-emerald-700">{completedCount}</span> completed, <span className="font-semibold text-indigo-700">{underTestCount}</span> under test
-						</p>
+			{/* Requests Status Overview */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
+				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-4">Requests Status Overview</h3>
+				<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+					{/* Total */}
+					<div className="bg-zinc-50 border border-zinc-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider">Total</span>
+						<span className="text-xl font-black text-zinc-900 mt-1">{totalCount}</span>
 					</div>
-					<div className="w-12 h-12 bg-indigo-50 text-[#11236a] rounded-xl flex items-center justify-center border border-indigo-100 shrink-0">
-						<Send className="w-5 h-5 text-[#11236a]" />
+					
+					{/* Pending */}
+					<div className="bg-amber-50/50 border border-amber-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider">Pending</span>
+						<span className="text-xl font-black text-amber-700 mt-1">{pendingCount}</span>
+					</div>
+
+					{/* Approved */}
+					<div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Approved</span>
+						<span className="text-xl font-black text-emerald-700 mt-1">{approvedCount}</span>
+					</div>
+
+					{/* Rejected */}
+					<div className="bg-rose-50/50 border border-rose-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider">Rejected</span>
+						<span className="text-xl font-black text-rose-700 mt-1">{rejectedCount}</span>
+					</div>
+
+					{/* Under Testing */}
+					<div className="bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider">Under Testing</span>
+						<span className="text-xl font-black text-indigo-700 mt-1">{underTestingCount}</span>
+					</div>
+
+					{/* Completed */}
+					<div className="bg-teal-50/50 border border-teal-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-teal-600 font-extrabold uppercase tracking-wider">Completed</span>
+						<span className="text-xl font-black text-teal-700 mt-1">{completedCount}</span>
+					</div>
+
+					{/* Failed */}
+					<div className="bg-red-50/50 border border-red-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-red-600 font-extrabold uppercase tracking-wider">Failed</span>
+						<span className="text-xl font-black text-red-700 mt-1">{failedCount}</span>
 					</div>
 				</div>
+			</div>
 
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
-					<div>
-						<span className="text-zinc-700 text-[10px] font-bold uppercase tracking-wider">Certified Reports</span>
-						<h3 className="text-2xl font-bold text-zinc-950 mt-1">
-							{completedCount} Reports
-						</h3>
-						<p className="text-emerald-700 text-xs mt-2 font-bold flex items-center gap-1.5">
-							<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-							Approved & Released
-						</p>
-					</div>
-					<div className="w-12 h-12 bg-emerald-50 text-emerald-755 rounded-xl flex items-center justify-center border border-emerald-100 shrink-0">
-						<CheckCircle className="w-5 h-5 text-emerald-600" />
-					</div>
+			{/* CAPA Reports Summary */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-2">
+						<Clipboard className="w-4 h-4 text-amber-600" />
+						CAPA Reports Summary
+					</h3>
+					<button 
+						onClick={() => setActiveTab('capa-management')}
+						className="text-[10px] font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer bg-transparent border-none outline-none hover:underline"
+					>
+						View All CAPAs
+					</button>
 				</div>
-
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1">
-					<div>
-						<span className="text-zinc-700 text-[10px] font-bold uppercase tracking-wider">CAPA Action Plans</span>
-						<h3 className="text-2xl font-bold text-zinc-950 mt-1">{capas.length} Registered</h3>
-						<p className="text-amber-700 text-xs mt-2 font-bold">
-							{activeCapasCount} active investigations
-						</p>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 rounded-xl">
+						<div>
+							<p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total CAPAs</p>
+							<p className="text-2xl font-black text-zinc-800 mt-0.5">{totalCapas}</p>
+						</div>
+						<div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-500">
+							<Clipboard className="w-4 h-4" />
+						</div>
 					</div>
-					<div className="w-12 h-12 bg-amber-50 text-amber-755 rounded-xl flex items-center justify-center border border-amber-100 shrink-0">
-						<Clipboard className="w-5 h-5 text-amber-600" />
+					<div className="flex items-center justify-between p-4 bg-amber-50/50 border border-amber-100 rounded-xl">
+						<div>
+							<p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Open Investigations</p>
+							<p className="text-2xl font-black text-amber-700 mt-0.5">{openCapas}</p>
+						</div>
+						<div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+							<div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+						</div>
+					</div>
+					<div className="flex items-center justify-between p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+						<div>
+							<p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Completed / Resolved</p>
+							<p className="text-2xl font-black text-emerald-700 mt-0.5">{completedCapas}</p>
+						</div>
+						<div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+							<CheckCircle className="w-4 h-4" />
+						</div>
 					</div>
 				</div>
 			</div>
@@ -132,14 +188,14 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					</button>
 
 					<button 
-						onClick={() => setActiveTab('new-capa')}
-						className="flex items-center justify-between p-4 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all cursor-pointer border-none outline-none group active:scale-[0.98]"
+						onClick={() => setActiveTab('capa-management')}
+						className="flex items-center justify-between p-4 bg-amber-650 text-white rounded-xl hover:bg-amber-700 transition-all cursor-pointer border-none outline-none group active:scale-[0.98]"
 					>
 						<div className="flex items-center gap-3">
 							<Clipboard className="w-5 h-5 shrink-0" />
 							<div className="text-left">
-								<p className="text-xs font-bold leading-none">Initiate CAPA Report</p>
-								<span className="text-[10px] text-amber-100 font-light mt-1 block">Address product failures</span>
+								<p className="text-xs font-bold leading-none">CAPA Management</p>
+								<span className="text-[10px] text-amber-100 font-light mt-1 block">View & track quality action plans</span>
 							</div>
 						</div>
 						<ArrowRight className="w-4 h-4 shrink-0 opacity-80 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
@@ -171,7 +227,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 							</tr>
 						</thead>
 						<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
-							{requests.slice(0, 3).map((req) => (
+							{requests.slice(0, 5).map((req) => (
 								<tr key={req.id} className="hover:bg-zinc-50/50 transition-all group">
 									<td className="py-3 px-2 font-bold text-zinc-800">{req.id}</td>
 									<td className="py-3 px-2">
@@ -192,6 +248,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 													case 'INSPECTION_COMPLETED':
 														return 'bg-emerald-50 text-emerald-600 border-emerald-100';
 													case 'FAIL':
+													case 'FAILED':
 													case 'TESTING_FAILED':
 													case 'REJECTED':
 														return 'bg-rose-50 text-rose-600 border-rose-100';
@@ -212,14 +269,14 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 											return (
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['FAIL', 'TESTING_FAILED', 'REJECTED', 'FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
 													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
 													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
 														? 'TESTING PASSED' 
-														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' 
+														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' || req.status === 'FAILED'
 															? 'TESTING FAILED' 
 															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL' 
 																? 'TESTING PARTIAL' 

@@ -546,11 +546,12 @@ export default function HeadRequestDetails() {
 						<div className="space-y-5 relative pl-5 border-l border-zinc-200 ml-2 pt-1">
 							{(() => {
 								const isRejected = request.status === 'REJECTED';
+								const isFailedStatus = ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(request.status) || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'));
 								const steps = [
 									{
 										step: 'Testing Request Submitted',
 										date: formatCompletionDate(request.createdAt),
-										completed: ["PENDING_APPROVAL", "UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+										completed: ["PENDING_APPROVAL", "UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 									},
 									{
 										step: 'Approved Testing Request by Head of Lab',
@@ -559,55 +560,58 @@ export default function HeadRequestDetails() {
 											: (request.status !== 'PENDING_APPROVAL'
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting approval'),
-										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status),
+										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status),
 										failed: isRejected
 									},
 									...(!isRejected ? [
 										{
 											step: 'Samples Checked',
-											date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: (request.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
-											completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status),
+											completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status),
 										},
 										{
 											step: 'Test Plan Created',
-											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting plan',
-											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 										},
 										{
 											step: 'Testing',
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 										},
 										{
 											step: request.status === 'TESTING_PASSED' || (request.status === 'COMPLETED' && !request.remarks?.toLowerCase().includes('fail') && !request.remarks?.toLowerCase().includes('partial'))
 												? 'Testing Passed'
-												: (request.status === 'TESTING_FAILED' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'))
+												: (request.status === 'TESTING_FAILED' || request.status === 'FAILED' || request.status === 'FAIL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'))
 													? 'Testing Failed'
 													: (request.status === 'TESTING_PARTIAL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting results',
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED"].includes(request.status)
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status),
+											failed: isFailedStatus
 										},
 										{
 											step: 'Report Generation',
-											date: ["COMPLETED", "REJECTED"].includes(request.status)
+											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Pending release',
-											completed: ["COMPLETED", "REJECTED"].includes(request.status)
+											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
+											failed: isFailedStatus
 										},
 										{
 											step: 'Approved Final Report',
-											date: ["COMPLETED", "REJECTED"].includes(request.status)
+											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Pending final sign-off',
-											completed: ["COMPLETED", "REJECTED"].includes(request.status)
+											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
+											failed: isFailedStatus
 										}
 									] : [])
 								];

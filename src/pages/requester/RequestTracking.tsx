@@ -424,6 +424,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 						<div className="space-y-4 relative pl-5 border-l border-zinc-200 ml-2 pt-1">
 							{(() => {
 								const isRejected = selectedRequest.status === 'REJECTED';
+								const isFailedStatus = ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail'));
 								const steps = [
 									{
 										step: 'Testing Request Submitted',
@@ -471,21 +472,24 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Awaiting results',
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status),
+											failed: isFailedStatus
 										},
 										{
 											step: 'Report Generation',
 											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Pending release',
-											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
+											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
+											failed: isFailedStatus
 										},
 										{
 											step: 'Approved Final Report',
 											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Pending final sign-off',
-											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
+											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
+											failed: isFailedStatus
 										}
 									] : [])
 								];

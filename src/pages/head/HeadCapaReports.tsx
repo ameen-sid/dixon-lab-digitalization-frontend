@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Search, CheckCircle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Search, CheckCircle, RefreshCw, X } from 'lucide-react';
 import { getCapas, updateCapaStatus } from '../../services/operations/capaService';
 import CapaReports from '../requester/CapaReports';
+import CustomSelect from '../../components/CustomSelect';
 
 export default function HeadCapaReports() {
 	const [capas, setCapas] = useState<any[]>([]);
@@ -9,6 +10,8 @@ export default function HeadCapaReports() {
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 
 	const loadCapas = async () => {
 		setLoading(true);
@@ -39,7 +42,15 @@ export default function HeadCapaReports() {
 			(c.productName || '').toLowerCase().includes(search.toLowerCase()) ||
 			(c.relatedRequest || '').toLowerCase().includes(search.toLowerCase());
 		const matchStatus = statusFilter === 'ALL' || c.status === statusFilter;
-		return matchSearch && matchStatus;
+		let matchDate = true;
+		const createdDate = c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '';
+		if (startDate) {
+			matchDate = matchDate && createdDate >= startDate;
+		}
+		if (endDate) {
+			matchDate = matchDate && createdDate <= endDate;
+		}
+		return matchSearch && matchStatus && matchDate;
 	});
 
 	const formatDate = (d: string) => {
@@ -55,33 +66,82 @@ export default function HeadCapaReports() {
 	return (
 		<div className="space-y-5">
 			{/* Toolbar */}
-			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-wrap items-center gap-3">
-				<div className="relative flex-1 min-w-[220px]">
-					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-					<input
-						type="text"
-						placeholder="Search CAPA ID, product, or request..."
-						value={search}
-						onChange={e => setSearch(e.target.value)}
-						className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
+					<div className="relative min-w-[200px] flex-1">
+						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+						<input
+							type="text"
+							placeholder="Search CAPA ID, product, or request..."
+							value={search}
+							onChange={e => setSearch(e.target.value)}
+							className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
+						/>
+						{search && (
+							<button 
+								onClick={() => setSearch('')}
+								className="absolute right-3 top-2.5 text-zinc-400 hover:text-red-655 bg-transparent border-none cursor-pointer outline-none"
+							>
+								<X className="w-4 h-4" />
+							</button>
+						)}
+					</div>
+
+					<CustomSelect
+						value={statusFilter}
+						onChange={(val) => setStatusFilter(val)}
+						options={[
+							{ value: 'ALL', label: 'All Statuses' },
+							{ value: 'OPEN', label: 'Open' },
+							{ value: 'COMPLETED', label: 'Completed' }
+						]}
+						className="w-44 shrink-0"
 					/>
+
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
+						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
+						<input 
+							type="date" 
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
+
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
+						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
+						<input 
+							type="date" 
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
+
+					<button
+						onClick={loadCapas}
+						className="flex items-center gap-1.5 text-xs font-bold text-zinc-650 hover:text-[#11236a] bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-xl cursor-pointer outline-none transition-colors"
+					>
+						<RefreshCw className="w-3.5 h-3.5" /> Refresh
+					</button>
 				</div>
-				<select
-					value={statusFilter}
-					onChange={e => setStatusFilter(e.target.value)}
-					className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
-				>
-					<option value="ALL">All Statuses</option>
-					<option value="OPEN">Open</option>
-					<option value="COMPLETED">Completed</option>
-				</select>
-				<button
-					onClick={loadCapas}
-					className="flex items-center gap-1.5 text-xs font-bold text-zinc-600 hover:text-[#11236a] bg-zinc-50 border border-zinc-200 px-3 py-2 rounded-xl cursor-pointer outline-none transition-colors"
-				>
-					<RefreshCw className="w-3.5 h-3.5" /> Refresh
-				</button>
-				<span className="ml-auto text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} records</span>
+
+				<div className="flex items-center gap-3.5 ml-auto">
+					{(search || statusFilter !== 'ALL' || startDate || endDate) && (
+						<button 
+							onClick={() => {
+								setSearch('');
+								setStatusFilter('ALL');
+								setStartDate('');
+								setEndDate('');
+							}}
+							className="text-xs font-bold text-red-650 hover:text-red-755 hover:underline bg-transparent border-none cursor-pointer text-left"
+						>
+							Clear Filters
+						</button>
+					)}
+					<span className="text-[10px] font-bold text-zinc-400 uppercase shrink-0">{filtered.length} records</span>
+				</div>
 			</div>
 
 			{/* Loading */}

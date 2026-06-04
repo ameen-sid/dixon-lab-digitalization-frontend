@@ -1,4 +1,4 @@
-import { ChevronLeft, AlertTriangle, HelpCircle, Image as ImageIcon, Calendar } from 'lucide-react';
+import { ChevronLeft, Image as ImageIcon, Printer } from 'lucide-react';
 
 interface CapaRecord {
 	id: string;
@@ -53,11 +53,11 @@ interface CapaReportsProps {
 export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsProps) {
 	if (!selectedCapa) {
 		return (
-			<div className="bg-white border border-zinc-200/50 rounded-3xl p-8 text-center">
+			<div className="bg-white border border-zinc-200/50 p-8 text-center rounded-none">
 				<p className="text-zinc-650 text-xs font-semibold">No CAPA report selected.</p>
 				<button 
 					onClick={() => setActiveTab('capa-management')}
-					className="mt-4 px-4 py-2 bg-[#11236a] text-white text-xs font-bold rounded-xl outline-none border-none cursor-pointer hover:bg-[#0c1a52] transition-colors"
+					className="mt-4 px-4 py-2 bg-[#11236a] text-white text-xs font-bold rounded-none outline-none border-none cursor-pointer hover:bg-[#0c1a52] transition-colors"
 				>
 					View CAPA Management
 				</button>
@@ -65,114 +65,168 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 		);
 	}
 
-	// Detect if we should use the new NABL format layout
-	const isNewFormat = !!(selectedCapa.title || selectedCapa.partProduct || selectedCapa.why1);
+	// Map legacy fields to NABL sheet format to ensure exact layout uniformity
+	const mappedCapa = {
+		...selectedCapa,
+		partProduct: selectedCapa.partProduct || selectedCapa.productName || 'N/A',
+		modelName: selectedCapa.modelName || 'N/A',
+		customerSupplier: selectedCapa.customerSupplier || selectedCapa.owner || 'N/A',
+		date: selectedCapa.date || selectedCapa.createdDate || 'N/A',
+		result: selectedCapa.result || (selectedCapa.status === 'COMPLETED' ? 'OK' : 'NG'),
+		title: selectedCapa.title || selectedCapa.nonConformity || 'N/A',
+		improvementType: selectedCapa.improvementType || 'Process',
+		partName: selectedCapa.partName || selectedCapa.productName || 'N/A',
+		problem: selectedCapa.problem || selectedCapa.nonConformity || 'N/A',
+		model: selectedCapa.model || 'N/A',
+		defectQty: selectedCapa.defectQty || 'N/A',
+		venue: selectedCapa.venue || 'N/A',
+		why1: selectedCapa.why1 || selectedCapa.rootCause || 'N/A',
+		why2: selectedCapa.why2 || 'N/A',
+		why3: selectedCapa.why3 || 'N/A',
+		why4: selectedCapa.why4 || 'N/A',
+		undetectedWhy1: selectedCapa.undetectedWhy1 || 'N/A',
+		undetectedWhy2: selectedCapa.undetectedWhy2 || 'N/A',
+		undetectedWhy3: selectedCapa.undetectedWhy3 || 'N/A',
+		tempCountermeasure: selectedCapa.tempCountermeasure || selectedCapa.correctiveAction || 'N/A',
+		radicalCountermeasure: selectedCapa.radicalCountermeasure || selectedCapa.preventiveAction || 'N/A',
+		inspectionControl: selectedCapa.inspectionControl || 'N/A',
+		processControl: selectedCapa.processControl || 'N/A',
+	};
 
-	if (!isNewFormat) {
-		// Fallback to legacy format layout
-		return (
-			<div className="space-y-6">
-				<div className="flex items-center">
-					<button 
-						onClick={() => setActiveTab('capa-management')}
-						className="text-xs font-bold text-zinc-700 hover:text-zinc-950 flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none transition-colors"
-					>
-						<ChevronLeft className="w-4 h-4" /> Back to CAPA Register
-					</button>
-				</div>
+	const handlePrint = () => {
+		const printContent = document.getElementById('printable-capa-sheet');
+		if (!printContent) return;
 
-				<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm max-w-4xl mx-auto space-y-6">
-					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-zinc-150 pb-4 gap-4">
-						<div>
-							<div className="flex items-center gap-2 text-xs font-bold">
-								<span className="text-[10px] font-bold text-zinc-650 tracking-wider uppercase">{selectedCapa.id}</span>
-								<span className="text-zinc-300">|</span>
-								<span className="text-[10px] font-bold text-indigo-700 tracking-wider uppercase">REF: {selectedCapa.relatedRequest}</span>
-							</div>
-							<h3 className="text-base font-extrabold text-zinc-955 mt-0.5 leading-tight">{selectedCapa.productName}</h3>
-						</div>
-						<span className={`text-[10px] font-bold px-3 py-1 border rounded-full uppercase tracking-wider ${
-							selectedCapa.status === 'COMPLETED' 
-								? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-								: 'bg-rose-50 text-rose-600 border-rose-100'
-						}`}>
-							{selectedCapa.status}
-						</span>
+		// Create an iframe to print
+		const iframe = document.createElement('iframe');
+		iframe.style.position = 'fixed';
+		iframe.style.right = '0';
+		iframe.style.bottom = '0';
+		iframe.style.width = '0';
+		iframe.style.height = '0';
+		iframe.style.border = '0';
+		document.body.appendChild(iframe);
+
+		const iframeDoc = iframe.contentWindow?.document;
+		if (!iframeDoc) return;
+
+		iframeDoc.open();
+		iframeDoc.write(`
+			<html>
+				<head>
+					<title>CAPA Report - ${mappedCapa.id}</title>
+					<style>
+						body {
+							font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+							margin: 0;
+							padding: 5px;
+							background-color: white;
+							-webkit-print-color-adjust: exact;
+							print-color-adjust: exact;
+						}
+						table {
+							width: 100%;
+							border-collapse: collapse;
+							table-layout: fixed;
+						}
+						td {
+							border: 1px solid #475569 !important;
+							padding: 4px !important;
+							font-size: 9px !important;
+							line-height: 1.2 !important;
+							word-wrap: break-word;
+							vertical-align: top;
+						}
+						.bg-blue-header {
+							background-color: #1e3a8a !important;
+							color: white !important;
+						}
+						.bg-zinc-50 {
+							background-color: #f9fafb !important;
+						}
+						.bg-blue-light {
+							background-color: rgba(239, 246, 255, 0.2) !important;
+						}
+						.text-white {
+							color: white !important;
+						}
+						.text-blue-800 {
+							color: #1e40af !important;
+						}
+						.text-center {
+							text-align: center;
+						}
+						.font-bold {
+							font-weight: 700;
+						}
+						.font-extrabold {
+							font-weight: 800;
+						}
+						.text-xs {
+							font-size: 9px !important;
+						}
+						.text-sm {
+							font-size: 10px !important;
+						}
+						.text-emerald-600 {
+							color: #059669 !important;
+						}
+						.text-rose-600 {
+							color: #e11d48 !important;
+						}
+						.defect-img {
+							max-width: 140px !important;
+							max-height: 90px !important;
+							display: block;
+							margin: 3px auto;
+							object-fit: contain;
+						}
+						.thumb-img {
+							max-height: 35px !important;
+							max-width: 100% !important;
+							display: block;
+							margin: 0 auto;
+							object-fit: contain;
+						}
+						.whitespace-pre-line {
+							white-space: pre-line;
+						}
+						.pl-3 {
+							padding-left: 0.5rem;
+						}
+						.italic {
+							font-style: italic;
+						}
+						@page {
+							size: landscape;
+							margin: 5mm;
+						}
+					</style>
+				</head>
+				<body>
+					<div style="width: 100%; box-sizing: border-box; overflow: hidden; page-break-inside: avoid;">
+						${printContent.innerHTML}
 					</div>
+					<script>
+						window.onload = function() {
+							setTimeout(function() {
+								window.focus();
+								window.print();
+								setTimeout(function() {
+									window.frameElement.remove();
+								}, 1000);
+							}, 500);
+						};
+					</script>
+				</body>
+			</html>
+		`);
+		iframeDoc.close();
+	};
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-						<div className="md:col-span-2 space-y-5">
-							<div className="bg-rose-50/10 border border-rose-150 p-4 rounded-2xl">
-								<h4 className="text-[10px] text-rose-700 font-extrabold uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-									<AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-									Non-Conformity Failure Defect
-								</h4>
-								<p className="text-xs font-semibold text-zinc-800 leading-relaxed">
-									{selectedCapa.nonConformity}
-								</p>
-							</div>
-
-							<div className="bg-amber-500/5 border border-amber-200 p-4 rounded-2xl">
-								<h4 className="text-[10px] text-amber-700 font-extrabold uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-									<HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
-									Root Cause Analysis (RCA)
-								</h4>
-								<p className="text-xs font-semibold text-zinc-800 leading-relaxed">
-									{selectedCapa.rootCause}
-								</p>
-							</div>
-
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								<div className="bg-emerald-50/20 border border-emerald-250 p-4 rounded-2xl">
-									<h5 className="text-[10px] text-emerald-800 font-extrabold uppercase tracking-wider mb-1.5">Corrective Action (Immediate)</h5>
-									<p className="text-xs text-zinc-700 font-semibold leading-relaxed">{selectedCapa.correctiveAction}</p>
-								</div>
-								<div className="bg-indigo-50/20 border border-indigo-250 p-4 rounded-2xl">
-									<h5 className="text-[10px] text-[#11236a] font-extrabold uppercase tracking-wider mb-1.5">Preventive Action (Long Term)</h5>
-									<p className="text-xs text-zinc-700 font-semibold leading-relaxed">{selectedCapa.preventiveAction}</p>
-								</div>
-							</div>
-						</div>
-
-						<div className="space-y-4">
-							<div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl space-y-3.5">
-								<h4 className="text-xs font-bold text-zinc-955 uppercase tracking-wider">Ownership & Schedule</h4>
-								<div className="space-y-3 text-xs font-semibold">
-									<div>
-										<p className="text-[9px] text-zinc-700 font-extrabold uppercase">Department Owner</p>
-										<p className="font-bold text-zinc-900 mt-0.5">{selectedCapa.owner}</p>
-									</div>
-									<div>
-										<p className="text-[9px] text-zinc-700 font-extrabold uppercase">Initiation Date</p>
-										<p className="font-bold text-zinc-900 mt-0.5">{selectedCapa.createdDate}</p>
-									</div>
-									<div>
-										<p className="text-[9px] text-zinc-700 font-extrabold uppercase">Target Date</p>
-										<p className="font-bold text-zinc-900 mt-0.5">{selectedCapa.targetedDate}</p>
-									</div>
-								</div>
-							</div>
-
-							<div className="border border-zinc-200 bg-white rounded-2xl p-4 text-center space-y-3 shadow-inner">
-								<p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-wider">Quality Manager Verification</p>
-								<div className="w-20 h-20 border border-dashed border-zinc-300 rounded-full mx-auto flex items-center justify-center bg-zinc-50">
-									<span className="text-[9px] font-bold text-zinc-400">Pending</span>
-								</div>
-								<p className="text-[10px] text-zinc-700 font-bold">Approved & Signed off</p>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	// ----------------------------------------------------
-	// GORGEOUS NABL FORM LAYOUT (Matching user's image)
-	// ----------------------------------------------------
 	return (
 		<div className="space-y-6">
-			{/* Back btn */}
+			{/* Toolbar / Action buttons */}
 			<div className="flex items-center justify-between">
 				<button 
 					onClick={() => setActiveTab('capa-management')}
@@ -181,274 +235,232 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 					<ChevronLeft className="w-4 h-4" /> Back to CAPA Register
 				</button>
 
-				<div className="flex items-center gap-2 text-xs font-extrabold text-zinc-400">
-					<span>CAPA ID: <strong className="text-zinc-800">{selectedCapa.id}</strong></span>
-					<span>•</span>
-					<span>REF REQ: <strong className="text-[#11236a]">{selectedCapa.relatedRequest}</strong></span>
+				<div className="flex items-center gap-3">
+					<button 
+						onClick={handlePrint}
+						className="text-xs font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] flex items-center gap-1.5 px-3.5 py-1.5 rounded-none cursor-pointer border-none outline-none transition-all shadow-sm"
+					>
+						<Printer className="w-3.5 h-3.5" /> Download Report (PDF)
+					</button>
+
+					<div className="flex items-center gap-2 text-xs font-extrabold text-zinc-400">
+						<span>CAPA ID: <strong className="text-zinc-800">{mappedCapa.id}</strong></span>
+						<span>•</span>
+						<span>REF REQ: <strong className="text-[#11236a]">{mappedCapa.relatedRequest}</strong></span>
+					</div>
 				</div>
 			</div>
 
-			{/* CAPA Sheet View */}
-			<div className="bg-white border border-zinc-300 rounded-2xl shadow-md overflow-hidden max-w-5xl mx-auto text-zinc-800">
-				
-				{/* Header Section (Blue Table Layout style) */}
-				<div className="grid grid-cols-5 border-b border-zinc-300 font-bold text-[11px] leading-tight text-center bg-zinc-50">
-					{/* Header Titles */}
-					<div className="col-span-1 border-r border-zinc-300">
-						<div className="bg-[#1e3a8a] text-white py-1.5 border-b border-zinc-300 uppercase tracking-wider">Part/Product</div>
-						<div className="py-2.5 px-1 font-semibold text-zinc-700 bg-white min-h-[38px] flex items-center justify-center">
-							{selectedCapa.partProduct || 'N/A'}
-						</div>
-					</div>
+			{/* CAPA Printable Sheet View (Completely square/flat corners per request) */}
+			<div 
+				id="printable-capa-sheet" 
+				className="bg-white border border-slate-650 rounded-none overflow-hidden max-w-6xl mx-auto text-zinc-900"
+			>
+				<table className="w-full border-collapse border border-slate-650 text-xs bg-white" style={{ tableLayout: 'fixed' }}>
+					{/* Row 1 & 2: Header Grid */}
+					<thead>
+						<tr className="text-center font-bold text-[11px] leading-tight">
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Part/Product</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Model Name</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Customer/Supplier</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Date</td>
+							<td className="border border-slate-650 text-zinc-900 bg-white font-extrabold align-middle w-[10%] px-1" style={{ width: '10%' }} rowSpan={2}>Result</td>
+							<td className="border border-slate-650 text-zinc-900 bg-white font-bold py-1 w-[9%]" style={{ width: '9%' }}>OK</td>
+							<td className="border border-slate-650 text-zinc-900 bg-white font-bold py-1 w-[9%]" style={{ width: '9%' }}>NG</td>
+						</tr>
+						<tr className="text-center font-semibold text-zinc-700 bg-white">
+							<td className="border border-slate-650 py-2 px-2">{mappedCapa.partProduct}</td>
+							<td className="border border-slate-650 py-2 px-2">{mappedCapa.modelName}</td>
+							<td className="border border-slate-650 py-2 px-2">{mappedCapa.customerSupplier}</td>
+							<td className="border border-slate-650 py-2 px-2">{mappedCapa.date}</td>
+							<td className="border border-slate-650 py-2 text-center font-extrabold text-emerald-600">
+								{mappedCapa.result === 'OK' && 'Done'}
+							</td>
+							<td className="border border-slate-650 py-2 text-center font-extrabold text-rose-600">
+								{mappedCapa.result === 'NG' && 'Done'}
+							</td>
+						</tr>
+					</thead>
 
-					<div className="col-span-1 border-r border-zinc-300">
-						<div className="bg-[#1e3a8a] text-white py-1.5 border-b border-zinc-300 uppercase tracking-wider">Model Name</div>
-						<div className="py-2.5 px-1 font-semibold text-zinc-700 bg-white min-h-[38px] flex items-center justify-center">
-							{selectedCapa.modelName || 'N/A'}
-						</div>
-					</div>
+					<tbody>
+						{/* Row 3: Title & Improvement Options */}
+						<tr>
+							<td className="border border-slate-650 p-2 font-bold text-blue-800 text-[11px] bg-white" colSpan={4}>
+								☐ Title :: <span className="text-zinc-900 font-bold">{mappedCapa.title}</span>
+							</td>
+							<td className="border border-slate-650 text-center font-bold bg-zinc-50 align-middle">Improvement</td>
+							<td className="border border-slate-650 p-0 text-center align-middle" colSpan={2}>
+								<table className="w-full h-full border-collapse text-[9px]" style={{ tableLayout: 'fixed' }}>
+									<tbody>
+										<tr className="border-b border-slate-650 font-bold text-center">
+											<td className="border-r border-slate-650 py-0.5 bg-white" style={{ width: '25%' }}>Process</td>
+											<td className="border-r border-slate-650 py-0.5 bg-white" style={{ width: '25%' }}>Part</td>
+											<td className="border-r border-slate-650 py-0.5 bg-white" style={{ width: '25%' }}>Mold</td>
+											<td className="py-0.5 bg-white" style={{ width: '25%' }}>Others</td>
+										</tr>
+										<tr className="font-bold text-[10px] text-center">
+											<td className="border-r border-slate-650 py-1">{mappedCapa.improvementType === 'Process' ? '•' : ''}</td>
+											<td className="border-r border-slate-650 py-1">{mappedCapa.improvementType === 'Part' ? '•' : ''}</td>
+											<td className="border-r border-slate-650 py-1">{mappedCapa.improvementType === 'Mold' ? '•' : ''}</td>
+											<td className="py-1">{mappedCapa.improvementType === 'Others' ? '•' : ''}</td>
+										</tr>
+									</tbody>
+								</table>
+							</td>
+						</tr>
 
-					<div className="col-span-1 border-r border-zinc-300">
-						<div className="bg-[#1e3a8a] text-white py-1.5 border-b border-zinc-300 uppercase tracking-wider">Customer/Supplier</div>
-						<div className="py-2.5 px-1 font-semibold text-zinc-700 bg-white min-h-[38px] flex items-center justify-center">
-							{selectedCapa.customerSupplier || 'N/A'}
-						</div>
-					</div>
+						{/* Row 4: Column Section Headers */}
+						<tr className="bg-blue-50/20 bg-blue-light text-center font-bold text-[10px] text-zinc-800">
+							<td className="border border-slate-650 py-1.5">Part Name</td>
+							<td className="border border-slate-650 py-1.5" colSpan={3}>(Problem & Reason)</td>
+							<td className="border border-slate-650 py-1.5" colSpan={2}>(Counter Measure)</td>
+							<td className="border border-slate-650 py-1.5" style={{ width: '90px' }}>Target</td>
+							<td className="border border-slate-650 py-1.5" style={{ width: '70px' }}>Status</td>
+						</tr>
 
-					<div className="col-span-1 border-r border-zinc-300">
-						<div className="bg-[#1e3a8a] text-white py-1.5 border-b border-zinc-300 uppercase tracking-wider">Date</div>
-						<div className="py-2.5 px-1 font-semibold text-zinc-700 bg-white min-h-[38px] flex items-center justify-center">
-							{selectedCapa.date || selectedCapa.createdDate || 'N/A'}
-						</div>
-					</div>
+						{/* Row 5: Main Content Matrix */}
+						<tr>
+							{/* Column 1: Part Name */}
+							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle">
+								{mappedCapa.partName}
+							</td>
 
-					<div className="col-span-1">
-						<div className="bg-[#1e3a8a] text-white py-1.5 border-b border-zinc-300 uppercase tracking-wider">Result</div>
-						<div className="grid grid-cols-2 divide-x divide-zinc-200 min-h-[38px] bg-white text-[10px]">
-							<div className="flex flex-col items-center justify-center py-1">
-								<span className="font-extrabold text-zinc-400">OK</span>
-								{selectedCapa.result === 'OK' && <span className="text-[10px] text-emerald-600 font-extrabold">Done</span>}
-							</div>
-							<div className="flex flex-col items-center justify-center py-1 bg-rose-50/20">
-								<span className="font-extrabold text-zinc-400">NG</span>
-								{selectedCapa.result === 'NG' && <span className="text-[10px] text-rose-600 font-extrabold">Done</span>}
-							</div>
-						</div>
-					</div>
-				</div>
-
-				{/* Title and Category Row */}
-				<div className="grid grid-cols-3 divide-x divide-zinc-300 border-b border-zinc-300 text-xs text-zinc-800">
-					<div className="col-span-2 p-3 font-semibold flex items-center bg-[#f8fafc]">
-						<span className="text-indigo-800 font-extrabold text-[13px] mr-2">Title ::</span>
-						<span className="text-zinc-950 font-bold">{selectedCapa.title || 'N/A'}</span>
-					</div>
-
-					<div className="col-span-1 p-3 flex flex-col justify-center">
-						<span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Improvement Process Type</span>
-						<div className="flex items-center gap-3 text-[11px] font-bold text-zinc-700">
-							{['Process', 'Part', 'Mold', 'Others'].map((type) => (
-								<div key={type} className="flex items-center gap-1.5">
-									<div className={`w-3 h-3 rounded-full border flex items-center justify-center ${
-										selectedCapa.improvementType === type 
-											? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold' 
-											: 'border-zinc-350 bg-white'
-									}`}>
-										{selectedCapa.improvementType === type && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+							{/* Column 2: Problem & Reason */}
+							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={3}>
+								{/* Problem Detail */}
+								<div className="space-y-0.5">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">
+										☐ Problem : {mappedCapa.title}
+									</span>
+									<div className="pl-3 space-y-0.5 text-zinc-650 font-semibold text-[10px]">
+										<p>Model: {mappedCapa.model}</p>
+										<p>Defect Qty: {mappedCapa.defectQty}</p>
+										<p>Venue: {mappedCapa.venue}</p>
 									</div>
-									<span className={selectedCapa.improvementType === type ? 'text-indigo-900' : 'text-zinc-500'}>{type}</span>
 								</div>
-							))}
-						</div>
-					</div>
-				</div>
 
-				{/* Two Main Columns (Problem & Reason vs Counter Measure) */}
-				<div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-zinc-300 border-b border-zinc-300 text-xs">
-					
-					{/* LEFT COLUMN: Problem & Reason */}
-					<div className="p-4 space-y-4">
-						{/* Title */}
-						<div className="border-b border-zinc-200 pb-2 flex items-center justify-between">
-							<span className="font-extrabold text-[#1e3a8a] text-[11px] uppercase tracking-wider">Part Name: {selectedCapa.partName || 'Spin lid'}</span>
-							<span className="text-[11px] font-bold text-zinc-450 uppercase">(Problem & Reason)</span>
-						</div>
-
-						{/* Problem text block */}
-						<div className="space-y-1">
-							<span className="inline-flex items-center gap-1 font-bold text-[#1e3a8a] text-[11px]">
-								<div className="w-1.5 h-1.5 bg-rose-600 rounded-full" /> Problem : {selectedCapa.title || 'N/A'}
-							</span>
-							<div className="pl-3 space-y-1 text-zinc-650 font-medium">
-								<p>Model: {selectedCapa.model || 'WT80F4560RD/TL'}</p>
-								<p>Defect Qty: {selectedCapa.defectQty || '01'}</p>
-								<p>Venue: {selectedCapa.venue || 'BI'}</p>
-							</div>
-						</div>
-
-						{/* Problem / Defect Image */}
-						{selectedCapa.imageUrl ? (
-							<div className="border border-zinc-250 rounded-xl overflow-hidden bg-zinc-50 max-w-[280px] mx-auto p-1.5 shadow-inner">
-								<a href={selectedCapa.imageUrl} target="_blank" rel="noopener noreferrer" title="Click to open full size">
-									<img src={selectedCapa.imageUrl} alt="Defect Detail" className="w-full h-auto max-h-[180px] object-contain rounded-lg cursor-zoom-in hover:opacity-90 transition-opacity" />
-								</a>
-								<div className="text-[9px] text-center text-zinc-500 font-bold uppercase tracking-wider mt-1">Defect Graphic Preview</div>
-							</div>
-						) : (
-							<div className="border border-dashed border-zinc-200 rounded-xl p-4 text-center text-zinc-400 max-w-[280px] mx-auto">
-								<ImageIcon className="w-6 h-6 mx-auto mb-1 text-zinc-300" />
-								<span className="text-[10px] font-bold uppercase tracking-wider block">No defect graphic provided</span>
-							</div>
-						)}
-
-						{/* Root cause why-why block */}
-						<div className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3.5 space-y-2">
-							<span className="block font-bold text-[#1e3a8a] text-[11px] uppercase tracking-wider border-b border-zinc-200 pb-1.5">
-								Root Cause (Why-Why Analysis)
-							</span>
-							<div className="space-y-1.5 text-zinc-700">
-								<p className="font-semibold"><strong className="text-indigo-800 text-[10px] uppercase font-bold mr-1">Why 1:</strong> {selectedCapa.why1 || 'Not specified'}</p>
-								<p className="font-semibold"><strong className="text-indigo-800 text-[10px] uppercase font-bold mr-1">Why 2:</strong> {selectedCapa.why2 || 'Not specified'}</p>
-								<p className="font-semibold"><strong className="text-indigo-800 text-[10px] uppercase font-bold mr-1">Why 3:</strong> {selectedCapa.why3 || 'Not specified'}</p>
-								{selectedCapa.why4 && (
-									<p className="font-semibold"><strong className="text-indigo-800 text-[10px] uppercase font-bold mr-1">Why 4:</strong> {selectedCapa.why4}</p>
+								{/* Defect Graphic */}
+								{mappedCapa.imageUrl ? (
+									<div className="border border-slate-300 rounded-none overflow-hidden bg-zinc-50 max-w-[200px] mx-auto p-1">
+										<a href={mappedCapa.imageUrl} target="_blank" rel="noopener noreferrer">
+											<img 
+												src={mappedCapa.imageUrl} 
+												alt="Defect Detail" 
+												className="w-full h-auto max-h-[120px] defect-img object-contain cursor-zoom-in" 
+											/>
+										</a>
+									</div>
+								) : (
+									<div className="border border-dashed border-slate-300 p-2 text-center text-zinc-400 max-w-[150px] mx-auto">
+										<ImageIcon className="w-4 h-4 mx-auto mb-0.5 text-zinc-300" />
+										<span className="text-[9px] font-bold uppercase tracking-wider block">No defect graphic</span>
+									</div>
 								)}
-							</div>
-						</div>
 
-						{/* Process undetected cause */}
-						<div className="bg-[#fffbeb] border border-amber-100 rounded-xl p-3.5 space-y-2">
-							<span className="block font-bold text-amber-800 text-[11px] uppercase tracking-wider border-b border-amber-100 pb-1.5">
-								Process Undetected Cause
-							</span>
-							<div className="space-y-1.5 text-zinc-700">
-								<p className="font-semibold"><strong className="text-amber-800 text-[10px] uppercase font-bold mr-1">Why 1:</strong> {selectedCapa.undetectedWhy1 || 'Not specified'}</p>
-								<p className="font-semibold"><strong className="text-amber-800 text-[10px] uppercase font-bold mr-1">Why 2:</strong> {selectedCapa.undetectedWhy2 || 'Not specified'}</p>
-								<p className="font-semibold"><strong className="text-amber-800 text-[10px] uppercase font-bold mr-1">Why 3:</strong> {selectedCapa.undetectedWhy3 || 'Not specified'}</p>
-							</div>
-						</div>
-					</div>
-
-					{/* RIGHT COLUMN: Counter Measure */}
-					<div className="p-4 space-y-4">
-						<div className="border-b border-zinc-200 pb-2 flex items-center justify-between">
-							<span className="font-extrabold text-emerald-700 text-[11px] uppercase tracking-wider">Corrective Safeguards</span>
-							<span className="text-[11px] font-bold text-zinc-450 uppercase">(Counter Measure)</span>
-						</div>
-
-						{/* Temp Countermeasure */}
-						<div className="space-y-1">
-							<span className="block font-bold text-indigo-900 text-[11px] uppercase tracking-wider">Temp Countermeasure :</span>
-							<p className="pl-3 font-semibold text-zinc-700 leading-relaxed whitespace-pre-line">
-								{selectedCapa.tempCountermeasure || 'N/A'}
-							</p>
-						</div>
-
-						{/* Radical Countermeasure */}
-						<div className="space-y-1 pt-1.5 border-t border-zinc-150">
-							<span className="block font-bold text-indigo-900 text-[11px] uppercase tracking-wider">Radical Countermeasure :</span>
-							<p className="pl-3 font-semibold text-zinc-700 leading-relaxed whitespace-pre-line">
-								{selectedCapa.radicalCountermeasure || 'N/A'}
-							</p>
-						</div>
-
-						{/* Inspection Control */}
-						<div className="space-y-1 pt-1.5 border-t border-zinc-150">
-							<span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wider">Inspection Control :-</span>
-							<p className="pl-3 font-semibold text-zinc-700 leading-relaxed whitespace-pre-line bg-emerald-50/10 p-2.5 rounded-lg border border-emerald-100/50">
-								{selectedCapa.inspectionControl || 'N/A'}
-							</p>
-						</div>
-
-						{/* Process control */}
-						<div className="space-y-1 pt-1.5 border-t border-zinc-150">
-							<span className="block font-bold text-emerald-800 text-[11px] uppercase tracking-wider">Process control :-</span>
-							<p className="pl-3 font-semibold text-zinc-700 leading-relaxed whitespace-pre-line bg-emerald-50/10 p-2.5 rounded-lg border border-emerald-100/50">
-								{selectedCapa.processControl || 'N/A'}
-							</p>
-						</div>
-
-						{/* Before / After / Prevention attachments grid */}
-						<div className="pt-3 border-t border-zinc-150">
-							<span className="block font-bold text-zinc-500 text-[10px] uppercase tracking-wider mb-2.5">Verification Attachment Images</span>
-							<div className="grid grid-cols-3 gap-3">
-								<div className="text-center">
-									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">Before Improvement</span>
-									{selectedCapa.beforeImprovementImgUrl ? (
-										<a href={selectedCapa.beforeImprovementImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
-											<img src={selectedCapa.beforeImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="Before" />
-										</a>
-									) : (
-										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
-											<ImageIcon className="w-5 h-5" />
-										</div>
-									)}
+								{/* Root Cause (Why-Why Analysis) */}
+								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">
+										☐ Root Cause :
+									</span>
+									<div className="pl-3 space-y-0.5 text-zinc-700 font-bold text-[10px]">
+										<p>Why 1: <span className="font-normal text-zinc-800">{mappedCapa.why1}</span></p>
+										<p>Why 2: <span className="font-normal text-zinc-800">{mappedCapa.why2}</span></p>
+										<p>Why 3: <span className="font-normal text-zinc-800">{mappedCapa.why3}</span></p>
+										<p>Why 4: <span className="font-normal text-zinc-800">{mappedCapa.why4}</span></p>
+									</div>
 								</div>
 
-								<div className="text-center">
-									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">After Improvement</span>
-									{selectedCapa.afterImprovementImgUrl ? (
-										<a href={selectedCapa.afterImprovementImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
-											<img src={selectedCapa.afterImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="After" />
-										</a>
-									) : (
-										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
-											<ImageIcon className="w-5 h-5" />
-										</div>
-									)}
+								{/* Process Undetected Cause */}
+								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">
+										☐ Process undetected cause:
+									</span>
+									<div className="pl-3 space-y-0.5 text-zinc-700 font-normal text-[10px]">
+										<p>Why 1: {mappedCapa.undetectedWhy1}</p>
+										<p>Why 2: {mappedCapa.undetectedWhy2}</p>
+										<p>Why 3: {mappedCapa.undetectedWhy3}</p>
+									</div>
+								</div>
+							</td>
+
+							{/* Column 3: Counter Measure details */}
+							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={2}>
+								<div className="space-y-0.5">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Temp Countermeasure :</span>
+									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.tempCountermeasure}</p>
 								</div>
 
-								<div className="text-center">
-									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">Prevention</span>
-									{selectedCapa.preventionImgUrl ? (
-										<a href={selectedCapa.preventionImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
-											<img src={selectedCapa.preventionImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="Prevention" />
-										</a>
-									) : (
-										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
-											<ImageIcon className="w-5 h-5" />
-										</div>
-									)}
+								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Radical Countermeasure :</span>
+									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.radicalCountermeasure}</p>
 								</div>
-							</div>
-						</div>
-					</div>
-				</div>
 
-				{/* Bottom target / status / remarks details */}
-				<div className="bg-zinc-50/50 p-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold">
-					<div className="flex items-center gap-2 border-r md:border-r border-zinc-200/80 pr-2">
-						<Calendar className="w-4 h-4 text-indigo-700" />
-						<div>
-							<span className="block text-[9px] text-zinc-400 uppercase tracking-wider leading-none">Target Date</span>
-							<span className="text-zinc-900 font-bold text-xs mt-0.5 block">
-								{selectedCapa.targetDate || selectedCapa.targetedDate || 'N/A'}
-							</span>
-						</div>
-					</div>
+								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Inspection Control :-</span>
+									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.inspectionControl}</p>
+								</div>
 
-					<div className="flex items-center gap-2 border-r md:border-r border-zinc-200/80 pr-2">
-						<div className={`w-2.5 h-2.5 rounded-full ${selectedCapa.status === 'COMPLETED' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-						<div>
-							<span className="block text-[9px] text-zinc-400 uppercase tracking-wider leading-none">Execution Status</span>
-							<span className="text-zinc-900 font-extrabold text-xs mt-0.5 block">
-								{selectedCapa.status === 'COMPLETED' ? 'Done' : selectedCapa.status || 'Pending'}
-							</span>
-						</div>
-					</div>
+								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Process control :-</span>
+									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.processControl}</p>
+								</div>
 
-					<div className="md:col-span-2">
-						<span className="block text-[9px] text-zinc-400 uppercase tracking-wider leading-none">Management Remarks</span>
-						<p className="text-zinc-650 text-[11px] font-medium mt-1 italic leading-relaxed">
-							{selectedCapa.remark || 'No management remarks recorded.'}
-						</p>
-					</div>
-				</div>
+								{/* Before / After / Prevention attachments table */}
+								<table className="w-full border-collapse border border-slate-400 text-[9px] mt-2 bg-white">
+									<thead>
+										<tr className="bg-zinc-50 font-bold text-center">
+											<td className="border border-slate-400 py-0.5 w-[33.3%]">Before Improvement</td>
+											<td className="border border-slate-400 py-0.5 w-[33.3%]">After Improvement</td>
+											<td className="border border-slate-400 py-0.5 w-[33.3%]">Prevention</td>
+										</tr>
+									</thead>
+									<tbody>
+										<tr className="h-12 text-center">
+											<td className="border border-slate-400 p-0.5 align-middle">
+												{mappedCapa.beforeImprovementImgUrl ? (
+													<a href={mappedCapa.beforeImprovementImgUrl} target="_blank" rel="noopener noreferrer">
+														<img src={mappedCapa.beforeImprovementImgUrl} className="thumb-img mx-auto object-contain" alt="Before" />
+													</a>
+												) : '—'}
+											</td>
+											<td className="border border-slate-400 p-0.5 align-middle">
+												{mappedCapa.afterImprovementImgUrl ? (
+													<a href={mappedCapa.afterImprovementImgUrl} target="_blank" rel="noopener noreferrer">
+														<img src={mappedCapa.afterImprovementImgUrl} className="thumb-img mx-auto object-contain" alt="After" />
+													</a>
+												) : '—'}
+											</td>
+											<td className="border border-slate-400 p-0.5 align-middle">
+												{mappedCapa.preventionImgUrl ? (
+													<a href={mappedCapa.preventionImgUrl} target="_blank" rel="noopener noreferrer">
+														<img src={mappedCapa.preventionImgUrl} className="thumb-img mx-auto object-contain" alt="Prevention" />
+													</a>
+												) : '—'}
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</td>
 
-				{/* Stamp footer */}
-				<div className="bg-white border-t border-zinc-200 p-4 flex items-center justify-between">
-					<span className="text-[10px] text-zinc-450 uppercase font-bold">Document: CAPA-{selectedCapa.id} // Quality Audit System</span>
-				</div>
+							{/* Column 4: Target Date */}
+							<td className="border border-slate-650 p-2 text-center font-bold text-zinc-800 text-xs align-middle col-target">
+								{mappedCapa.targetDate || mappedCapa.targetedDate}
+							</td>
+
+							{/* Column 5: Status */}
+							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle col-status">
+								{mappedCapa.status === 'COMPLETED' ? 'Done' : mappedCapa.status || 'Pending'}
+							</td>
+						</tr>
+
+						{/* Row 6: Remark */}
+						<tr>
+							<td className="border border-slate-650 p-2 font-bold text-blue-800 text-[10px] align-top bg-white" colSpan={8}>
+								Remark : <span className="font-semibold text-zinc-700 leading-relaxed italic">{mappedCapa.remark || 'No management remarks recorded.'}</span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 		</div>
 	);
