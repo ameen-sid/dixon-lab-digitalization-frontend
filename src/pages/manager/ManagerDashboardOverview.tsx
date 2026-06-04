@@ -1,16 +1,70 @@
-import { Activity, ClipboardList, CheckCircle, AlertTriangle, Users, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { 
+	Activity, 
+	ClipboardList, 
+	CheckCircle, 
+	AlertTriangle, 
+	Users, 
+	TrendingUp, 
+	Clock, 
+	Cpu, 
+	Sliders, 
+	FileText, 
+	AlertCircle, 
+	ChevronRight, 
+	HelpCircle,
+	ShieldCheck
+} from 'lucide-react';
 
 interface ManagerDashboardOverviewProps {
 	navigate: (path: string) => void;
-	stats: {
-		approvedCount: number;
-		assignedCount: number;
-		completedCount: number;
-		capaCount: number;
-	};
+	requests: any[];
+	capas: any[];
+	engineers: any[];
 }
 
-export default function ManagerDashboardOverview({ navigate, stats }: ManagerDashboardOverviewProps) {
+export default function ManagerDashboardOverview({ navigate, requests, capas, engineers }: ManagerDashboardOverviewProps) {
+	// Retrieve manager user details
+	const userStr = localStorage.getItem('user');
+	const managerUser = userStr ? JSON.parse(userStr) : null;
+	const managerId = managerUser ? String(managerUser.id) : '';
+
+	// Active tab for the test plans breakdown
+	const [activePlanTab, setActivePlanTab] = useState<'pending' | 'active' | 'completed' | 'failed'>('active');
+
+	// 1. Approved Sample Requests Summary (not assigned to any engineer)
+	const approvedRequests = requests.filter(r => !r.engineerId);
+
+	// 2. Test Plans Categorization
+	const pendingTestPlans = requests.filter(r => ['UNDER_INSPECTION', 'INSPECTION_COMPLETED', 'PENDING_TEST_PLAN', 'RETEST'].includes((r.status || '').toUpperCase()));
+	const activeTestPlans = requests.filter(r => ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase()));
+	const completedTestPlans = requests.filter(r => ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL'].includes((r.status || '').toUpperCase()));
+	const failedTestPlans = requests.filter(r => ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase()));
+
+	// Calculate sum of sample quantities for active test plans
+	const activeTestPlansSamplesCount = activeTestPlans.reduce((acc, r) => acc + (r.sampleQty || 1), 0);
+
+	// 3. Assigned Samples and Pending for Inspection
+	const assignedPendingInspection = requests.filter(r => !!r.engineerId && r.status === 'UNDER_INSPECTION');
+
+	// 4. Samples inspected by Lab Manager
+	const inspectedByManager = requests.filter(r => r.engineerId === managerId && ['UNDER_TEST', 'UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'PASS', 'FAIL', 'PARTIAL', 'COMPLETED'].includes((r.status || '').toUpperCase()));
+
+	// 5. Samples assigned to Engineers
+	const assignedToEngineers = requests.filter(r => !!r.engineerId && r.engineerId !== managerId);
+
+	// 6. Pending CAPA Reports
+	const pendingCapas = capas.filter(c => (c.status || '').toUpperCase() !== 'COMPLETED');
+
+	// Mock equipment/station availability telemetry
+	const stations = [
+		{ name: 'Structural Stress Chamber', status: 'ACTIVE', load: '85% Capacity', tech: 'Vibration & Mechanical' },
+		{ name: 'Thermal Cycling Oven (SMT-1)', status: 'ACTIVE', load: '60% Capacity', tech: 'High Temp Burn-in' },
+		{ name: 'NABL Humidity Chamber', status: 'IDLE', load: '0% Capacity', tech: 'Environmental' },
+		{ name: 'Signal Calibration Station', status: 'MAINTENANCE', load: 'Offline', tech: 'Frequency & Oscilloscopes' },
+		{ name: 'ATE Automated Test Bed', status: 'ACTIVE', load: '40% Capacity', tech: 'Digital Diagnostics' },
+	];
+
 	return (
 		<div className="space-y-8">
 			{/* Metric Cards Grid */}
@@ -21,8 +75,8 @@ export default function ManagerDashboardOverview({ navigate, stats }: ManagerDas
 					className="bg-white border border-zinc-200 hover:border-[#11236a]/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
-						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Approved Requests</span>
-						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{stats.approvedCount}</h3>
+						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Pending for Assign Engineer for Inspection</span>
+						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{approvedRequests.length}</h3>
 						<p className="text-[#11236a] text-xs mt-2 font-bold group-hover:underline flex items-center gap-1">
 							Assign Engineers <span className="transition-transform group-hover:translate-x-0.5">→</span>
 						</p>
@@ -32,47 +86,50 @@ export default function ManagerDashboardOverview({ navigate, stats }: ManagerDas
 					</div>
 				</div>
 
-				{/* Assigned Samples Card */}
+				{/* Active Test Plans Card */}
 				<div 
-					onClick={() => navigate('/manager/assigned-samples')}
+					onClick={() => navigate('/manager/test-plans')}
 					className="bg-white border border-zinc-200 hover:border-violet-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
-						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Assigned to Me</span>
-						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{stats.assignedCount}</h3>
+						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Active Test Plans for Samples</span>
+						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{activeTestPlansSamplesCount}</h3>
 						<p className="text-violet-600 text-xs mt-2 font-bold group-hover:underline flex items-center gap-1">
-							Inspect Now <span className="transition-transform group-hover:translate-x-0.5">→</span>
+							Monitor Testing <span className="transition-transform group-hover:translate-x-0.5">→</span>
 						</p>
 					</div>
 					<div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center border border-violet-100 group-hover:bg-violet-100/5 transition-colors shrink-0">
-						<Users className="w-5.5 h-5.5" />
+						<Cpu className="w-5.5 h-5.5" />
 					</div>
 				</div>
 
-				{/* Completed Inspections Card */}
-				<div className="bg-white border border-zinc-200 rounded-2xl p-6 flex items-center justify-between shadow-sm shrink-0">
+				{/* Inspected by Manager Card */}
+				<div 
+					onClick={() => navigate('/manager/assigned-samples')}
+					className="bg-white border border-zinc-200 hover:border-emerald-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
+				>
 					<div>
-						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Completed Reports</span>
-						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{stats.completedCount}</h3>
-						<p className="text-emerald-600 text-xs mt-2 font-semibold flex items-center gap-1">
-							<TrendingUp className="w-3.5 h-3.5" /> 100% certified accuracy
+						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">My Inspected Samples</span>
+						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{inspectedByManager.length}</h3>
+						<p className="text-emerald-600 text-xs mt-2 font-bold group-hover:underline flex items-center gap-1">
+							My Assignments <span className="transition-transform group-hover:translate-x-0.5">→</span>
 						</p>
 					</div>
-					<div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100 shrink-0">
-						<CheckCircle className="w-5.5 h-5.5" />
+					<div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100/5 transition-colors shrink-0">
+						<ShieldCheck className="w-5.5 h-5.5" />
 					</div>
 				</div>
 
-				{/* CAPA Corrective Card */}
+				{/* Total CAPA Reports Card */}
 				<div 
 					onClick={() => navigate('/manager/capa-management')}
 					className="bg-white border border-zinc-200 hover:border-amber-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
 				>
 					<div>
-						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Active CAPA Reports</span>
-						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{stats.capaCount}</h3>
+						<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Total CAPA Reports</span>
+						<h3 className="text-3xl font-extrabold text-zinc-900 mt-1">{capas.length}</h3>
 						<p className="text-amber-600 text-xs mt-2 font-bold group-hover:underline flex items-center gap-1">
-							Manage CAPAs <span className="transition-transform group-hover:translate-x-0.5">→</span>
+							View Quality Actions <span className="transition-transform group-hover:translate-x-0.5">→</span>
 						</p>
 					</div>
 					<div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100 group-hover:bg-amber-100/5 transition-colors shrink-0">
@@ -81,100 +138,265 @@ export default function ManagerDashboardOverview({ navigate, stats }: ManagerDas
 				</div>
 			</div>
 
-			{/* Detailed Status Dashboard Panel */}
+			{/* Main Grid Content */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Telemetry and System Uptime */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
-					<div>
-						<h3 className="text-sm font-extrabold text-zinc-955 uppercase tracking-wider">System Operations & Availability</h3>
-						<p className="text-xs text-zinc-500 font-medium mt-1">Real-time status tracking of structural modules and testing telemetry channels.</p>
-					</div>
-
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
-						<div className="bg-zinc-50 border border-zinc-150 rounded-xl p-4 flex items-center justify-between">
+				
+				{/* Left Columns (Col Span 2) */}
+				<div className="lg:col-span-2 space-y-6">
+					
+					{/* 1. Approved Sample Requests Summary */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
+						<div className="flex items-center justify-between">
 							<div>
-								<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Platform Tracking</span>
-								<h4 className="text-xl font-extrabold text-zinc-900 mt-0.5">140 Live Channels</h4>
-								<span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1.5">
-									<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 93% Available
-								</span>
+								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Approved Sample Requests</h3>
+								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Recently approved sample requests requiring engineer allocation.</p>
 							</div>
-							<button 
-								onClick={() => navigate('/manager/platform-tracking')}
-								className="text-xs font-bold text-[#11236a] hover:underline bg-white border border-zinc-200 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-							>
-								Monitor
-							</button>
+							<span className="text-[10px] font-extrabold px-2.5 py-1 bg-blue-50 text-[#11236a] border border-blue-100 rounded-full">
+								{approvedRequests.length} Pending Assignment
+							</span>
 						</div>
 
-						<div className="bg-zinc-50 border border-zinc-150 rounded-xl p-4 flex items-center justify-between">
-							<div>
-								<span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Equipment Tracking</span>
-								<h4 className="text-xl font-extrabold text-zinc-900 mt-0.5">4 NABL Chambers</h4>
-								<span className="text-[10px] text-indigo-600 font-bold flex items-center gap-1 mt-1.5">
-									<span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /> 3 Idle / 1 Busy
-								</span>
-							</div>
-							<button 
-								onClick={() => navigate('/manager/equipment-tracking')}
-								className="text-xs font-bold text-[#11236a] hover:underline bg-white border border-zinc-200 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-							>
-								Monitor
-							</button>
+						<div className="border border-zinc-100 rounded-xl overflow-hidden">
+							<table className="w-full text-xs">
+								<thead>
+									<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+										<th className="py-2.5 px-4 text-left">Request ID</th>
+										<th className="py-2.5 px-4 text-left">Brand & Product</th>
+										<th className="py-2.5 px-4 text-left">Requester</th>
+										<th className="py-2.5 px-4 text-right">Action</th>
+									</tr>
+								</thead>
+								<tbody>
+									{approvedRequests.slice(0, 3).map((req, i) => (
+										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all">
+											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
+											<td className="py-3 px-4">
+												<p className="font-bold text-zinc-800">{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.sampleDescription}</p>
+											</td>
+											<td className="py-3 px-4 font-semibold text-zinc-650">{req.requesterName}</td>
+											<td className="py-3 px-4 text-right">
+												<button 
+													onClick={() => navigate(`/manager/approved-requests/${req.id}`)}
+													className="text-[10px] font-bold text-[#11236a] hover:underline bg-white border border-[#11236a]/20 px-2.5 py-1 rounded-lg cursor-pointer transition-all"
+												>
+													Assign
+												</button>
+											</td>
+										</tr>
+									))}
+									{approvedRequests.length === 0 && (
+										<tr>
+											<td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold">
+												All approved sample requests have been successfully allocated.
+											</td>
+										</tr>
+									)}
+								</tbody>
+							</table>
 						</div>
 					</div>
 
-					<div className="border-t border-zinc-100 pt-4 flex items-center justify-between text-xs text-zinc-650">
-						<span>Baseline SMT Profile Oven Uptime: <strong className="text-emerald-600 font-extrabold">99.8%</strong></span>
-						<span>Last calibration: 4 days ago</span>
+					{/* 2. Test Plans breakdown grid */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
+						<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+							<div>
+								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Test Plans Monitoring Registry</h3>
+								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Track samples through their physical station testing and evaluations.</p>
+							</div>
+							{/* Tab Selection */}
+							<div className="flex bg-zinc-100 p-1 rounded-xl gap-1 shrink-0">
+								{[
+									{ key: 'pending', label: 'Pending', count: pendingTestPlans.length },
+									{ key: 'active', label: 'Active', count: activeTestPlans.length },
+									{ key: 'completed', label: 'Completed', count: completedTestPlans.length },
+									{ key: 'failed', label: 'Failed', count: failedTestPlans.length }
+								].map((t) => (
+									<button
+										key={t.key}
+										onClick={() => setActivePlanTab(t.key as any)}
+										className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all border-none outline-none cursor-pointer flex items-center gap-1 ${
+											activePlanTab === t.key 
+												? 'bg-white text-zinc-900 shadow-xs' 
+												: 'text-zinc-500 hover:text-zinc-805'
+										}`}
+									>
+										{t.label}
+										<span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+											activePlanTab === t.key 
+												? 'bg-[#11236a]/10 text-[#11236a]' 
+												: 'bg-zinc-200 text-zinc-600'
+										}`}>
+											{t.count}
+										</span>
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Tab Results View */}
+						<div className="border border-zinc-100 rounded-xl overflow-hidden bg-zinc-50/20">
+							<table className="w-full text-xs">
+								<thead>
+									<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+										<th className="py-2.5 px-4 text-left">Plan ID</th>
+										<th className="py-2.5 px-4 text-left">Brand / Spec</th>
+										<th className="py-2.5 px-4 text-left">Assigned Engineer</th>
+										<th className="py-2.5 px-4 text-left">Testing Status</th>
+									</tr>
+								</thead>
+								<tbody>
+									{activePlanTab === 'pending' && pendingTestPlans.slice(0, 3).map((req, i) => (
+										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all bg-white">
+											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
+											<td className="py-3 px-4">
+												<p className="font-bold text-zinc-800">{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.modelNo}</p>
+											</td>
+											<td className="py-3 px-4 font-semibold text-zinc-700">{req.engineerName || '—'}</td>
+											<td className="py-3 px-4">
+												<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100 uppercase">
+													{req.status}
+												</span>
+											</td>
+										</tr>
+									))}
+									{activePlanTab === 'active' && activeTestPlans.slice(0, 3).map((req, i) => (
+										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all bg-white">
+											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
+											<td className="py-3 px-4">
+												<p className="font-bold text-zinc-800">{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.modelNo}</p>
+											</td>
+											<td className="py-3 px-4 font-semibold text-zinc-700">{req.engineerName || '—'}</td>
+											<td className="py-3 px-4">
+												<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 border border-violet-100 uppercase">
+													Testing
+												</span>
+											</td>
+										</tr>
+									))}
+									{activePlanTab === 'completed' && completedTestPlans.slice(0, 3).map((req, i) => (
+										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all bg-white">
+											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
+											<td className="py-3 px-4">
+												<p className="font-bold text-zinc-800">{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.modelNo}</p>
+											</td>
+											<td className="py-3 px-4 font-semibold text-zinc-700">{req.engineerName || '—'}</td>
+											<td className="py-3 px-4">
+												<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase">
+													Passed / Done
+												</span>
+											</td>
+										</tr>
+									))}
+									{activePlanTab === 'failed' && failedTestPlans.slice(0, 3).map((req, i) => (
+										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all bg-white">
+											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
+											<td className="py-3 px-4">
+												<p className="font-bold text-zinc-800">{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.modelNo}</p>
+											</td>
+											<td className="py-3 px-4 font-semibold text-zinc-700">{req.engineerName || '—'}</td>
+											<td className="py-3 px-4">
+												<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100 uppercase">
+													Failed
+												</span>
+											</td>
+										</tr>
+									))}
+
+									{/* Empty States */}
+									{activePlanTab === 'pending' && pendingTestPlans.length === 0 && (
+										<tr><td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold bg-white">No pending test plan configurations.</td></tr>
+									)}
+									{activePlanTab === 'active' && activeTestPlans.length === 0 && (
+										<tr><td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold bg-white">No active tests running currently.</td></tr>
+									)}
+									{activePlanTab === 'completed' && completedTestPlans.length === 0 && (
+										<tr><td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold bg-white">No completed test plans records yet.</td></tr>
+									)}
+									{activePlanTab === 'failed' && failedTestPlans.length === 0 && (
+										<tr><td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold bg-white">No failed test plan records.</td></tr>
+									)}
+								</tbody>
+							</table>
+						</div>
 					</div>
 				</div>
 
-				{/* Duty Engineers & Staff availability */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-					<div>
-						<h3 className="text-sm font-extrabold text-zinc-950 uppercase tracking-wider">Supervised Staff Status</h3>
-						<p className="text-xs text-zinc-500 font-medium mt-1">Active engineers currently on shift duty.</p>
-					</div>
-
-					<div className="space-y-3.5 my-6">
-						{[
-							{ name: 'Dr. Amit Patel', status: 'ACTIVE', load: '1 request active', spec: 'Vibration Spec' },
-							{ name: 'Er. Rajesh Kumar', status: 'ACTIVE', load: '2 requests active', spec: 'Thermal Stress' },
-							{ name: 'Er. Sunita Sharma', status: 'ON_LEAVE', load: 'Offline', spec: 'Signal Calibration' },
-							{ name: 'Er. Vikram Singh', status: 'ACTIVE', load: 'Idle', spec: 'Environmental' },
-						].map((eng, idx) => (
-							<div key={idx} className="flex items-center justify-between border-b border-zinc-100/50 pb-2.5 last:border-0 last:pb-0">
+				{/* Right Column (Col Span 1) */}
+				<div className="space-y-6">
+					
+					{/* 4. Assigned, Inspected, and Allocated workloads */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
+						<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Duty Allocation Registry</h3>
+						
+						<div className="space-y-3">
+							{/* Approved requests pending engineer allocation */}
+							<div className="p-3 bg-indigo-50/30 border border-indigo-100 rounded-xl flex items-center justify-between">
 								<div>
-									<h4 className="text-xs font-bold text-zinc-900 leading-tight">{eng.name}</h4>
-									<span className="text-[9px] text-zinc-500 font-semibold">{eng.spec} • {eng.load}</span>
+									<h4 className="text-xs font-bold text-[#11236a]">Pending for Assignment</h4>
+									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Approved requests awaiting engineer allocation</p>
 								</div>
-								<span className={`text-[8px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${
-									eng.status === 'ACTIVE' 
-										? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-										: 'bg-zinc-100 text-zinc-500 border-zinc-200'
-								}`}>
-									{eng.status === 'ACTIVE' ? 'Active' : 'Offline'}
-								</span>
+								<span className="text-base font-extrabold text-[#11236a]">{approvedRequests.length}</span>
 							</div>
-						))}
+
+							{/* Inspected by Lab Manager */}
+							<div className="p-3 bg-emerald-50/30 border border-emerald-100 rounded-xl flex items-center justify-between">
+								<div>
+									<h4 className="text-xs font-bold text-emerald-700">Inspected by Me</h4>
+									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Reports checked by Shift Manager</p>
+								</div>
+								<span className="text-base font-extrabold text-emerald-700">{inspectedByManager.length}</span>
+							</div>
+
+							{/* Samples Assigned to Engineers */}
+							<div className="p-3 bg-violet-50/30 border border-violet-100 rounded-xl flex items-center justify-between">
+								<div>
+									<h4 className="text-xs font-bold text-violet-700">Engineer Allocated</h4>
+									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Assigned to specialized staff members</p>
+								</div>
+								<span className="text-base font-extrabold text-violet-700">{assignedToEngineers.length}</span>
+							</div>
+						</div>
 					</div>
 
-					<div className="text-[10px] text-zinc-500 font-bold bg-[#f8fafc] border border-zinc-150 p-2.5 rounded-xl text-center">
-						Shift Supervisor Duty: <strong>Lab Manager</strong> (On Duty)
-					</div>
-				</div>
-			</div>
+					{/* 5. Pending CAPA reports */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
+						<div className="flex items-center justify-between">
+							<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Pending CAPA Reports</h3>
+							<span className="text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-full">
+								{pendingCapas.length} Active
+							</span>
+						</div>
 
-			{/* Welcome Info Board */}
-			<div className="bg-white border border-zinc-200/50 rounded-3xl p-8 shadow-sm flex flex-col justify-center items-center text-center">
-				<div className="w-14 h-14 bg-[#11236a]/5 border border-[#11236a]/10 rounded-2xl flex items-center justify-center text-[#11236a] mb-4">
-					<Activity className="w-7 h-7" />
+						<div className="space-y-3">
+							{pendingCapas.slice(0, 3).map((capa, i) => (
+								<div 
+									key={i} 
+									onClick={() => navigate('/manager/capa-management')}
+									className="p-3 border border-zinc-100 hover:border-zinc-250 hover:bg-zinc-50/50 rounded-xl transition-all cursor-pointer group"
+								>
+									<div className="flex items-center justify-between">
+										<span className="text-[9px] font-bold text-indigo-700">{capa.id}</span>
+										<span className="text-[9px] text-zinc-400 font-semibold">Target: {capa.targetedDate}</span>
+									</div>
+									<h4 className="text-xs font-bold text-zinc-800 mt-1 line-clamp-1 group-hover:text-[#11236a]">{capa.productName}</h4>
+									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5 line-clamp-1">{capa.nonConformity}</p>
+								</div>
+							))}
+							{pendingCapas.length === 0 && (
+								<div className="text-center py-6 text-zinc-400 font-semibold text-xs">
+									No pending CAPA reports reported.
+								</div>
+							)}
+						</div>
+					</div>
+
+
 				</div>
-				<h2 className="text-lg font-bold text-zinc-900 tracking-tight">Lab Operations Portal: Shift Active</h2>
-				<p className="text-zinc-500 max-w-lg mt-2 text-sm font-light leading-relaxed">
-					As a Lab Manager, you are responsible for checking recently approved sample requests, assigning specialized testing engineers, tracking platform/equipment occupancy, and resolving corrective action plans (CAPAs).
-				</p>
 			</div>
 		</div>
 	);

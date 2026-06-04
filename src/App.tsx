@@ -154,6 +154,7 @@ function App() {
 				<Route path="/manager/assigned-samples/:planId" element={<ManagerDashboard />} />
 				<Route path="/manager/assigned-samples/:planId/sample/:sampleIndex" element={<ManagerDashboard />} />
 				<Route path="/manager/capa-management" element={<ManagerDashboard />} />
+				<Route path="/manager/capa-management/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/evaluate-checksheet/:planKey" element={<ManagerEvaluateChecksheet />} />

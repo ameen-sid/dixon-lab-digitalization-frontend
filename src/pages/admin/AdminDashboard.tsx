@@ -85,7 +85,7 @@ export default function AdminDashboard() {
 
 	const availableEq = equipmentList.filter(e => e.isAvailable && e.status === 'ACTIVE').length;
 	const occupiedEq = equipmentList.filter(e => !e.isAvailable && e.status === 'ACTIVE').length;
-	const maintenanceEq = equipmentList.filter(e => e.status === 'MAINTENANCE').length;
+	const maintenanceEq = equipmentList.filter(e => e.status === 'MAINTENANCE' || e.status === 'UNDER_MAINTENANCE').length;
 
 	// Dynamic tab header texts
 	const getTabHeaders = () => {
@@ -324,13 +324,13 @@ export default function AdminDashboard() {
 												<span className="text-white text-xs font-extrabold tracking-wide">ID: #{eq.id}</span>
 											</div>
 											<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase leading-none ${
-												eq.status === 'MAINTENANCE'
+												eq.status === 'MAINTENANCE' || eq.status === 'UNDER_MAINTENANCE'
 													? 'bg-amber-100 text-amber-800'
 													: isOccupied
 														? 'bg-rose-100 text-rose-800'
 														: 'bg-emerald-100 text-emerald-800'
 											}`}>
-												{eq.status === 'MAINTENANCE' ? 'Maintenance' : isOccupied ? 'Occupied' : 'Available'}
+												{eq.status === 'MAINTENANCE' || eq.status === 'UNDER_MAINTENANCE' ? 'Maintenance' : isOccupied ? 'Occupied' : 'Available'}
 											</span>
 										</div>
 

@@ -9,12 +9,13 @@ import ApprovedRequests from './ApprovedRequests';
 import ApprovedRequestDetails from './ApprovedRequestDetails';
 import AssignedSamples from './AssignedSamples';
 import ManagerCapaManagement from './ManagerCapaManagement';
+import ManagerCapaDetails from './ManagerCapaDetails';
 import ManagerTestPlans from './ManagerTestPlans';
 
 // Import backend API services
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { getUsers } from '../../services/operations/userService';
-import { getCapas } from '../../services/operations/capaService';
+import { getCapas, createCapa } from '../../services/operations/capaService';
 
 // Interface definitions
 interface ApprovedRequest {
@@ -261,7 +262,7 @@ export default function ManagerDashboard() {
 	// Fetch dynamic single request details fresh from database when URL parameters change
 	useEffect(() => {
 		const loadDetails = async () => {
-			if (!id) {
+			if (!id || location.pathname.includes('/manager/capa-management')) {
 				setActiveRequestDetails(null);
 				return;
 			}
@@ -301,7 +302,7 @@ export default function ManagerDashboard() {
 			}
 		};
 		loadDetails();
-	}, [id]);
+	}, [id, location.pathname]);
 
 	// ==========================================
 	// MOCK DATABASE STATES FOR OFFLINE MODULES
@@ -483,6 +484,7 @@ export default function ManagerDashboard() {
 	else if (pathSegment.startsWith('approved-requests/')) activeTab = 'approved-request-details';
 	else if (pathSegment === 'assigned-samples' || pathSegment.startsWith('assigned-samples/')) activeTab = 'assigned-samples';
 	else if (pathSegment === 'capa-management') activeTab = 'capa-management';
+	else if (pathSegment.startsWith('capa-management/')) activeTab = 'capa-details';
 	else if (pathSegment === 'test-plans') activeTab = 'test-plans';
 	else if (pathSegment.startsWith('test-plans/')) activeTab = 'test-plan-details';
 
@@ -501,6 +503,8 @@ export default function ManagerDashboard() {
 				return { title: 'Self-Assigned Inspections', desc: 'Verify calibration parameters and execute physical checklists assigned directly to you.' };
 			case 'capa-management':
 				return { title: 'CAPA Action Plans', desc: 'Track Corrective and Preventive Action plans addressing testing failures or quality exceptions.' };
+			case 'capa-details':
+				return { title: 'CAPA Quality Analysis', desc: 'NABL-compliant Corrective and Preventive Action detailed execution sheet.' };
 			case 'test-plans':
 				return { title: 'Test Plan Configurations', desc: 'Create, schedule, and allocate physical station testing parameters for successfully inspected samples.' };
 			case 'test-plan-details':
@@ -519,12 +523,9 @@ export default function ManagerDashboard() {
 				return (
 					<ManagerDashboardOverview 
 						navigate={navigate}
-						stats={{
-							approvedCount: approvedRequests.filter(r => !r.engineerId).length,
-							assignedCount: approvedRequests.filter(r => !!r.engineerId && (r.status === 'UNDER_TESTING' || r.status === 'UNDER_TEST' || r.status === 'UNDER_INSPECTION' || r.status === 'INSPECTION_COMPLETED')).length,
-							completedCount: approvedRequests.filter(r => !!r.inspectionResult).length,
-							capaCount: capas.filter(c => c.status === 'OPEN').length
-						}}
+						requests={approvedRequests}
+						capas={capas}
+						engineers={engineers}
 					/>
 				);
 			case 'approved-requests':
@@ -590,9 +591,23 @@ export default function ManagerDashboard() {
 				return (
 					<ManagerCapaManagement 
 						capas={capas}
-						onAddCapa={async (newCapa: any) => { await loadCapas(); }}
+						onAddCapa={async (newCapa: any) => {
+							try {
+								await createCapa(newCapa)();
+								await loadCapas();
+								toast.success('CAPA Report initialized successfully.');
+							} catch (e) {
+								console.error('Failed to initialize CAPA:', e);
+								toast.error('Failed to initialize CAPA report.');
+							}
+						}}
 						requests={approvedRequests}
 					/>
+				);
+
+			case 'capa-details':
+				return (
+					<ManagerCapaDetails />
 				);
 
 			case 'test-plans':

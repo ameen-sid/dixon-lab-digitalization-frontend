@@ -234,15 +234,14 @@ export default function ManagerEvaluateChecksheet() {
 					const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
 					const plan = plansMap[cacheKey];
 
-					if (mergedReport) {
+					if (plan) {
+						if (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED') {
+							continue;
+						}
+					} else if (mergedReport) {
 						if (mergedReport.status === 'FAILED') {
 							// Sample failed inspection initially, so it's completed (closed as failed)
 							continue;
-						} else if (mergedReport.status === 'PASSED') {
-							// Sample passed inspection, must have an evaluated test plan
-							if (plan && (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED')) {
-								continue;
-							}
 						}
 					}
 					// If we reach here, this sample is not finished yet
@@ -260,15 +259,15 @@ export default function ManagerEvaluateChecksheet() {
 						const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
 						const plan = plansMap[cacheKey];
 
-						if (mergedReport) {
+						if (plan) {
+							if (plan.evaluationStatus === 'PASSED') {
+								passedCount++;
+							} else if (plan.evaluationStatus === 'FAILED') {
+								failedCount++;
+							}
+						} else if (mergedReport) {
 							if (mergedReport.status === 'FAILED') {
 								failedCount++;
-							} else if (mergedReport.status === 'PASSED') {
-								if (plan && plan.evaluationStatus === 'PASSED') {
-									passedCount++;
-								} else if (plan && plan.evaluationStatus === 'FAILED') {
-									failedCount++;
-								}
 							}
 						}
 					}

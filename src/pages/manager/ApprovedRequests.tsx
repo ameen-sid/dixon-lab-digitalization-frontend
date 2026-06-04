@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, ClipboardCheck, Clock } from 'lucide-react';
+import { Search, ChevronRight, ClipboardCheck, Clock, X } from 'lucide-react';
 import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
 
 interface ApprovedRequest {
 	id: string;
@@ -27,14 +28,42 @@ interface ApprovedRequestsProps {
 export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = useState('');
+	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
 
 	const filteredRequests = requests.filter(r => {
-		return r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+		// 1. Search Query Match
+		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			   r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
+
+		// 2. Status Match
+		const isAllocated = !!r.engineerId;
+		const isCompleted = !!r.inspectionResult;
+		let matchStatus = true;
+		if (statusFilter === 'PENDING') {
+			matchStatus = !isAllocated;
+		} else if (statusFilter === 'ALLOCATED') {
+			matchStatus = isAllocated && !isCompleted;
+		} else if (statusFilter === 'COMPLETED') {
+			matchStatus = isCompleted;
+		}
+
+		// 3. Date Range Match
+		let matchDate = true;
+		const reqDate = r.approvedDate;
+		if (startDate) {
+			matchDate = matchDate && reqDate >= startDate;
+		}
+		if (endDate) {
+			matchDate = matchDate && reqDate <= endDate;
+		}
+
+		return matchSearch && matchStatus && matchDate;
 	});
 
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
@@ -50,23 +79,102 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 
 	return (
 		<div className="space-y-6">
-			{/* Top Search Toolbar */}
-			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-				<div className="relative flex-1 max-w-md">
-					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-500" />
-					<input 
-						type="text" 
-						placeholder="Search by brand, ID, model, or description..."
-						value={searchQuery}
-						onChange={(e) => {
-							setSearchQuery(e.target.value);
-							setCurrentPage(1);
-						}}
-						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-550 outline-none focus:bg-white focus:border-[#11236a] transition-all"
-					/>
-				</div>
-				<div className="text-xs text-zinc-500 font-medium bg-zinc-50 border border-zinc-200 px-3.5 py-2 rounded-xl">
-					Total Approved: <strong className="text-zinc-800 font-extrabold">{requests.length}</strong>
+			{/* Top Search & Advanced Filters Toolbar */}
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm space-y-4">
+				<div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+					
+					{/* Search field */}
+					<div className="relative flex-1">
+						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+						<input 
+							type="text" 
+							placeholder="Search by brand, ID, model, or description..."
+							value={searchQuery}
+							onChange={(e) => {
+								setSearchQuery(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+						/>
+						{searchQuery && (
+							<button 
+								onClick={() => {
+									setSearchQuery('');
+									setCurrentPage(1);
+								}}
+								className="absolute right-3 top-2.5 text-zinc-400 hover:text-red-500 bg-transparent border-none cursor-pointer outline-none"
+							>
+								<X className="w-4 h-4" />
+							</button>
+						)}
+					</div>
+
+					{/* Filters row */}
+					<div className="flex flex-wrap items-center gap-3">
+						<CustomSelect
+							value={statusFilter}
+							onChange={(val) => {
+								setStatusFilter(val);
+								setCurrentPage(1);
+							}}
+							options={[
+								{ value: 'ALL', label: 'All Statuses' },
+								{ value: 'PENDING', label: 'Pending Allocation' },
+								{ value: 'ALLOCATED', label: 'Allocated' },
+								{ value: 'COMPLETED', label: 'Completed' }
+							]}
+							className="w-48 shrink-0"
+						/>
+
+						{/* Date range inputs */}
+						<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1 shrink-0">
+							<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
+							<input
+								type="date"
+								value={startDate}
+								onChange={e => {
+									setStartDate(e.target.value);
+									setCurrentPage(1);
+								}}
+								className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
+							/>
+							{startDate && (
+								<button 
+									onClick={() => {
+										setStartDate('');
+										setCurrentPage(1);
+									}}
+									className="text-zinc-400 hover:text-red-550 border-none bg-transparent cursor-pointer"
+								>
+									<X className="w-3.5 h-3.5" />
+								</button>
+							)}
+						</div>
+
+						<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1 shrink-0">
+							<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
+							<input
+								type="date"
+								value={endDate}
+								onChange={e => {
+									setEndDate(e.target.value);
+									setCurrentPage(1);
+								}}
+								className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
+							/>
+							{endDate && (
+								<button 
+									onClick={() => {
+										setEndDate('');
+										setCurrentPage(1);
+									}}
+									className="text-zinc-400 hover:text-red-550 border-none bg-transparent cursor-pointer"
+								>
+									<X className="w-3.5 h-3.5" />
+								</button>
+							)}
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -76,7 +184,7 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 					<div className="text-center py-16">
 						<ClipboardCheck className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
 						<h4 className="text-sm font-bold text-zinc-800">No approved requests found</h4>
-						<p className="text-xs text-zinc-500 font-light mt-1">Check back later once the Directorate approves new submittals.</p>
+						<p className="text-xs text-zinc-500 font-light mt-1">Try modifying your filters or search term to locate records.</p>
 					</div>
 				) : (
 					<div className="overflow-x-auto flex flex-col justify-between">

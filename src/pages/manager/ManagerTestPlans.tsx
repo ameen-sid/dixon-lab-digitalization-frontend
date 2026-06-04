@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
 
 // Import operations
 import { getTestTypes } from '../../services/operations/testTypeService';
@@ -34,6 +35,14 @@ interface TestPlanForm {
 	evaluationRemarks?: string;
 }
 
+const getLocalTodayStr = () => {
+	const d = new Date();
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
 
@@ -61,6 +70,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	// Search & Pagination states
 	const [searchQuery, setSearchQuery] = useState('');
+	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
 
@@ -87,7 +99,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		testProtocolId: '',
 		referenceStandard: '',
 		numberOfDays: 9,
-		startDate: new Date().toISOString().split('T')[0],
+		startDate: getLocalTodayStr(),
 		endDate: '',
 		remarks: '',
 		equipmentId: ''
@@ -207,7 +219,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				testProtocolId: '',
 				referenceStandard: '',
 				numberOfDays: 9,
-				startDate: new Date().toISOString().split('T')[0],
+				startDate: getLocalTodayStr(),
 				endDate: '',
 				remarks: '',
 				equipmentId: defaultEq ? String(defaultEq.id) : ''
@@ -276,11 +288,25 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
 			const updatedPlans = {
 				...savedPlans,
-				[key]: form
+				[key]: {
+					...form,
+					evaluationStatus: undefined,
+					evaluationRemarks: undefined,
+					evaluatedAt: undefined,
+					evaluatedBy: undefined
+				}
 			};
 
 			setSavedPlans(updatedPlans);
 			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(updatedPlans));
+
+			// Clear previous completed inspection evaluations if any
+			const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
+			if (completedCached) {
+				const completedDict = JSON.parse(completedCached);
+				delete completedDict[key];
+				localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+			}
 
 			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved, platforms & equipment reserved!`);
 			setActiveSampleIndex(null);
@@ -293,12 +319,42 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	// Search and Paginate filters
 	const filteredRequests = inspectedRequests.filter(r => {
+		// 1. Search Match
 		const idStr = String(r.id).toLowerCase();
-		return r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			idStr.includes(searchQuery.toLowerCase()) ||
 			(r.requestId && r.requestId.toLowerCase().includes(searchQuery.toLowerCase())) ||
 			r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
+
+		// 2. Status Match
+		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL'].includes((r.status || '').toUpperCase());
+		const isFailed = ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase());
+		const isTesting = ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase());
+		const isPending = !isCompleted && !isFailed && !isTesting;
+
+		let matchStatus = true;
+		if (statusFilter === 'PENDING') {
+			matchStatus = isPending;
+		} else if (statusFilter === 'UNDER_TEST') {
+			matchStatus = isTesting;
+		} else if (statusFilter === 'COMPLETED') {
+			matchStatus = isCompleted;
+		} else if (statusFilter === 'FAILED') {
+			matchStatus = isFailed;
+		}
+
+		// 3. Date Range Match
+		let matchDate = true;
+		const reqDate = r.approvedDate;
+		if (startDate) {
+			matchDate = matchDate && reqDate >= startDate;
+		}
+		if (endDate) {
+			matchDate = matchDate && reqDate <= endDate;
+		}
+
+		return matchSearch && matchStatus && matchDate;
 	});
 
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
@@ -313,23 +369,101 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			{/* Grid list of Inspected Requests */}
 			{!selectedReq ? (
 				<div className="space-y-6">
-					{/* Top Search Toolbar */}
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-						<div className="relative flex-1 max-w-md">
-							<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-555" />
-							<input
-								type="text"
-								placeholder="Search by brand, ID, model, or description..."
-								value={searchQuery}
-								onChange={(e) => {
-									setSearchQuery(e.target.value);
-									setCurrentPage(1);
-								}}
-								className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-555 outline-none focus:bg-white focus:border-[#11236a] transition-all"
-							/>
-						</div>
-						<div className="text-xs text-zinc-500 font-medium bg-zinc-50 border border-zinc-200 px-3.5 py-2 rounded-xl">
-							Total Inspected: <strong className="text-zinc-800 font-extrabold">{inspectedRequests.length}</strong>
+					{/* Top Search & Advanced Filters Toolbar */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm space-y-4">
+						<div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+							{/* Search input */}
+							<div className="relative flex-1">
+								<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+								<input
+									type="text"
+									placeholder="Search by brand, ID, model, or description..."
+									value={searchQuery}
+									onChange={(e) => {
+										setSearchQuery(e.target.value);
+										setCurrentPage(1);
+									}}
+									className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+								/>
+								{searchQuery && (
+									<button 
+										onClick={() => {
+											setSearchQuery('');
+											setCurrentPage(1);
+										}}
+										className="absolute right-3 top-2.5 text-zinc-400 hover:text-red-500 bg-transparent border-none cursor-pointer outline-none"
+									>
+										<X className="w-4 h-4" />
+									</button>
+								)}
+							</div>
+
+							{/* Advanced status & date filters */}
+							<div className="flex flex-wrap items-center gap-3">
+								<CustomSelect
+									value={statusFilter}
+									onChange={(val) => {
+										setStatusFilter(val);
+										setCurrentPage(1);
+									}}
+									options={[
+										{ value: 'ALL', label: 'All Statuses' },
+										{ value: 'PENDING', label: 'Pending Setup' },
+										{ value: 'UNDER_TEST', label: 'Under Testing' },
+										{ value: 'COMPLETED', label: 'Completed' },
+										{ value: 'FAILED', label: 'Failed' }
+									]}
+									className="w-44 shrink-0"
+								/>
+
+								<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1 shrink-0">
+									<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
+									<input
+										type="date"
+										value={startDate}
+										onChange={e => {
+											setStartDate(e.target.value);
+											setCurrentPage(1);
+										}}
+										className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
+									/>
+									{startDate && (
+										<button 
+											onClick={() => {
+												setStartDate('');
+												setCurrentPage(1);
+											}}
+											className="text-zinc-400 hover:text-red-550 border-none bg-transparent cursor-pointer"
+										>
+											<X className="w-3.5 h-3.5" />
+										</button>
+									)}
+								</div>
+
+								<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1 shrink-0">
+									<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
+									<input
+										type="date"
+										value={endDate}
+										onChange={e => {
+											setEndDate(e.target.value);
+											setCurrentPage(1);
+										}}
+										className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
+									/>
+									{endDate && (
+										<button 
+											onClick={() => {
+												setEndDate('');
+												setCurrentPage(1);
+											}}
+											className="text-zinc-400 hover:text-red-550 border-none bg-transparent cursor-pointer"
+										>
+											<X className="w-3.5 h-3.5" />
+										</button>
+									)}
+								</div>
+							</div>
 						</div>
 					</div>
 
@@ -513,14 +647,37 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</div>
 								</div>
 							</div>
-							<div className="border-t border-zinc-100 mt-4 pt-3">
+							<div className="border-t border-zinc-100 mt-4 pt-3 space-y-2">
 								<button
 									onClick={() => navigate(`/manager/approved-requests/${selectedReq.id}`)}
 									className="w-full py-2 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-zinc-700 hover:text-[#11236a] text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm active:scale-95"
 								>
-									<span>View More</span>
+									<span>View More Details</span>
 									<ChevronRight className="w-3.5 h-3.5" />
 								</button>
+								{selectedReq.status === 'RETEST' && (
+									<button
+										onClick={() => {
+											navigate('/manager/capa-management', {
+												state: {
+													initialCapa: {
+														relatedRequest: String(selectedReq.id),
+														productName: `${selectedReq.brandName} ${selectedReq.modelNo}`,
+														nonConformity: `Test failure observed under ${selectedReq.testMethodRef} testing cycles. Details: ${selectedReq.sampleDescription}`,
+														rootCause: '',
+														correctiveAction: '',
+														preventiveAction: '',
+														targetedDate: ''
+													}
+												}
+											});
+										}}
+										className="w-full py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+									>
+										<AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+										<span>Initiate CAPA Report</span>
+									</button>
+								)}
 							</div>
 						</div>
 
@@ -555,7 +712,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										const isFailed = report?.status === 'FAILED' && selectedReq.status !== 'RETEST';
 										const isPassed = report?.status === 'PASSED' || selectedReq.status === 'RETEST';
 
-										const todayStr = new Date().toISOString().split('T')[0];
+										const todayStr = getLocalTodayStr();
 										const isTesting = plan && plan.startDate <= todayStr;
 
 										return (
@@ -575,7 +732,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																No Inspection Report
 															</span>
 														)}
-														{plan && (
+														{selectedReq.status === 'RETEST' ? (
+															<span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+																Retest Config Required
+															</span>
+														) : plan && (
 															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isTesting
 																	? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
 																	: 'bg-amber-50 text-amber-700 border border-amber-100'
@@ -590,8 +751,14 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														</p>
 													)}
 													{plan && (
-														<div className="text-[9px] text-indigo-650 bg-indigo-50/50 border border-indigo-100/50 rounded-lg p-2 mt-2 space-y-0.5">
-															<p className="font-extrabold">Active Test Plan Configured:</p>
+														<div className={`text-[9px] rounded-lg p-2 mt-2 space-y-0.5 border ${
+															selectedReq.status === 'RETEST'
+																? 'text-orange-700 bg-orange-50/50 border-orange-100/50'
+																: 'text-indigo-650 bg-indigo-50/50 border-indigo-100/50'
+														}`}>
+															<p className="font-extrabold">
+																{selectedReq.status === 'RETEST' ? 'Previous Test Plan (Retest Required):' : 'Active Test Plan Configured:'}
+															</p>
 															<p className="font-bold">
 																Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})
 																{plan.equipmentId && ` | Equipment: ${equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}`}
@@ -611,18 +778,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<div className="flex flex-wrap items-center gap-2 shrink-0">
 														<button
 															onClick={() => handleOpenPlanForm(index)}
-															className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${plan
-																	? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
-																	: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
-																}`}
+															className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${
+																selectedReq.status === 'RETEST'
+																	? 'bg-orange-650 hover:bg-orange-700 text-white'
+																	: plan
+																		? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
+																		: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
+															}`}
 														>
 															<Clipboard className="w-3.5 h-3.5 shrink-0" />
-															{plan ? 'Edit Test Plan' : 'Create Test Plan'}
+															{selectedReq.status === 'RETEST' ? 'Configure Retest Plan' : plan ? 'Edit Test Plan' : 'Create Test Plan'}
 														</button>
 
-														{plan && (() => {
-															const todayStr = new Date().toISOString().split('T')[0];
-															const isLastDateOrLater = todayStr >= plan.endDate;
+														{plan && selectedReq.status !== 'RETEST' && (() => {
+															const todayStr = getLocalTodayStr();
+															const isLastDateOrLater = todayStr >= plan.startDate;
 															const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 
 															if (isEvaluated) {

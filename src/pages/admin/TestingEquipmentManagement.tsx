@@ -125,7 +125,11 @@ export default function TestingEquipmentManagement() {
 
 	const filteredRecords = equipments.filter((eq) => {
 		const matchesSearch = eq.name.toLowerCase().includes(searchQuery.toLowerCase());
-		const matchesStatus = filterStatus === "all" || eq.status.toUpperCase() === filterStatus.toUpperCase();
+		const isMaintenanceFilter = filterStatus.toUpperCase().includes("MAINTENANCE");
+		const isEqMaintenance = eq.status.toUpperCase().includes("MAINTENANCE");
+		const matchesStatus = filterStatus === "all" || 
+			(isMaintenanceFilter && isEqMaintenance) ||
+			eq.status.toUpperCase() === filterStatus.toUpperCase();
 		return matchesSearch && matchesStatus;
 	});
 
@@ -146,6 +150,7 @@ export default function TestingEquipmentManagement() {
 			case 'CALIBRATION_DUE':
 				return 'bg-amber-50 text-amber-600 border border-amber-100';
 			case 'UNDER_MAINTENANCE':
+			case 'MAINTENANCE':
 				return 'bg-rose-50 text-rose-600 border border-rose-100';
 			default:
 				return 'bg-zinc-50 text-zinc-600 border border-zinc-150';

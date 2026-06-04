@@ -451,17 +451,17 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										},
 										{
 											step: 'Test Plan Created',
-											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Awaiting plan',
-											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 										},
 										{
 											step: 'Testing',
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: (selectedRequest.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 										},
 										{
 											step: ['TESTING_PASSED', 'PASS'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && !selectedRequest.remarks?.toLowerCase().includes('fail') && !selectedRequest.remarks?.toLowerCase().includes('partial'))
@@ -469,10 +469,10 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 												: (['TESTING_FAILED', 'FAILED', 'FAIL'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail'))
 													? 'Testing Failed'
 													: (['TESTING_PARTIAL', 'PARTIAL'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status)
+											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
 												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
 												: 'Awaiting results',
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(selectedRequest.status),
+											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
 											failed: isFailedStatus
 										},
 										{
