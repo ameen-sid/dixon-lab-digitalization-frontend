@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 
@@ -611,9 +611,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															const isLastDateOrLater = todayStr >= plan.endDate;
 															const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 
-															if (isLastDateOrLater) {
-																if (isEvaluated) {
-																	return (
+															if (isEvaluated) {
+																return (
+																	<div className="flex items-center gap-2">
 																		<span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${
 																			plan.evaluationStatus === 'PASSED'
 																				? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -626,8 +626,17 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																			)}
 																			Evaluated: {plan.evaluationStatus}
 																		</span>
-																	);
-																}
+																		<button
+																			onClick={() => window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank')}
+																			className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0 animate-fade-in"
+																		>
+																			<FileText className="w-3.5 h-3.5" />
+																			<span>Report</span>
+																		</button>
+																	</div>
+																);
+															}
+															if (isLastDateOrLater) {
 																return (
 																	<button
 																		onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-sample-${index}`)}
@@ -652,7 +661,40 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 
 							{/* Activation Footer */}
-							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end">
+							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
+								{(() => {
+									const canGenerateOverallReport = (() => {
+										const qty = selectedReq.sampleQty || 1;
+										for (let i = 0; i < qty; i++) {
+											const cacheKey = `${selectedReq.id}-sample-${i}`;
+											const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+											const plan = savedPlans[cacheKey];
+
+											if (report && report.status === 'PASSED') {
+												if (!plan || (plan.evaluationStatus !== 'PASSED' && plan.evaluationStatus !== 'FAILED')) {
+													return false;
+												}
+											}
+											if (!report) {
+												return false;
+											}
+										}
+										return true;
+									})();
+
+									if (!canGenerateOverallReport) return null;
+
+									return (
+										<button
+											onClick={() => window.open(`/reports/preview?type=request&id=${selectedReq.id}`, '_blank')}
+											className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer outline-none shadow-sm active:scale-95 hover:scale-[1.01] animate-fade-in"
+										>
+											<FileText className="w-4 h-4" />
+											<span>Overall Request Report</span>
+										</button>
+									);
+								})()}
+
 								<button
 									onClick={() => navigate('/manager/test-plans')}
 									className="px-4 py-2 border border-zinc-200 text-zinc-650 hover:bg-zinc-50 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none shadow-sm active:scale-95"
