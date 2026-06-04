@@ -14,6 +14,7 @@ import ManagerTestPlans from './ManagerTestPlans';
 // Import backend API services
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { getUsers } from '../../services/operations/userService';
+import { getCapas } from '../../services/operations/capaService';
 
 // Interface definitions
 interface ApprovedRequest {
@@ -253,6 +254,7 @@ export default function ManagerDashboard() {
 		if (token && userStr) {
 			loadApprovedRequests();
 			loadEngineers();
+			loadCapas();
 		}
 	}, [token, userStr]);
 
@@ -305,35 +307,30 @@ export default function ManagerDashboard() {
 	// MOCK DATABASE STATES FOR OFFLINE MODULES
 	// ==========================================
 
-	// 3. CAPA Records State
-	const [capas, setCapas] = useState<CapaRecord[]>([
-		{
-			id: 'CAPA-2026-001',
-			relatedRequest: 'REQ-2026-001',
-			productName: 'Dixon SMT SMT-X90',
-			nonConformity: 'Delamination and micro-voids observed on SMT solder pads during thermal shock cycles.',
-			rootCause: 'Sub-optimal reflow soldering peak temperature caused micro-voids that cracked under rapid cycle transitions.',
-			correctiveAction: 'Re-calibrate the SMT reflow oven temperature curve to 250°C and configure nitrogen purge on line 3.',
-			preventiveAction: 'Enforce Automated Optical Inspection (AOI) with monthly thermal profiling of baseline mock boards.',
-			targetedDate: '2026-06-15',
-			status: 'COMPLETED',
-			owner: 'SMT Engineering Dept',
-			createdDate: '2026-05-25'
-		},
-		{
-			id: 'CAPA-2026-002',
-			relatedRequest: 'REQ-2026-002',
-			productName: 'Dixon LED LED-DRV-45',
-			nonConformity: 'Minor moisture ingress on high-voltage connectors during humidity soak chamber testing.',
-			rootCause: 'Elastomer sealing ring gasket size was slightly out-of-tolerance, permitting capillary water absorption.',
-			correctiveAction: 'Replace high-voltage elastomer rings with double-lipped silicone seals across batch lots.',
-			preventiveAction: 'Introduce incoming quality inspection (IQC) dimension checks for elastomer components using laser gauges.',
-			targetedDate: '2026-06-25',
-			status: 'OPEN',
-			owner: 'Component Engineering',
-			createdDate: '2026-05-28'
+	// 3. CAPA Records — live from backend
+	const [capas, setCapas] = useState<CapaRecord[]>([]);
+
+	const loadCapas = async () => {
+		try {
+			const data = await getCapas()();
+			const mapped = data.map((c: any) => ({
+				id: c.capaId,
+				relatedRequest: c.relatedRequest,
+				productName: c.productName,
+				nonConformity: c.nonConformity,
+				rootCause: c.rootCause,
+				correctiveAction: c.correctiveAction,
+				preventiveAction: c.preventiveAction,
+				targetedDate: c.targetedDate,
+				status: c.status === 'Done' ? 'COMPLETED' : (c.status === 'COMPLETED' ? 'COMPLETED' : 'OPEN'),
+				owner: c.owner || '',
+				createdDate: new Date(c.createdAt).toISOString().split('T')[0],
+			}));
+			setCapas(mapped);
+		} catch (err) {
+			console.error('Failed to load CAPAs', err);
 		}
-	]);
+	};
 
 	// Derive current URL properties
 	const pathSegment = location.pathname.replace('/manager/', '') || 'dashboard';
@@ -593,7 +590,7 @@ export default function ManagerDashboard() {
 				return (
 					<ManagerCapaManagement 
 						capas={capas}
-						onAddCapa={handleAddCapa}
+						onAddCapa={async (newCapa: any) => { await loadCapas(); }}
 						requests={approvedRequests}
 					/>
 				);

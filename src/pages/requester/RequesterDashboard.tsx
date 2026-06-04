@@ -14,6 +14,7 @@ import CapaReports from './CapaReports';
 
 // Import API services
 import { getTestRequests, createTestRequest } from '../../services/operations/testRequestService';
+import { getCapas, createCapa } from '../../services/operations/capaService';
 
 interface RequestRecord {
 	id: string;
@@ -169,35 +170,40 @@ export default function RequesterDashboard() {
 		}
 	}, [token, userStr]);
 
-	// 2. CAPA (Corrective and Preventive Action) Mock Database
-	const [capas, setCapas] = useState<CapaRecord[]>([
-		{
-			id: 'CAPA-2026-001',
-			relatedRequest: 'REQ-2026-001',
-			productName: 'SMT Control Board X-90',
-			nonConformity: 'Delamination and micro-voids observed on SMT solder pads during thermal shock cycles.',
-			rootCause: 'Sub-optimal reflow soldering peak temperature caused micro-voids that cracked under rapid cycle transitions.',
-			correctiveAction: 'Re-calibrate the SMT reflow oven temperature curve to 250°C and configure nitrogen purge on line 3.',
-			preventiveAction: 'Enforce Automated Optical Inspection (AOI) with monthly thermal profiling of baseline mock boards.',
-			targetedDate: '2026-06-15',
-			status: 'COMPLETED',
-			owner: 'SMT Engineering Dept',
-			createdDate: '2026-05-25'
-		},
-		{
-			id: 'CAPA-2026-002',
-			relatedRequest: 'REQ-2026-004',
-			productName: 'LED Backlight Driver Unit',
-			nonConformity: 'Minor moisture ingress on high-voltage connectors during humidity soak chamber testing.',
-			rootCause: 'Elastomer sealing ring gasket size was slightly out-of-tolerance, permitting capillary water absorption.',
-			correctiveAction: 'Replace high-voltage elastomer rings with double-lipped silicone seals across batch lots.',
-			preventiveAction: 'Introduce incoming quality inspection (IQC) dimension checks for elastomer components using laser gauges.',
-			targetedDate: '2026-06-25',
-			status: 'OPEN',
-			owner: 'Component Engineering',
-			createdDate: '2026-05-25'
+	// 2. CAPA — loaded from backend
+	const [capas, setCapas] = useState<CapaRecord[]>([]);
+
+	const loadCapas = async () => {
+		try {
+			const dbCapas = await getCapas()();
+			const mapped = dbCapas.map((c: any) => ({
+				id: c.capaId,
+				relatedRequest: c.relatedRequest,
+				productName: c.productName,
+				nonConformity: c.nonConformity,
+				rootCause: c.rootCause,
+				correctiveAction: c.correctiveAction,
+				preventiveAction: c.preventiveAction,
+				targetedDate: c.targetedDate,
+				status: c.status === 'Done' ? 'COMPLETED' : (c.status === 'COMPLETED' ? 'COMPLETED' : 'OPEN'),
+				owner: c.owner || '',
+				createdDate: new Date(c.createdAt).toISOString().split('T')[0],
+				// extended
+				partProduct: c.partProduct, modelName: c.modelName, customerSupplier: c.customerSupplier,
+				date: c.date, result: c.result, title: c.title, improvementType: c.improvementType,
+				partName: c.partName, problem: c.problem, model: c.model, defectQty: c.defectQty, venue: c.venue,
+				imageUrl: c.imageUrl, why1: c.why1, why2: c.why2, why3: c.why3, why4: c.why4,
+				undetectedWhy1: c.undetectedWhy1, undetectedWhy2: c.undetectedWhy2, undetectedWhy3: c.undetectedWhy3,
+				tempCountermeasure: c.tempCountermeasure, radicalCountermeasure: c.radicalCountermeasure,
+				inspectionControl: c.inspectionControl, processControl: c.processControl,
+				beforeImprovementImgUrl: c.beforeImprovementImgUrl, afterImprovementImgUrl: c.afterImprovementImgUrl,
+				preventionImgUrl: c.preventionImgUrl, remark: c.remark,
+			}));
+			setCapas(mapped);
+		} catch (err) {
+			console.error('Failed to load CAPAs', err);
 		}
-	]);
+	};
 
 	// Selected Entities for Detail Views
 	const [selectedRequest, setSelectedRequest] = useState<RequestRecord | null>(null);
@@ -215,6 +221,10 @@ export default function RequesterDashboard() {
 			setSelectedRequest(requests[0]);
 		}
 	}, [requests, selectedRequest]);
+
+	useEffect(() => {
+		if (token && userStr) { loadCapas(); }
+	}, [token, userStr]);
 
 	// New CAPA Form Inputs State for passing initial values from complete requests
 	const [initialCapaInput, setInitialCapaInput] = useState<any>(null);
@@ -247,64 +257,27 @@ export default function RequesterDashboard() {
 		}
 	};
 
-	const handleCreateCapaSubmit = (input: any) => {
-		const isOldFormatComplete = input.nonConformity && input.rootCause && input.correctiveAction && input.preventiveAction && input.targetedDate;
-		const isNewFormatComplete = input.title && input.problem && input.partName;
+	const handleCreateCapaSubmit = async (input: FormData | any) => {
+		// FormData fields must be read via .get(); plain objects via direct access
+		const get = (key: string) =>
+			input instanceof FormData ? input.get(key) : input[key];
+
+		const isNewFormatComplete = get('title') || get('problem') || get('partName');
+		const isOldFormatComplete = get('nonConformity') || get('rootCause');
 
 		if (!isOldFormatComplete && !isNewFormatComplete) {
 			triggerNotification('Please complete all mandatory fields.', 'info');
 			return;
 		}
 
-		const newCapaId = `CAPA-2026-00${capas.length + 1}`;
-		const newCapaItem: CapaRecord = {
-			id: newCapaId,
-			relatedRequest: input.relatedRequest,
-			productName: input.productName || input.partProduct || 'SMT Control Board X-90',
-			nonConformity: input.nonConformity || input.problem || 'Test failure observed.',
-			rootCause: input.rootCause || input.why1 || 'Analysis in progress.',
-			correctiveAction: input.correctiveAction || input.tempCountermeasure || 'Immediate check sheet adjustments.',
-			preventiveAction: input.preventiveAction || input.radicalCountermeasure || 'Preventive actions in progress.',
-			targetedDate: input.targetedDate || input.targetDate || new Date().toISOString().split('T')[0],
-			status: input.status ? (input.status === 'Done' ? 'COMPLETED' : 'OPEN') : 'OPEN',
-			owner: 'SMT Engineering Dept',
-			createdDate: new Date().toISOString().split('T')[0],
-
-			// Include new format fields
-			partProduct: input.partProduct,
-			modelName: input.modelName,
-			customerSupplier: input.customerSupplier,
-			date: input.date,
-			result: input.result,
-			title: input.title,
-			improvementType: input.improvementType,
-			partName: input.partName,
-			problem: input.problem,
-			model: input.model,
-			defectQty: input.defectQty,
-			venue: input.venue,
-			imageUrl: input.imageUrl,
-			why1: input.why1,
-			why2: input.why2,
-			why3: input.why3,
-			why4: input.why4,
-			undetectedWhy1: input.undetectedWhy1,
-			undetectedWhy2: input.undetectedWhy2,
-			undetectedWhy3: input.undetectedWhy3,
-			tempCountermeasure: input.tempCountermeasure,
-			radicalCountermeasure: input.radicalCountermeasure,
-			inspectionControl: input.inspectionControl,
-			processControl: input.processControl,
-			beforeImprovementImgUrl: input.beforeImprovementImgUrl,
-			afterImprovementImgUrl: input.afterImprovementImgUrl,
-			preventionImgUrl: input.preventionImgUrl,
-			remark: input.remark
-		};
-
-		setCapas([newCapaItem, ...capas]);
-		setInitialCapaInput(null);
-		triggerNotification(`CAPA Plan ${newCapaId} initiated successfully!`);
-		navigate('/requester/capa');
+		try {
+			await createCapa(input)();
+			setInitialCapaInput(null);
+			await loadCapas();
+			navigate('/requester/capa');
+		} catch (err) {
+			console.error('Failed to submit CAPA', err);
+		}
 	};
 
 	const handleInitiateCapaFromRequest = (req: RequestRecord) => {

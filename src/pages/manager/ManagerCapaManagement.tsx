@@ -358,13 +358,6 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 						<option value="COMPLETED">Completed Actions</option>
 					</select>
 				</div>
-
-				<button 
-					onClick={() => setCapaView('new')}
-					className="bg-[#11236a] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 hover:bg-[#0c1a52] transition-all border-none outline-none cursor-pointer shrink-0 active:scale-[0.98]"
-				>
-					<Plus className="w-4 h-4" /> Initiate CAPA Report
-				</button>
 			</div>
 
 			{/* CAPA Table list */}

@@ -155,10 +155,8 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 
 							<div className="border border-zinc-200 bg-white rounded-2xl p-4 text-center space-y-3 shadow-inner">
 								<p className="text-[9px] text-zinc-700 font-extrabold uppercase tracking-wider">Quality Manager Verification</p>
-								<div className="w-20 h-20 border border-dashed border-zinc-300 rounded-full mx-auto flex items-center justify-center text-zinc-350 bg-zinc-50 relative">
-									<span className="text-[9px] font-extrabold text-[#11236a] opacity-80 select-none transform -rotate-12 border-2 border-solid border-[#11236a] px-1 py-0.5 uppercase tracking-wide">
-										NABL STAMPED
-									</span>
+								<div className="w-20 h-20 border border-dashed border-zinc-300 rounded-full mx-auto flex items-center justify-center bg-zinc-50">
+									<span className="text-[9px] font-bold text-zinc-400">Pending</span>
 								</div>
 								<p className="text-[10px] text-zinc-700 font-bold">Approved & Signed off</p>
 							</div>
@@ -291,7 +289,9 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 						{/* Problem / Defect Image */}
 						{selectedCapa.imageUrl ? (
 							<div className="border border-zinc-250 rounded-xl overflow-hidden bg-zinc-50 max-w-[280px] mx-auto p-1.5 shadow-inner">
-								<img src={selectedCapa.imageUrl} alt="Defect Detail" className="w-full h-auto max-h-[180px] object-contain rounded-lg" />
+								<a href={selectedCapa.imageUrl} target="_blank" rel="noopener noreferrer" title="Click to open full size">
+									<img src={selectedCapa.imageUrl} alt="Defect Detail" className="w-full h-auto max-h-[180px] object-contain rounded-lg cursor-zoom-in hover:opacity-90 transition-opacity" />
+								</a>
 								<div className="text-[9px] text-center text-zinc-500 font-bold uppercase tracking-wider mt-1">Defect Graphic Preview</div>
 							</div>
 						) : (
@@ -375,7 +375,9 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								<div className="text-center">
 									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">Before Improvement</span>
 									{selectedCapa.beforeImprovementImgUrl ? (
-										<img src={selectedCapa.beforeImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200" alt="Before" />
+										<a href={selectedCapa.beforeImprovementImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
+											<img src={selectedCapa.beforeImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="Before" />
+										</a>
 									) : (
 										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
 											<ImageIcon className="w-5 h-5" />
@@ -386,7 +388,9 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								<div className="text-center">
 									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">After Improvement</span>
 									{selectedCapa.afterImprovementImgUrl ? (
-										<img src={selectedCapa.afterImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200" alt="After" />
+										<a href={selectedCapa.afterImprovementImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
+											<img src={selectedCapa.afterImprovementImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="After" />
+										</a>
 									) : (
 										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
 											<ImageIcon className="w-5 h-5" />
@@ -397,7 +401,9 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								<div className="text-center">
 									<span className="block text-[9px] text-zinc-400 font-extrabold uppercase mb-1">Prevention</span>
 									{selectedCapa.preventionImgUrl ? (
-										<img src={selectedCapa.preventionImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200" alt="Prevention" />
+										<a href={selectedCapa.preventionImgUrl} target="_blank" rel="noopener noreferrer" title="Open full size">
+											<img src={selectedCapa.preventionImgUrl} className="w-full h-16 object-cover rounded-lg border border-zinc-200 cursor-zoom-in hover:opacity-90 transition-opacity" alt="Prevention" />
+										</a>
 									) : (
 										<div className="h-16 flex items-center justify-center border border-dashed border-zinc-200 rounded-lg text-zinc-300">
 											<ImageIcon className="w-5 h-5" />
@@ -442,9 +448,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 				{/* Stamp footer */}
 				<div className="bg-white border-t border-zinc-200 p-4 flex items-center justify-between">
 					<span className="text-[10px] text-zinc-450 uppercase font-bold">Document: CAPA-{selectedCapa.id} // Quality Audit System</span>
-					<div className="border border-solid border-[#11236a] text-[#11236a] font-extrabold text-[9px] px-2 py-0.5 rounded-sm tracking-wider uppercase transform -rotate-2 select-none">
-						NABL Approved
-					</div>
 				</div>
 			</div>
 		</div>

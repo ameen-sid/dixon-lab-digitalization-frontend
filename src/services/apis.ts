@@ -94,3 +94,11 @@ export const reliabilityChecksheetEndpoints = {
 	UPSERT_ENTRY_API: BASE_URL + '/reliability-checksheets/upsert',
 	GET_ENTRIES_API: (planKey: string) => BASE_URL + `/reliability-checksheets/${planKey}`,
 };
+
+// CAPA Endpoints
+export const capaEndpoints = {
+	CREATE_CAPA_API: BASE_URL + '/capas',
+	GET_CAPAS_API: BASE_URL + '/capas',
+	GET_CAPA_BY_ID_API: (id: string | number) => BASE_URL + `/capas/${id}`,
+	UPDATE_CAPA_STATUS_API: (id: string | number) => BASE_URL + `/capas/${id}/status`,
+};
