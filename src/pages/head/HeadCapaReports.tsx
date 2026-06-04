@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Search, CheckCircle, RefreshCw } from 'lucide-react';
 import { getCapas, updateCapaStatus } from '../../services/operations/capaService';
+import CapaReports from '../requester/CapaReports';
 
 export default function HeadCapaReports() {
 	const [capas, setCapas] = useState<any[]>([]);
+	const [selectedCapa, setSelectedCapa] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
@@ -45,6 +47,10 @@ export default function HeadCapaReports() {
 		try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 		catch { return d; }
 	};
+
+	if (selectedCapa) {
+		return <CapaReports selectedCapa={selectedCapa} setActiveTab={() => setSelectedCapa(null)} />;
+	}
 
 	return (
 		<div className="space-y-5">
@@ -135,14 +141,22 @@ export default function HeadCapaReports() {
 									<span>Target: <span className="text-zinc-700 font-bold">{capa.targetedDate || '—'}</span></span>
 									{capa.improvementType && <span>Type: <span className="text-zinc-700 font-bold">{capa.improvementType}</span></span>}
 								</div>
-								{capa.status === 'OPEN' && (
+								<div className="flex items-center gap-2">
 									<button
-										onClick={() => handleResolve(capa.id)}
-										className="text-[10px] font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] rounded-lg px-3 py-1.5 outline-none cursor-pointer border-none transition-colors"
+										onClick={() => setSelectedCapa(capa)}
+										className="text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-3 py-1.5 outline-none cursor-pointer border border-indigo-200 transition-colors"
 									>
-										Mark as Resolved
+										View Full Report
 									</button>
-								)}
+									{capa.status === 'OPEN' && (
+										<button
+											onClick={() => handleResolve(capa.id)}
+											className="text-[10px] font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] rounded-lg px-3 py-1.5 outline-none cursor-pointer border-none transition-colors"
+										>
+											Mark as Resolved
+										</button>
+									)}
+								</div>
 							</div>
 						</div>
 					))}
