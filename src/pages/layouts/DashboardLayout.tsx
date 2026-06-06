@@ -89,6 +89,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
+	} else if (user.role.toLowerCase() === 'ceo') {
+		derivedActiveTab = 'dashboard';
 	}
 
 	const handleTabClick = (itemId: string) => {
@@ -120,6 +122,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
+		} else if (userRoleLower === 'ceo') {
+			if (itemId === 'dashboard') navigate('/ceo/dashboard');
 		} else if (userRoleLower === 'inspector') {
 			if (itemId === 'dashboard') navigate('/inspector/dashboard');
 			else if (itemId === 'daily-checksheet') navigate('/inspector/daily-checksheet');
@@ -127,6 +131,36 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			onTabChange?.(itemId);
 		}
 	};
+
+	if (user.role?.toLowerCase() === 'ceo') {
+		return (
+			<div className="h-screen w-screen overflow-hidden bg-[#f8fafc] text-zinc-800 flex flex-col relative">
+				{/* Top Header Bar for CEO */}
+				<header className="h-16 bg-white border-b border-zinc-200/80 flex items-center justify-between px-8 shrink-0 shadow-sm">
+					<img src="/logo.png" alt="Dixon Logo" className="h-10 object-contain" />
+					<div className="flex items-center gap-4">
+						<span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold shadow-sm">
+							<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+							System Online
+						</span>
+						<button
+							onClick={handleLogout}
+							className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-extrabold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+						>
+							<LogOut className="w-4 h-4" />
+							Logout
+						</button>
+					</div>
+				</header>
+				{/* Main Content Area */}
+				<main className="flex-1 h-full overflow-y-auto p-8 pr-6">
+					<div className="max-w-7xl mx-auto w-full pb-10">
+						{children}
+					</div>
+				</main>
+			</div>
+		);
+	}
 
 	return (
 		<div className="h-screen w-screen overflow-hidden bg-[#eef2f6] text-zinc-800 flex flex-row relative">
@@ -300,6 +334,40 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
 											{ id: 'daily-checksheet', label: 'Daily Checksheet', icon: CheckSquare },
+										]
+									}
+								].map((cat, groupIdx) => (
+									<div key={groupIdx} className="flex flex-col gap-1">
+										{!isCollapsed && (
+											<div className="px-3.5 mb-1.5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest leading-none">
+												{cat.category}
+											</div>
+										)}
+										{cat.items.map((item) => {
+											const Icon = item.icon;
+											const isActive = derivedActiveTab === item.id;
+											return (
+												<button
+													key={item.id}
+													onClick={() => handleTabClick(item.id)}
+													title={item.label}
+													className={`group flex items-center gap-3 rounded-xl transition-all border-none outline-none cursor-pointer text-xs font-bold ${isCollapsed ? 'justify-center py-3 px-0 w-full' : 'px-3.5 py-2.5 text-left w-full'} ${isActive ? 'bg-[#11236a]/5 text-[#11236a]' : 'text-zinc-700 hover:text-[#11236a] hover:bg-zinc-100/70'}`}
+												>
+													<Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#11236a]' : 'text-zinc-500 group-hover:text-[#11236a]'}`} />
+													{!isCollapsed && <span className="truncate">{item.label}</span>}
+												</button>
+											);
+										})}
+									</div>
+								))}
+							</>
+						) : (user.role?.toLowerCase() === 'ceo') ? (
+							<>
+								{[
+									{
+										category: 'CEO Portal',
+										items: [
+											{ id: 'dashboard', label: 'Overview', icon: Compass },
 										]
 									}
 								].map((cat, groupIdx) => (
