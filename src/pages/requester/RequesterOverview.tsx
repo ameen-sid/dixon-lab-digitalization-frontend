@@ -189,7 +189,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 
 					<button 
 						onClick={() => setActiveTab('capa-management')}
-						className="flex items-center justify-between p-4 bg-amber-650 text-white rounded-xl hover:bg-amber-700 transition-all cursor-pointer border-none outline-none group active:scale-[0.98]"
+						className="flex items-center justify-between p-4 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all cursor-pointer border-none outline-none group active:scale-[0.98]"
 					>
 						<div className="flex items-center gap-3">
 							<Clipboard className="w-5 h-5 shrink-0" />
@@ -289,7 +289,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 										<button 
 											onClick={() => {
 												setSelectedRequest(req);
-												setActiveTab('view-request-details');
 											}}
 											className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer group-hover:underline bg-transparent border-none outline-none"
 										>

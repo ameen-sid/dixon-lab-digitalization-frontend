@@ -250,7 +250,6 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 												<button 
 													onClick={() => {
 														setSelectedRequest(req);
-														setActiveTab('view-request-details');
 													}}
 													className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer group-hover:underline bg-transparent border-none outline-none"
 												>

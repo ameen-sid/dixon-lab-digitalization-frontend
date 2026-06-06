@@ -186,7 +186,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				</button>
 
 				<div className="flex items-center gap-2">
-					{['COMPLETED', 'PASS', 'FAIL', 'PARTIAL', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(selectedRequest.status) && (
+					{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
 						<button
 							onClick={() => window.open(`/reports/preview?type=request&id=${reqDbIdVal}`, '_blank')}
 							className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm flex items-center justify-center"
@@ -612,13 +612,15 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 													</span>
 													{report.status === 'PASSED' && (
 														<div className="flex items-center gap-1.5">
-															<button
-																type="button"
-																onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
-																className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
-															>
-																<FileText className="w-2.5 h-2.5" /> Report
-															</button>
+															{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
+																<button
+																	type="button"
+																	onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
+																	className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																>
+																	<FileText className="w-2.5 h-2.5" /> Report
+																</button>
+															)}
 															<button
 																type="button"
 																onClick={() => setActiveTimelineSampleIndex(index)}
@@ -660,13 +662,15 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									<h3 className="text-xl font-extrabold text-[#11236a] leading-tight">
 										Sample #{activeTimelineSampleIndex + 1} Testing Timeline
 									</h3>
-									<button
-										onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${activeTimelineSampleIndex}`, '_blank')}
-										className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
-									>
-										<FileText className="w-3.5 h-3.5" />
-										<span>View Report</span>
-									</button>
+									{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
+										<button
+											onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${activeTimelineSampleIndex}`, '_blank')}
+											className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
+										>
+											<FileText className="w-3.5 h-3.5" />
+											<span>View Report</span>
+										</button>
+									)}
 								</div>
 								<p className="text-xs font-bold text-zinc-400 uppercase mt-1">
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
