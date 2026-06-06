@@ -130,11 +130,7 @@ export default function EngineerDashboard() {
 	const pathSegment = location.pathname.replace('/engineer/', '') || 'dashboard';
 	const activeTab = (pathSegment === 'assigned-samples' || pathSegment.startsWith('assigned-samples/')) ? 'assigned-samples' : 'dashboard';
 
-	// Stats matching engineer specific metrics
 	const myAssignedRequests = approvedRequests.filter(r => String(r.engineerId) === currentEngineerId);
-	const activeCount = myAssignedRequests.length;
-	const pendingCount = myAssignedRequests.filter(r => r.status === 'UNDER_TESTING' || r.status === 'UNDER_TEST' || r.status === 'INSPECTION_COMPLETED' || r.status === 'UNDER_INSPECTION').length;
-	const completedCount = myAssignedRequests.filter(r => r.status === 'COMPLETED').length;
 
 	const dynamicTasks: InspectionTask[] = myAssignedRequests.map(r => ({
 		id: String(r.id),
@@ -171,11 +167,7 @@ export default function EngineerDashboard() {
 
 		return (
 			<EngineerDashboardOverview 
-				stats={{
-					assignedCount: activeCount,
-					pendingCount: pendingCount,
-					completedCount: completedCount
-				}}
+				requests={myAssignedRequests}
 			/>
 		);
 	};

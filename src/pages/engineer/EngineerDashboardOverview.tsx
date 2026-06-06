@@ -1,107 +1,435 @@
 import { useNavigate } from 'react-router-dom';
-import { Cpu, CheckSquare, BarChart2, ArrowRight, ShieldCheck, ClipboardList } from 'lucide-react';
+import { 
+	Cpu, 
+	CheckSquare, 
+	ArrowRight, 
+	ShieldCheck, 
+	ClipboardList, 
+	AlertTriangle, 
+	Clock, 
+	RotateCcw, 
+	CheckCircle2, 
+	XCircle, 
+	Activity,
+	Sliders
+} from 'lucide-react';
 
-interface EngineerDashboardOverviewProps {
-	stats: {
-		assignedCount: number;
-		pendingCount: number;
-		completedCount: number;
-	};
+interface ApprovedRequest {
+	id: string;
+	requestId: string;
+	brandName: string;
+	modelNo: string;
+	testMethodRef: string;
+	sampleDescription: string;
+	sampleQty: number;
+	status: string;
+	approvedDate: string;
+	engineerId?: string;
+	engineerName?: string;
+	inspectionResult?: string;
 }
 
-export default function EngineerDashboardOverview({ stats }: EngineerDashboardOverviewProps) {
+interface EngineerDashboardOverviewProps {
+	requests: ApprovedRequest[];
+}
+
+export default function EngineerDashboardOverview({ requests }: EngineerDashboardOverviewProps) {
 	const navigate = useNavigate();
+
+	// Read compiled inspections from localStorage
+	const mergedReports = (() => {
+		const cachedManager = localStorage.getItem('dixon_sample_inspections');
+		const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
+		const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
+		
+		const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
+		const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
+		const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
+		return { ...engineerReports, ...managerReports, ...completedReports };
+	})();
+
+	// 1. Calculate Metric Summary Stats
+	let totalAssignedSamples = 0;
+	let pendingInspections = 0;
+	let inProgressInspections = 0;
+	let passedInspections = 0;
+	let failedInspections = 0;
+	let partialInspections = 0;
+
+	const activeTasksList: (ApprovedRequest & { passedCount: number; failedCount: number; pendingCount: number; isOverdue: boolean; daysText: string })[] = [];
+	const recentSubmissionsList: (ApprovedRequest & { passedCount: number; failedCount: number; isPassed: boolean })[] = [];
+	const retestRequestsList: ApprovedRequest[] = [];
+
+	requests.forEach(r => {
+		const qty = r.sampleQty || 1;
+		totalAssignedSamples += qty;
+
+		let passedCount = 0;
+		let failedCount = 0;
+		let pendingCount = 0;
+
+		for (let i = 0; i < qty; i++) {
+			const cacheKey = `${r.id}-sample-${i}`;
+			const report = mergedReports[cacheKey];
+			if (!report) {
+				pendingCount++;
+			} else if (report.status === 'PASSED') {
+				passedCount++;
+			} else if (report.status === 'FAILED') {
+				failedCount++;
+			}
+		}
+
+		// Check request completion state
+		const isCompleted = [
+			'INSPECTION_COMPLETED',
+			'UNDER_TESTING',
+			'TESTING_PASSED',
+			'TESTING_FAILED',
+			'TESTING_PARTIAL',
+			'COMPLETED',
+			'REJECTED'
+		].includes(r.status);
+
+		// Flag retesting assignments
+		const isRetest = r.status === 'RETEST' || r.status.includes('RETEST');
+		if (isRetest) {
+			retestRequestsList.push(r);
+		}
+
+		// Calculate SLA info
+		const assignedDate = r.approvedDate ? new Date(r.approvedDate) : new Date();
+		const today = new Date();
+		const diffTime = today.getTime() - assignedDate.getTime();
+		const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+		const daysLeft = 3 - diffDays;
+		const isOverdue = !isCompleted && daysLeft < 0;
+		const daysText = isOverdue 
+			? `Overdue by ${Math.abs(daysLeft)}d` 
+			: daysLeft <= 1 
+				? `Due in ${daysLeft}d` 
+				: `${daysLeft} days left`;
+
+		if (isCompleted) {
+			const hasFailed = failedCount > 0 || r.status === 'TESTING_FAILED' || r.status === 'REJECTED';
+			const hasPassed = passedCount === qty || r.status === 'TESTING_PASSED' || r.status === 'COMPLETED';
+
+			if (hasFailed) {
+				if (passedCount > 0) {
+					partialInspections++;
+				} else {
+					failedInspections++;
+				}
+			} else if (hasPassed) {
+				passedInspections++;
+			} else {
+				partialInspections++;
+			}
+
+			recentSubmissionsList.push({
+				...r,
+				passedCount,
+				failedCount,
+				isPassed: !hasFailed
+			});
+		} else {
+			if (pendingCount === qty) {
+				pendingInspections++;
+			} else {
+				inProgressInspections++;
+			}
+			activeTasksList.push({
+				...r,
+				passedCount,
+				failedCount,
+				pendingCount,
+				isOverdue,
+				daysText
+			});
+		}
+	});
+
+	// Sort recent submissions by date descending
+	recentSubmissionsList.sort((a, b) => new Date(b.approvedDate).getTime() - new Date(a.approvedDate).getTime());
 
 	return (
 		<div className="space-y-6">
 			{/* Metric Cards Row */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-				{/* Card 1: Total Assigned */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 flex items-center justify-between shadow-sm">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+				{/* Total Assigned Samples */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 					<div>
-						<span className="text-zinc-550 text-[10px] font-bold uppercase tracking-wider block">My Assigned Plans</span>
-						<h3 className="text-3xl font-extrabold text-zinc-950 mt-1">{stats.assignedCount} Active</h3>
-						<p className="text-zinc-500 text-xs mt-2 font-medium">Allotted by Lab Manager</p>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Assigned Samples</span>
+						<h3 className="text-2xl font-extrabold text-zinc-955 mt-1">{totalAssignedSamples} Pcs</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">{requests.length} Test Plans</p>
 					</div>
-					<div className="w-12 h-12 bg-indigo-50 text-[#11236a] rounded-2xl flex items-center justify-center border border-indigo-100">
-						<Cpu className="w-5.5 h-5.5" />
+					<div className="w-10 h-10 bg-indigo-50 text-[#11236a] rounded-xl flex items-center justify-center border border-indigo-100">
+						<Cpu className="w-5 h-5" />
 					</div>
 				</div>
 
-				{/* Card 2: Pending Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 flex items-center justify-between shadow-sm">
+				{/* Pending Inspections */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 					<div>
-						<span className="text-zinc-550 text-[10px] font-bold uppercase tracking-wider block">Awaiting Checklist</span>
-						<h3 className="text-3xl font-extrabold text-rose-600 mt-1">{stats.pendingCount} Pending</h3>
-						<p className="text-amber-600 text-xs mt-2 font-bold flex items-center gap-1">
-							<ShieldCheck className="w-3.5 h-3.5" />
-							Calibration pending setup
-						</p>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Pending</span>
+						<h3 className="text-2xl font-extrabold text-amber-600 mt-1">{pendingInspections} Tasks</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Awaiting calibration</p>
 					</div>
-					<div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center border border-rose-100">
-						<ClipboardList className="w-5.5 h-5.5" />
+					<div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100">
+						<Clock className="w-5 h-5" />
 					</div>
 				</div>
 
-				{/* Card 3: Completed Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 flex items-center justify-between shadow-sm sm:col-span-2 lg:col-span-1">
+				{/* In-Progress Inspections */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 					<div>
-						<span className="text-zinc-550 text-[10px] font-bold uppercase tracking-wider block">Completed Signoffs</span>
-						<h3 className="text-3xl font-extrabold text-emerald-600 mt-1">{stats.completedCount} Certified</h3>
-						<p className="text-emerald-600 text-xs mt-2 font-semibold">100% NABL diagnostics conform</p>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">In Progress</span>
+						<h3 className="text-2xl font-extrabold text-blue-600 mt-1">{inProgressInspections} Tasks</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Draft checklist saved</p>
 					</div>
-					<div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100">
-						<CheckSquare className="w-5.5 h-5.5" />
+					<div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">
+						<Activity className="w-5 h-5" />
+					</div>
+				</div>
+
+				{/* Passed Inspections */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+					<div>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Passed</span>
+						<h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{passedInspections} Tasks</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">All samples passed</p>
+					</div>
+					<div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100">
+						<CheckSquare className="w-5 h-5" />
+					</div>
+				</div>
+
+				{/* Failed Inspections */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+					<div>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Failed</span>
+						<h3 className="text-2xl font-extrabold text-rose-600 mt-1">{failedInspections} Tasks</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium font-semibold">Samples failed checks</p>
+					</div>
+					<div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center border border-rose-100">
+						<XCircle className="w-5 h-5" />
+					</div>
+				</div>
+
+				{/* Partial Inspections */}
+				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+					<div>
+						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Partial</span>
+						<h3 className="text-2xl font-extrabold text-purple-600 mt-1">{partialInspections} Tasks</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Mixed compliance status</p>
+					</div>
+					<div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center border border-purple-100">
+						<Sliders className="w-5 h-5" />
 					</div>
 				</div>
 			</div>
 
-			{/* Main action console panel */}
+			{/* Main Workspace Layout */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				
-				{/* Welcome/Workspace status card */}
-				<div className="lg:col-span-2 bg-white border border-zinc-200/60 rounded-3xl p-8 shadow-sm flex flex-col justify-between items-start gap-6">
-					<div className="space-y-3">
-						<div className="w-12 h-12 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-500 shadow-sm">
-							<BarChart2 className="w-6 h-6 text-emerald-600" />
+				{/* Left Columns - Active queue and submissions */}
+				<div className="lg:col-span-2 space-y-6">
+					
+					{/* Active Work Queue */}
+					<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-sm overflow-hidden p-1">
+						<div className="p-5 border-b border-zinc-100 flex items-center justify-between">
+							<div>
+								<h3 className="text-sm font-extrabold text-zinc-900">Active Calibration Queue</h3>
+								<p className="text-[11px] text-zinc-500 font-semibold mt-0.5">Assigned inspection tasks awaiting your action.</p>
+							</div>
+							<button 
+								onClick={() => navigate('/engineer/assigned-samples')}
+								className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] flex items-center gap-1 hover:underline transition-all bg-transparent border-none outline-none cursor-pointer"
+							>
+								View All Queue
+								<ArrowRight className="w-4 h-4" />
+							</button>
 						</div>
-						<h2 className="text-lg font-extrabold text-zinc-900 tracking-tight">Engineer Workspace: Fully Synced</h2>
-						<p className="text-zinc-500 text-xs font-semibold leading-relaxed">
-							Welcome to the Testing Engineer Workspace. Active lab equipment logs, instrument feeds, diagnostics telemetry, and test plans are fully synchronized with the Lab Manager Control Hub. Select "Execute Inspections" below to access your active queue and submit visual calibration checklists.
-						</p>
+
+						{activeTasksList.length === 0 ? (
+							<div className="text-center py-12">
+								<ShieldCheck className="w-10 h-10 text-zinc-300 mx-auto mb-2" />
+								<h4 className="text-xs font-bold text-zinc-800">Queue is Clear</h4>
+								<p className="text-[11px] text-zinc-500 font-light mt-0.5">All assigned inspections have been compiled and submitted.</p>
+							</div>
+						) : (
+							<div className="divide-y divide-zinc-100 max-h-[360px] overflow-y-auto">
+								{activeTasksList.map(task => (
+									<div 
+										key={task.id} 
+										className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-zinc-50/40 transition-all cursor-pointer"
+										onClick={() => navigate(`/engineer/assigned-samples`)}
+									>
+										<div className="space-y-1 min-w-0">
+											<div className="flex items-center gap-2">
+												<span className="font-extrabold text-xs text-zinc-905">{task.requestId}</span>
+												<span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
+													task.isOverdue 
+														? 'bg-rose-50 text-rose-700 border-rose-100' 
+														: 'bg-zinc-50 text-zinc-600 border-zinc-200'
+												}`}>
+													{task.daysText}
+												</span>
+											</div>
+											<h4 className="text-xs font-bold text-zinc-800 truncate">{task.brandName} - <span className="text-zinc-500 font-semibold">{task.modelNo}</span></h4>
+											<p className="text-[10px] text-zinc-400 font-medium truncate max-w-sm" title={task.testMethodRef}>
+												Standard: {task.testMethodRef}
+											</p>
+										</div>
+
+										<div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+											<div className="text-right">
+												<span className="inline-block text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-[#11236a] rounded-lg">
+													{task.sampleQty} pcs
+												</span>
+												<p className="text-[9px] text-zinc-500 font-semibold mt-1">
+													{task.passedCount} pass / {task.failedCount} fail
+												</p>
+											</div>
+											<button className="bg-[#11236a] text-white font-bold text-[10px] px-3.5 py-1.5 rounded-lg hover:bg-[#0c1a52] transition-all cursor-pointer border-none outline-none">
+												Inspect
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
-					<button 
-						onClick={() => navigate('/engineer/assigned-samples')}
-						className="bg-[#11236a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all cursor-pointer active:scale-95 border-none outline-none flex items-center gap-1.5 shadow-sm"
-					>
-						Execute Inspections
-						<ArrowRight className="w-4 h-4" />
-					</button>
+
+					{/* Recent Submissions Log */}
+					<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-sm overflow-hidden p-1">
+						<div className="p-5 border-b border-zinc-100">
+							<h3 className="text-sm font-extrabold text-zinc-900">Recent Completed Submissions</h3>
+							<p className="text-[11px] text-zinc-500 font-semibold mt-0.5">Logs of your compiled final inspection reports.</p>
+						</div>
+
+						{recentSubmissionsList.length === 0 ? (
+							<div className="text-center py-10">
+								<ClipboardList className="w-10 h-10 text-zinc-300 mx-auto mb-2" />
+								<h4 className="text-xs font-bold text-zinc-850">No Recent Submissions</h4>
+								<p className="text-[11px] text-zinc-500 font-light mt-0.5 font-semibold">Completed reports will show up here once submitted.</p>
+							</div>
+						) : (
+							<div className="overflow-x-auto">
+								<table className="w-full text-left border-collapse min-w-[500px]">
+									<thead>
+										<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[9px] uppercase tracking-wider">
+											<th className="py-3 px-5">Request ID</th>
+											<th className="py-3 px-5">Equipment Model</th>
+											<th className="py-3 px-5 text-center">Submission Status</th>
+											<th className="py-3 px-5 text-center">Date Submitted</th>
+											<th className="py-3 px-5 text-right">Reference</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-zinc-100 text-[11px] font-semibold text-zinc-700">
+										{recentSubmissionsList.slice(0, 5).map(sub => (
+											<tr key={sub.id} className="hover:bg-zinc-50/30 transition-all">
+												<td className="py-3 px-5 font-extrabold text-zinc-950">{sub.requestId}</td>
+												<td className="py-3 px-5">
+													<div className="font-extrabold text-zinc-900">{sub.brandName}</div>
+													<span className="text-[9px] text-zinc-500 font-medium">{sub.modelNo}</span>
+												</td>
+												<td className="py-3 px-5 text-center">
+													<span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border ${
+														sub.isPassed 
+															? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+															: 'bg-rose-50 text-rose-700 border-rose-100'
+													}`}>
+														{sub.isPassed ? 'PASSED' : 'NON-COMPLIANT'}
+													</span>
+												</td>
+												<td className="py-3 px-5 text-center text-zinc-500">{sub.approvedDate}</td>
+												<td className="py-3 px-5 text-right text-zinc-500 max-w-[120px] truncate" title={sub.testMethodRef}>
+													{sub.testMethodRef}
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
+						)}
+					</div>
 				</div>
 
-				{/* Side telemetries / guidelines card */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
-					<h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-150 pb-2">
-						NABL Verification Protocol
-					</h4>
-					<div className="text-[11px] font-semibold text-zinc-650 space-y-3">
-						<div className="flex items-start gap-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-[#11236a] mt-1 shrink-0" />
-							<p>Ensure sample dimensions and visual specs perfectly match description fields before allotting Sample ID.</p>
+				{/* Right Column - Retesting, alerts, & guidelines */}
+				<div className="space-y-6">
+					
+					{/* Retesting Assignments Section */}
+					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-4">
+						<div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
+							<RotateCcw className="w-5 h-5 text-rose-600" />
+							<div>
+								<h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider">
+									Retesting Queue
+								</h4>
+								<p className="text-[10px] text-zinc-500 font-semibold">Flagged for repeating tests</p>
+							</div>
 						</div>
-						<div className="flex items-start gap-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-[#11236a] mt-1 shrink-0" />
-							<p>Verify external accessories match packaging checklist indices conformant to IS/IEC standards.</p>
-						</div>
-						<div className="flex items-start gap-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-[#11236a] mt-1 shrink-0" />
-							<p>Attach visual photographic evidence in multiple dimensions for any physical damage or void anomalies observed.</p>
-						</div>
-						<div className="flex items-start gap-2">
-							<span className="w-1.5 h-1.5 rounded-full bg-[#11236a] mt-1 shrink-0" />
-							<p>All completed calibrations compile instantly into reports for Lab Head final review.</p>
-						</div>
+
+						{retestRequestsList.length === 0 ? (
+							<div className="py-6 text-center text-zinc-500">
+								<ShieldCheck className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+								<p className="text-[10px] font-semibold">No active retest assignments</p>
+							</div>
+						) : (
+							<div className="space-y-3">
+								{retestRequestsList.map(req => (
+									<div key={req.id} className="p-3 bg-rose-50/50 border border-rose-100 rounded-2xl space-y-1.5">
+										<div className="flex items-center justify-between">
+											<span className="text-[10px] font-extrabold text-rose-700">{req.requestId}</span>
+											<span className="text-[9px] font-bold bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded">Retest</span>
+										</div>
+										<h5 className="text-[11px] font-bold text-zinc-800 truncate">{req.brandName} - {req.modelNo}</h5>
+										<p className="text-[9px] text-zinc-500 font-medium">{req.sampleDescription}</p>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
+
+					{/* SLA Due Date Alerts & Exception Center */}
+					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-4">
+						<div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
+							<AlertTriangle className="w-5 h-5 text-amber-500" />
+							<div>
+								<h4 className="text-xs font-extrabold text-zinc-905 uppercase tracking-wider">
+									SLA & Due Date Warnings
+								</h4>
+								<p className="text-[10px] text-zinc-500 font-semibold">Priority and turnaround alerts</p>
+							</div>
+						</div>
+
+						{activeTasksList.filter(t => t.isOverdue || t.daysText.includes('Due in 1d') || t.daysText.includes('Due in 0d')).length === 0 ? (
+							<div className="py-6 text-center text-zinc-500">
+								<CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+								<p className="text-[10px] font-semibold">All due tasks are on track</p>
+							</div>
+						) : (
+							<div className="space-y-2">
+								{activeTasksList.filter(t => t.isOverdue || t.daysText.includes('Due in 1d') || t.daysText.includes('Due in 0d')).map(task => (
+									<div key={task.id} className="p-3 bg-amber-50/50 border border-amber-200 rounded-2xl flex items-center justify-between gap-3">
+										<div className="min-w-0">
+											<span className="text-[9px] font-extrabold text-amber-800">{task.requestId}</span>
+											<h5 className="text-[10px] font-bold text-zinc-800 truncate">{task.brandName}</h5>
+										</div>
+										<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+											task.isOverdue 
+												? 'bg-rose-100 text-rose-700' 
+												: 'bg-amber-100 text-amber-800'
+										}`}>
+											{task.daysText}
+										</span>
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+
+
 				</div>
 			</div>
 		</div>
