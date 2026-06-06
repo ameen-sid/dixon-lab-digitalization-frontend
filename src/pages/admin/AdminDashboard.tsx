@@ -4,6 +4,11 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { getPlatforms } from '../../services/operations/platformAvailabilityService';
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
+import { getTestTypes } from '../../services/operations/testTypeService';
+import { getTestCategories } from '../../services/operations/testCategoryService';
+import { getTestProtocols } from '../../services/operations/testProtocolService';
+import departmentService from '../../services/operations/departmentService';
+import userService from '../../services/operations/userService';
 import DepartmentManagement from './DepartmentManagement';
 import UserManagement from './UserManagement';
 import TestTypeManagement from './TestTypeManagement';
@@ -13,7 +18,8 @@ import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import { 
-	Shield, Database, Users, ChevronRight, RotateCw, Activity
+	Shield, Users, ChevronRight, RotateCw, Activity,
+	Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 const getFormattedRequestId = (occupiedBy: string, testRequestId: any) => {
@@ -68,10 +74,20 @@ export default function AdminDashboard() {
 	const [platformOccupancies, setPlatformOccupancies] = useState<any[]>([]);
 	const [selectedPlatformModal, setSelectedPlatformModal] = useState<{ stationNo: number; platformNo: number } | null>(null);
 
+	// Dashboard summary stats
+	const [dashUsers, setDashUsers] = useState<any[]>([]);
+	const [dashDepts, setDashDepts] = useState<any[]>([]);
+	const [dashTestTypes, setDashTestTypes] = useState<any[]>([]);
+	const [dashTestCats, setDashTestCats] = useState<any[]>([]);
+	const [dashTestProtos, setDashTestProtos] = useState<any[]>([]);
+	const [dashStations, setDashStations] = useState<any[]>([]);
+	const [dashLoading, setDashLoading] = useState(true);
+
 	const loadPlatformTelemetry = async () => {
 		try {
 			const data = await getPlatforms()();
 			setPlatformOccupancies(data || []);
+			setDashStations(data || []);
 			const mapping: { [key: string]: boolean } = {};
 			(data || []).forEach((item: any) => {
 				mapping[`${item.stationNo}-${item.platformNo}`] = item.isAvailable;
@@ -94,10 +110,33 @@ export default function AdminDashboard() {
 		}
 	};
 
+	const loadDashboardStats = async () => {
+		setDashLoading(true);
+		try {
+			const [users, depts, types, cats, protos] = await Promise.all([
+				userService.getUsers()().catch(() => []),
+				departmentService.getDepartments()().catch(() => []),
+				getTestTypes()().catch(() => []),
+				getTestCategories()().catch(() => []),
+				getTestProtocols()().catch(() => []),
+			]);
+			setDashUsers(users || []);
+			setDashDepts(depts || []);
+			setDashTestTypes(types || []);
+			setDashTestCats(cats || []);
+			setDashTestProtos(protos || []);
+		} catch (err) {
+			console.error('Failed to load dashboard stats:', err);
+		} finally {
+			setDashLoading(false);
+		}
+	};
+
 	useEffect(() => {
 		if (token && userStr) {
 			loadPlatformTelemetry();
 			loadEquipmentTelemetry();
+			loadDashboardStats();
 		}
 	}, [token, userStr]);
 
@@ -150,84 +189,144 @@ export default function AdminDashboard() {
 		switch (activeTab) {
 			case 'dashboard':
 				return (
-					<div className="space-y-6">
-						{/* Top Metric Cards */}
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-							{/* Users Metric */}
-							<div className="bg-white border border-zinc-200/50 rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
-								<div className="flex items-center gap-4">
-									<div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
-										<Users className="w-5 h-5" />
-									</div>
-									<div>
-										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">4</h4>
-										<p className="text-xs text-zinc-500 font-medium">Active Profiles</p>
-									</div>
-								</div>
-								<div 
-									onClick={() => navigate('/admin/users-management')} 
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
-								>
-									<span>View details</span>
-									<ChevronRight className="w-3.5 h-3.5" />
-								</div>
-							</div>
+					<div className="space-y-7">
 
-							{/* Database Pool Metric */}
-							<div className="bg-white border border-zinc-200/50 rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
-								<div className="flex items-center gap-4">
-									<div className="w-10 h-10 bg-rose-500/10 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
-										<Database className="w-5 h-5" />
-									</div>
-									<div>
-										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">21 Max</h4>
-										<p className="text-xs text-zinc-500 font-medium">Database Pools</p>
-									</div>
-								</div>
-								<div 
-									onClick={() => navigate('/admin/platform-availability')}
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
-								>
-									<span>View details</span>
-									<ChevronRight className="w-3.5 h-3.5" />
-								</div>
+						{/* Header Banner */}
+						<div className="relative bg-[#11236a] rounded-[24px] px-8 py-6 flex items-center justify-between overflow-hidden shadow-lg">
+							<div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #6366f1 0%, transparent 60%)' }} />
+							<div className="relative z-10">
+								<p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">System Admin Console</p>
+								<h1 className="text-white text-2xl font-extrabold tracking-tight" style={{ fontFamily: 'Outfit, Inter, sans-serif' }}>
+									Dixon Lab — Admin Overview
+								</h1>
+								<p className="text-white/50 text-xs mt-1 font-medium">Real-time system configuration and operational statistics</p>
 							</div>
+							<button
+								onClick={() => { loadDashboardStats(); loadPlatformTelemetry(); loadEquipmentTelemetry(); toast.success('Dashboard refreshed.'); }}
+								className="relative z-10 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-all cursor-pointer"
+							>
+								<RotateCw className="w-4 h-4" />
+							</button>
+						</div>
 
-							{/* System Alerts Metric */}
-							<div className="bg-white border border-zinc-200/50 rounded-[20px] p-5 shadow-sm flex flex-col justify-between">
-								<div className="flex items-center gap-4">
-									<div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-										<Shield className="w-5 h-5" />
+						{/* Row 1: Users, Departments, Stations, Equipment */}
+						<div>
+							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Infrastructure Overview</p>
+							<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+								{[
+									{ label: 'Total Users', value: dashUsers.length, icon: Users, color: 'indigo', route: '/admin/users-management', sub: `${dashUsers.filter((u:any) => u.role === 'Admin').length} Admin · ${dashUsers.filter((u:any) => u.role === 'Engineer').length} Engineers` },
+									{ label: 'Departments', value: dashDepts.length, icon: Building2, color: 'violet', route: '/admin/departments-management', sub: 'Active lab divisions' },
+									{ label: 'Platform Stations', value: (() => { const ids = new Set(dashStations.map((s:any) => s.stationNo)); return ids.size; })(), icon: Server, color: 'sky', route: '/admin/platform-availability', sub: `${Object.values(platformSlots).filter(v => v === false).length} occupied` },
+									{ label: 'R&D Equipment', value: equipmentList.length, icon: Cpu, color: 'emerald', route: '/admin/equipment-availability', sub: `${equipmentList.filter((e:any) => e.isAvailable).length} available` },
+								].map(({ label, value, icon: Icon, color, route, sub }) => {
+									const colMap: Record<string, string> = {
+										indigo: 'bg-indigo-500/10 text-indigo-600',
+										violet: 'bg-violet-500/10 text-violet-600',
+										sky: 'bg-sky-500/10 text-sky-600',
+										emerald: 'bg-emerald-500/10 text-emerald-600',
+									};
+									return (
+										<div key={label} className="bg-white border border-zinc-200/60 rounded-[20px] p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+											<div className="flex items-start justify-between">
+												<div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${colMap[color]}`}>
+													<Icon className="w-5 h-5" />
+												</div>
+												{dashLoading && <span className="w-2 h-2 rounded-full bg-zinc-300 animate-pulse mt-1" />}
+											</div>
+											<div className="mt-4">
+												<p className="text-3xl font-extrabold text-zinc-900 leading-none">{dashLoading ? '—' : value}</p>
+												<p className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500 mt-1">{label}</p>
+												<p className="text-[10px] text-zinc-400 font-medium mt-0.5">{sub}</p>
+											</div>
+											<div onClick={() => navigate(route)} className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-[10px] font-bold text-zinc-500 hover:text-[#11236a] transition-all cursor-pointer uppercase tracking-wide">
+												<span>Manage</span><ChevronRight className="w-3.5 h-3.5" />
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+
+						{/* Row 2: Test Types, Categories, Protocols */}
+						<div>
+							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Test Configuration Summary</p>
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								{[
+									{ label: 'Test Types', value: dashTestTypes.length, icon: FlaskConical, color: '#f59e0b', bg: 'bg-amber-500/10', route: '/admin/test-types', items: dashTestTypes.slice(0, 3) },
+									{ label: 'Test Categories', value: dashTestCats.length, icon: Tag, color: '#8b5cf6', bg: 'bg-violet-500/10', route: '/admin/test-categories', items: dashTestCats.slice(0, 3) },
+									{ label: 'Test Protocols', value: dashTestProtos.length, icon: BookOpen, color: '#0ea5e9', bg: 'bg-sky-500/10', route: '/admin/test-protocols', items: dashTestProtos.slice(0, 3) },
+								].map(({ label, value, icon: Icon, color, bg, route, items }) => (
+									<div key={label} className="bg-white border border-zinc-200/60 rounded-[20px] p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
+										<div className="flex items-center justify-between mb-4">
+											<div className="flex items-center gap-3">
+												<div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${bg}`}>
+													<Icon className="w-4.5 h-4.5" style={{ color }} />
+												</div>
+												<div>
+													<p className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-500">{label}</p>
+													<p className="text-2xl font-extrabold text-zinc-900 leading-none">{dashLoading ? '—' : value}</p>
+												</div>
+											</div>
+										</div>
+										<div className="flex-1 space-y-1.5">
+											{dashLoading ? (
+												[1,2,3].map(i => <div key={i} className="h-5 bg-zinc-100 rounded-lg animate-pulse" />)
+											) : items.length > 0 ? items.map((item: any) => (
+												<div key={item.id} className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 rounded-xl">
+													<span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+													<span className="text-[11px] font-semibold text-zinc-700 truncate">{item.name}</span>
+												</div>
+											)) : (
+												<p className="text-[11px] text-zinc-400 italic px-1">No entries configured yet.</p>
+											)}
+											{!dashLoading && value > 3 && (
+												<p className="text-[10px] text-zinc-400 font-bold px-1">+{value - 3} more…</p>
+											)}
+										</div>
+										<div onClick={() => navigate(route)} className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-[10px] font-bold text-zinc-500 hover:text-[#11236a] transition-all cursor-pointer uppercase tracking-wide">
+											<span>Configure</span><ChevronRight className="w-3.5 h-3.5" />
+										</div>
 									</div>
-									<div>
-										<h4 className="text-2xl font-bold text-zinc-900 leading-tight">4 Hubs</h4>
-										<p className="text-xs text-zinc-500 font-medium">Departments</p>
-									</div>
-								</div>
-								<div 
-									onClick={() => navigate('/admin/departments-management')}
-									className="border-t border-zinc-100 mt-4 pt-3 flex items-center justify-between text-xs text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer"
-								>
-									<span>View details</span>
-									<ChevronRight className="w-3.5 h-3.5" />
+								))}
+							</div>
+						</div>
+
+						{/* Row 3: Pending System Configuration Status */}
+						<div>
+							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Pending Configuration Status</p>
+							<div className="bg-white border border-zinc-200/60 rounded-[20px] p-5 shadow-sm">
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+									{[
+										{ label: 'Departments configured', ok: dashDepts.length > 0, route: '/admin/departments-management' },
+										{ label: 'Users created', ok: dashUsers.length > 0, route: '/admin/users-management' },
+										{ label: 'Test Types defined', ok: dashTestTypes.length > 0, route: '/admin/test-types' },
+										{ label: 'Test Categories defined', ok: dashTestCats.length > 0, route: '/admin/test-categories' },
+										{ label: 'Test Protocols configured', ok: dashTestProtos.length > 0, route: '/admin/test-protocols' },
+										{ label: 'Equipment registered', ok: equipmentList.length > 0, route: '/admin/rd-equipment' },
+									].map(({ label, ok, route }) => (
+										<div
+											key={label}
+											onClick={() => navigate(route)}
+											className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm ${ok ? 'border-emerald-100 bg-emerald-50/60 hover:bg-emerald-50' : 'border-amber-100 bg-amber-50/60 hover:bg-amber-50'}`}
+										>
+											{dashLoading ? (
+												<span className="w-4 h-4 rounded-full bg-zinc-200 animate-pulse shrink-0" />
+											) : ok ? (
+												<CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+											) : (
+												<AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+											)}
+											<span className={`text-xs font-semibold ${ok ? 'text-emerald-800' : 'text-amber-800'}`}>{label}</span>
+											{!ok && <span className="ml-auto text-[9px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>}
+										</div>
+									))}
 								</div>
 							</div>
 						</div>
 
-						{/* System Status Welcome Card */}
-						<div className="bg-white border border-zinc-200/50 rounded-3xl p-8 shadow-sm flex flex-col justify-center items-center text-center">
-							<div className="w-16 h-16 bg-[#11236a]/5 border border-[#11236a]/10 rounded-2xl flex items-center justify-center text-[#11236a] mb-4">
-								<Shield className="w-8 h-8" />
-							</div>
-							<h2 className="text-xl font-bold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
-								System Admin Console
-							</h2>
-							<p className="text-zinc-500 max-w-lg mt-2 text-sm font-light leading-relaxed">
-								Welcome to Dixon Technology Admin Center. Real-time platform states, department setups, NABL test procedures, and user credentials registers are active. Use the left navigation to manage resources.
-							</p>
-						</div>
 					</div>
 				);
+
 
 			case 'platform-availability':
 				return (
