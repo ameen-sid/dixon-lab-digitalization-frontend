@@ -14,6 +14,7 @@ interface UserRecord {
 	id: number;
 	name: string;
 	username: string;
+	email: string | null;
 	role: string;
 	dept: string;
 	departmentId: number | null;
@@ -83,6 +84,7 @@ export default function UserManagement() {
 
 	const [usrName, setUsrName] = useState("");
 	const [usrUsername, setUsrUsername] = useState("");
+	const [usrEmail, setUsrEmail] = useState("");
 	const [usrPassword, setUsrPassword] = useState("");
 	const [usrRole, setUsrRole] = useState("Engineer");
 	const [usrDeptId, setUsrDeptId] = useState<string>("");
@@ -97,12 +99,13 @@ export default function UserManagement() {
 
 			const fetchedUsers = await userService.getUsers()();
 
-			const mappedRecords: UserRecord[] = fetchedUsers.map((u: { id: number; name: string; username: string; role: string; departmentId: number | null }) => {
+			const mappedRecords: UserRecord[] = fetchedUsers.map((u: { id: number; name: string; username: string; email: string | null; role: string; departmentId: number | null }) => {
 				const matchingDept = fetchedDepts.find((d: BackendDepartment) => d.id === u.departmentId);
 				return {
 					id: u.id,
 					name: u.name,
 					username: u.username,
+					email: u.email,
 					role: mapBackendRoleToUI(u.role),
 					dept: matchingDept ? matchingDept.name : 'no department',
 					departmentId: u.departmentId,
@@ -134,8 +137,8 @@ export default function UserManagement() {
 
 	const handleAddUser = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!usrName || !usrUsername || !usrPassword) {
-			showNotification('Please fill in all mandatory fields, including the portal password.', 'error');
+		if (!usrName || !usrUsername || !usrPassword || !usrEmail) {
+			showNotification('Please fill in all mandatory fields, including the email and password.', 'error');
 			return;
 		}
 
@@ -158,6 +161,7 @@ export default function UserManagement() {
 				password: usrPassword,
 				role: backendRole,
 				departmentId: isExempt ? null : parseInt(usrDeptId),
+				email: usrEmail.trim()
 			};
 
 			await userService.createUser(bodyData)();
@@ -173,6 +177,7 @@ export default function UserManagement() {
 		setEditingUserId(user.id);
 		setUsrName(user.name);
 		setUsrUsername(user.username);
+		setUsrEmail(user.email || "");
 		setUsrPassword("");
 		setUsrRole(user.role);
 		setUsrDeptId(user.departmentId ? user.departmentId.toString() : "");
@@ -181,7 +186,10 @@ export default function UserManagement() {
 
 	const handleUpdateUser = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!usrName || !usrUsername || editingUserId === null) return;
+		if (!usrName || !usrUsername || !usrEmail || editingUserId === null) {
+			showNotification('Please fill in all mandatory fields, including email.', 'error');
+			return;
+		}
 
 		const backendRole = mapUIToBackendRole(usrRole);
 		const isExempt = ['Admin', 'CEO'].includes(backendRole);
@@ -201,6 +209,7 @@ export default function UserManagement() {
 				username: usrUsername.trim().toLowerCase(),
 				role: backendRole,
 				departmentId: isExempt ? null : parseInt(usrDeptId),
+				email: usrEmail.trim()
 			};
 
 			if (usrPassword.trim() !== "")	bodyData.password = usrPassword;
@@ -239,6 +248,7 @@ export default function UserManagement() {
 	const resetUserForm = () => {
 		setUsrName("");
 		setUsrUsername("");
+		setUsrEmail("");
 		setUsrPassword("");
 		setUsrRole('Engineer');
 		setUsrDeptId(departments.length > 0 ? departments[0].id.toString() : "");
@@ -415,6 +425,7 @@ export default function UserManagement() {
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Portal Name</th>
 									<th className="py-4 px-6">Username (UID)</th>
+									<th className="py-4 px-6">Email Address</th>
 									<th className="py-4 px-6">Role Assignment</th>
 									<th className="py-4 px-6">Department Name</th>
 									<th className="py-4 px-6 text-right">Actions</th>
@@ -424,7 +435,7 @@ export default function UserManagement() {
 								{paginatedUsers.length === 0 ? (
 									<tr>
 										<td
-											colSpan={5}
+											colSpan={6}
 											className="py-8 text-center text-zinc-600 font-light"
 										> No user credentials found in full-stack registry.</td>
 									</tr>
@@ -438,6 +449,7 @@ export default function UserManagement() {
 												<p className="font-bold text-zinc-900">{user.name}</p>
 											</td>
 											<td className="py-4 px-6 text-zinc-700 font-medium">{user.username}</td>
+											<td className="py-4 px-6 text-zinc-700 font-medium">{user.email || <em className="text-zinc-400 font-normal">NULL</em>}</td>
 											<td className="py-4 px-6">
 												<span className="bg-[#11236a]/10 text-[#11236a] text-[9px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wide">{user.role}</span>
 											</td>
@@ -508,6 +520,17 @@ export default function UserManagement() {
 									placeholder="e.g. Ramesh Kumar"
 									value={usrName}
 									onChange={(e) => setUsrName(e.target.value)}
+									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
+								/>
+							</div>
+							<div>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
+								<input
+									type="email"
+									required
+									placeholder="e.g. user@dixoninfo.com"
+									value={usrEmail}
+									onChange={(e) => setUsrEmail(e.target.value)}
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
 								/>
 							</div>
@@ -605,6 +628,17 @@ export default function UserManagement() {
 									required
 									value={usrName}
 									onChange={(e) => setUsrName(e.target.value)}
+									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
+								/>
+							</div>
+							<div>
+								<label className="block text-[10px] text-zinc-700 font-bold uppercase tracking-wide">Email Address <span className="text-red-500">*</span></label>
+								<input
+									type="email"
+									required
+									placeholder="e.g. user@dixoninfo.com"
+									value={usrEmail}
+									onChange={(e) => setUsrEmail(e.target.value)}
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2 mt-1 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all font-light"
 								/>
 							</div>
