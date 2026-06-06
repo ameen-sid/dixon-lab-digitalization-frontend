@@ -40,7 +40,7 @@ const CHECKPOINTS = [
 	{ id: 5, text: "Is Sample Rating same as written on Test Request Form?" },
 	{ id: 6, text: "Is Trade Mark / Brand same as written on Test Request Form?" },
 	{ id: 7, text: "Is User Manual provided along with Test Request Form?" },
-	{ id: 8, text: "Any sign of Damage on sample?" },
+	{ id: 8, text: "Is sample free from damage?" },
 	{ id: 9, text: "Is all accessories received with sample?" },
 ];
 
