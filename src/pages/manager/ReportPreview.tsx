@@ -227,8 +227,11 @@ export default function ReportPreview() {
 
 	// DQL constants & template variables
 	const testDescription = testCategory?.name || 'NEEDLE FLAME TEST';
-	const issueNo = request ? String(request.id).padStart(2, '0') : '01';
-	const issueDate = formatDate(request?.updatedAt || request?.createdAt || new Date().toISOString());
+	const issueNo = '01';
+	const issueDate = '15-01-2024';
+	const revNo = '00';
+	const revDate = '00';
+	const docNo = 'PSL/QSP/07/TR-02';
 	const testPurpose = 'New Development Test';
 	const testItemDescription = request.sampleDescription || 'Spin Lid Switch';
 	const associateModel = request.modelNo || 'All Semi-Automatic Washing Machine';
@@ -306,9 +309,9 @@ export default function ReportPreview() {
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
 				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
 				<div className="py-1 px-1">ISSUE DATE: {issueDate}</div>
-				<div className="py-1 px-1">REV NO: 00</div>
-				<div className="py-1 px-1">REV DATE: 00</div>
-				<div className="py-1 px-1">DOC NO: PSL/QSP/07/TR-02</div>
+				<div className="py-1 px-1">REV NO: {revNo}</div>
+				<div className="py-1 px-1">REV DATE: {revDate}</div>
+				<div className="py-1 px-1">DOC NO: {docNo}</div>
 				<div className="py-1 px-1">Page {pageNo} of 3</div>
 			</div>
 		</div>

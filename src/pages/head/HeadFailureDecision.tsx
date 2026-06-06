@@ -11,6 +11,8 @@ export default function HeadFailureDecision() {
 	const [loading, setLoading] = useState(false);
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -71,7 +73,16 @@ export default function HeadFailureDecision() {
 			matchesStatus = hasDecisionBeenTaken;
 		}
 
-		return matchesSearch && matchesStatus;
+		let matchesDate = true;
+		const reqDate = (r.updatedAt || r.createdAt || '').split('T')[0];
+		if (startDate) {
+			matchesDate = matchesDate && reqDate >= startDate;
+		}
+		if (endDate) {
+			matchesDate = matchesDate && reqDate <= endDate;
+		}
+
+		return matchesSearch && matchesStatus && matchesDate;
 	});
 
 	const formatDate = (dateStr: string) => {
@@ -115,36 +126,81 @@ export default function HeadFailureDecision() {
 			</div>
 
 			{/* Search & Filters */}
-			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
-				<div className="relative flex-1 max-w-sm">
-					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-					<input
-						type="text"
-						placeholder="Search by ID, brand, model or customer..."
-						value={search}
-						onChange={e => {
-							setSearch(e.target.value);
+			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
+					<div className="relative min-w-[200px] flex-1">
+						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+						<input
+							type="text"
+							placeholder="Search by ID, brand, model or customer..."
+							value={search}
+							onChange={e => {
+								setSearch(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
+						/>
+					</div>
+
+					<CustomSelect
+						value={statusFilter}
+						onChange={(val) => {
+							setStatusFilter(val);
 							setCurrentPage(1);
 						}}
-						className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 focus:bg-white focus:border-[#11236a] outline-none transition-all"
+						options={[
+							{ value: 'ALL', label: 'All Failures' },
+							{ value: 'PENDING_DECISION', label: 'Pending Decision' },
+							{ value: 'DECISION_TAKEN', label: 'Decisions Taken' }
+						]}
+						className="w-44 shrink-0"
 					/>
+
+					{/* Date filters */}
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
+						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
+						<input 
+							type="date" 
+							value={startDate}
+							onChange={(e) => {
+								setStartDate(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
+
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
+						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
+						<input 
+							type="date" 
+							value={endDate}
+							onChange={(e) => {
+								setEndDate(e.target.value);
+								setCurrentPage(1);
+							}}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
 				</div>
 
-				<CustomSelect
-					value={statusFilter}
-					onChange={(val) => {
-						setStatusFilter(val);
-						setCurrentPage(1);
-					}}
-					options={[
-						{ value: 'ALL', label: 'All Failures' },
-						{ value: 'PENDING_DECISION', label: 'Pending Decision' },
-						{ value: 'DECISION_TAKEN', label: 'Decisions Taken' }
-					]}
-					className="w-44 shrink-0"
-				/>
-
-				<span className="ml-auto text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} requests found</span>
+				<div className="flex items-center gap-3 shrink-0">
+					{(search || statusFilter !== 'ALL' || startDate || endDate) && (
+						<button 
+							onClick={() => {
+								setSearch('');
+								setStatusFilter('ALL');
+								setStartDate('');
+								setEndDate('');
+								setCurrentPage(1);
+							}}
+							className="text-xs font-bold text-red-650 hover:text-red-755 hover:underline bg-transparent border-none cursor-pointer text-left mr-2"
+						>
+							Reset Filters
+						</button>
+					)}
+					<span className="text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} requests found</span>
+				</div>
 			</div>
 
 			{/* Table */}

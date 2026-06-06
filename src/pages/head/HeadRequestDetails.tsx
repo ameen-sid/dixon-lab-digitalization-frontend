@@ -279,6 +279,7 @@ export default function HeadRequestDetails() {
 								case 'INSPECTION_COMPLETED':
 									return 'bg-emerald-50 text-emerald-600 border-emerald-100';
 								case 'FAIL':
+								case 'FAILED':
 								case 'TESTING_FAILED':
 								case 'REJECTED':
 									return 'bg-rose-50 text-rose-600 border-rose-100';
@@ -287,7 +288,7 @@ export default function HeadRequestDetails() {
 									return 'bg-amber-50 text-amber-600 border-amber-100';
 								case 'UNDER_TEST':
 								case 'UNDER_TESTING':
-									return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+									return 'bg-indigo-50 text-indigo-650 border-indigo-100';
 								case 'UNDER_INSPECTION':
 									return 'bg-blue-50 text-blue-600 border-blue-100';
 								case 'PENDING_APPROVAL':
@@ -299,7 +300,7 @@ export default function HeadRequestDetails() {
 						return (
 							<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(request.status)}`}>
 								{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(request.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-								{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(request.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
+								{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED'].includes(request.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
 								{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(request.status) && (
 									<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
 								)}

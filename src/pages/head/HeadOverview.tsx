@@ -382,6 +382,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 													case 'INSPECTION_COMPLETED':
 														return 'bg-emerald-50 text-emerald-600 border-emerald-100';
 													case 'FAIL':
+													case 'FAILED':
 													case 'TESTING_FAILED':
 													case 'REJECTED':
 														return 'bg-rose-50 text-rose-600 border-rose-100';
@@ -402,7 +403,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 											return (
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
 													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
