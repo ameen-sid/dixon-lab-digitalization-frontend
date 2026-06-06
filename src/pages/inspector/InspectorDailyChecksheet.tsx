@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clipboard, Activity, ArrowRight } from 'lucide-react';
+import { Clipboard, Activity, ArrowRight, Search, X } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
+import CustomSelect from '../../components/CustomSelect';
 import { getTestRequests } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
+import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
+import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
 
 export default function InspectorDailyChecksheet() {
 	const navigate = useNavigate();
@@ -15,8 +18,16 @@ export default function InspectorDailyChecksheet() {
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
+	const [equipments, setEquipments] = useState<any[]>([]);
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
+	const [checksheetEntriesMap, setChecksheetEntriesMap] = useState<{ [key: string]: any[] }>({});
 	const [loading, setLoading] = useState(true);
+
+	// Filter states
+	const [searchQuery, setSearchQuery] = useState('');
+	const [typeFilter, setTypeFilter] = useState('All');
+	const [stationFilter, setStationFilter] = useState('All');
+	const [statusFilter, setStatusFilter] = useState('All');
 
 	// Fetch all parameters on mount
 	useEffect(() => {
@@ -27,14 +38,32 @@ export default function InspectorDailyChecksheet() {
 				const types = await getTestTypes()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
+				const eqps = await getTestingEquipments({ limit: 100 })();
 				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
+				const parsedPlans = cachedPlans ? JSON.parse(cachedPlans) : {};
+
+				// Concurrently fetch database checksheet entries for all test plans
+				const entriesMap: { [key: string]: any[] } = {};
+				await Promise.all(
+					Object.keys(parsedPlans).map(async (key) => {
+						try {
+							const entries = await getChecksheetEntries(key)();
+							entriesMap[key] = entries || [];
+						} catch (err) {
+							console.error(`Failed to load entries for ${key}:`, err);
+							entriesMap[key] = [];
+						}
+					})
+				);
 
 				if (isMounted) {
 					setRequests(reqs || []);
 					setTestTypes(types || []);
 					setTestCategories(categories || []);
 					setTestProtocols(protocols || []);
-					setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
+					setEquipments(eqps || []);
+					setPlans(parsedPlans);
+					setChecksheetEntriesMap(entriesMap);
 				}
 			} catch (err) {
 				console.error('Failed to load daily checksheet master data:', err);
@@ -48,9 +77,10 @@ export default function InspectorDailyChecksheet() {
 		};
 	}, []);
 
+	const todayStr = new Date().toISOString().split('T')[0];
+
 	// Filter active test plans to Reliability tests only active today
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
-		// Key shape: "${requestId}-sample-${sampleIndex}"
 		const [reqIdStr] = key.split('-sample-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		
@@ -99,6 +129,58 @@ export default function InspectorDailyChecksheet() {
 			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
 	);
 
+	// Static type options
+	const typeOptions = [
+		{ value: 'All', label: 'All Types' },
+		{ value: 'FATL', label: 'FATL' },
+		{ value: 'FAFL', label: 'FAFL' },
+		{ value: 'SATL', label: 'SATL' }
+	];
+
+	const stationOptions = [
+		{ value: 'All', label: 'All Stations' },
+		...Array.from({ length: 14 }, (_, i) => ({
+			value: String(i + 1),
+			label: `Station ${i + 1}`
+		}))
+	];
+
+
+
+	// Apply all filter selections
+	const filteredPlans = reliabilityPlans.map(item => {
+		const entries = checksheetEntriesMap[item.key] || [];
+		const hasTodayEntry = entries.some((e: any) => e.date === todayStr);
+		const statusVal = hasTodayEntry ? 'Completed' : 'Pending';
+		const eqName = equipments.find(e => String(e.id) === String(item.plan.equipmentId))?.name || 'N/A';
+
+		return {
+			...item,
+			status: statusVal,
+			equipmentName: eqName
+		};
+	}).filter(item => {
+		// Search query filter
+		const q = searchQuery.toLowerCase();
+		const matchesSearch = 
+			item.request.brandName.toLowerCase().includes(q) ||
+			item.request.modelNo.toLowerCase().includes(q) ||
+			item.request.sampleDescription.toLowerCase().includes(q) ||
+			(item.request.requestId || `REQ-${item.request.id}`).toLowerCase().includes(q);
+
+		// Checksheet Type filter
+		const typeVal = item.plan.productType || item.protocol?.productType || 'SATL';
+		const matchesType = typeFilter === 'All' || typeVal.toUpperCase() === typeFilter.toUpperCase();
+
+		// Station filter
+		const matchesStation = stationFilter === 'All' || String(item.plan.stationNo) === stationFilter;
+
+		// Status filter
+		const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+
+		return matchesSearch && matchesType && matchesStation && matchesStatus;
+	});
+
 	// Format platforms list text
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
@@ -122,6 +204,76 @@ export default function InspectorDailyChecksheet() {
 			description="Select active reliability test plan to log chronological checksheet parameters."
 		>
 			<div className="space-y-6">
+				{/* Search & Filters Toolbar */}
+				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+					{/* Search input (Left side) */}
+					<div className="relative w-full lg:max-w-xs">
+						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+						<input 
+							type="text" 
+							placeholder="Search by brand, model, request..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+						/>
+					</div>
+
+					{/* Dropdowns (Right side) */}
+					<div className="flex flex-wrap gap-4 items-center w-full lg:w-auto lg:justify-end">
+						<div className="flex items-center gap-1.5">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Type:</span>
+							<CustomSelect
+								value={typeFilter}
+								onChange={setTypeFilter}
+								options={typeOptions}
+								className="w-28"
+							/>
+						</div>
+
+						<div className="flex items-center gap-1.5">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Station:</span>
+							<CustomSelect
+								value={stationFilter}
+								onChange={setStationFilter}
+								options={stationOptions}
+								className="w-28"
+							/>
+						</div>
+
+
+
+						<div className="flex items-center gap-1.5">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Status:</span>
+							<CustomSelect
+								value={statusFilter}
+								onChange={setStatusFilter}
+								options={[
+									{ value: 'All', label: 'All Status' },
+									{ value: 'Pending', label: 'Pending Today' },
+									{ value: 'Completed', label: 'Completed Today' }
+								]}
+								className="w-32"
+							/>
+						</div>
+
+						{(searchQuery || typeFilter !== 'All' || stationFilter !== 'All' || statusFilter !== 'All') && (
+							<button
+								onClick={() => {
+									setSearchQuery('');
+									setTypeFilter('All');
+									setStationFilter('All');
+									setStatusFilter('All');
+								}}
+								className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/50 px-3 py-1.5 rounded-xl cursor-pointer transition-all flex items-center gap-1"
+							>
+								<X className="w-3.5 h-3.5" />
+								<span>Clear</span>
+							</button>
+						)}
+					</div>
+				</div>
+
+				{/* Table Grid Cards */}
 				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm">
 					<div className="flex items-center gap-3 mb-6">
 						<div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
@@ -133,17 +285,17 @@ export default function InspectorDailyChecksheet() {
 						</div>
 					</div>
 
-					{reliabilityPlans.length === 0 ? (
+					{filteredPlans.length === 0 ? (
 						<div className="text-center py-16 border-2 border-dashed border-zinc-200 rounded-2xl">
 							<Clipboard className="w-12 h-12 text-zinc-300 mx-auto mb-3" />
-							<h4 className="text-sm font-bold text-zinc-800">No reliability test plans found active today</h4>
+							<h4 className="text-sm font-bold text-zinc-800">No matching reliability test plans found</h4>
 							<p className="text-xs text-zinc-500 font-light mt-1 max-w-sm mx-auto">
-								Once the Lab Manager configures test plans matching Reliability test types or protocols spanning today's date, they will appear here.
+								Adjust your filters or query to locate specific active testing plans.
 							</p>
 						</div>
 					) : (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							{reliabilityPlans.map((item) => (
+							{filteredPlans.map((item) => (
 								<div 
 									key={item.key}
 									onClick={() => navigate(`/inspector/checksheet/${item.key}`)}
@@ -159,9 +311,18 @@ export default function InspectorDailyChecksheet() {
 													{item.request.brandName} - {item.request.modelNo}
 												</h4>
 											</div>
-											<span className="text-xs text-zinc-400 font-extrabold uppercase bg-zinc-100 px-2 py-0.5 rounded">
-												Plan #{item.plan.stationNo}
-											</span>
+											<div className="flex flex-col items-end gap-1.5">
+												<span className="text-xs text-zinc-400 font-extrabold uppercase bg-zinc-100 px-2 py-0.5 rounded">
+													Plan #{item.plan.stationNo}
+												</span>
+												<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded ${
+													item.status === 'Completed'
+														? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+														: 'bg-amber-50 text-amber-805 border border-amber-100 animate-pulse'
+												}`}>
+													{item.status} Today
+												</span>
+											</div>
 										</div>
 
 										<p className="text-xs text-zinc-555 line-clamp-1">
@@ -174,16 +335,8 @@ export default function InspectorDailyChecksheet() {
 												<span className="text-zinc-900">{item.request.requestId || `REQ-2026-${item.request.id}`}</span>
 											</div>
 											<div>
-												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Sample ID</span>
-												<span className="text-zinc-900">
-													{(() => {
-														const sampleIndex = Number(item.key.split('-sample-')[1]);
-														const inspection = item.request.sampleInspections?.find(
-															(si: any) => Number(si.sampleIndex) === sampleIndex
-														);
-														return inspection?.allottedId || `Sample #${sampleIndex + 1}`;
-													})()}
-												</span>
+												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Equipment</span>
+												<span className="text-zinc-900 truncate block max-w-[150px]" title={item.equipmentName}>{item.equipmentName}</span>
 											</div>
 											<div>
 												<span className="text-zinc-400 block font-semibold text-[9px] uppercase">Platforms</span>

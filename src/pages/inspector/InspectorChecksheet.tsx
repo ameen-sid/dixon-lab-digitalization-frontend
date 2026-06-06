@@ -247,6 +247,14 @@ export default function InspectorChecksheet() {
 			{/* Print layout override styles */}
 			<style>{`
 				@media print {
+					@page {
+						size: landscape;
+						margin: 10mm;
+					}
+					body {
+						background: #fff !important;
+						color: #000 !important;
+					}
 					body * {
 						visibility: hidden;
 					}
@@ -260,9 +268,14 @@ export default function InspectorChecksheet() {
 						width: 100%;
 						margin: 0;
 						padding: 0;
+						border: none !important;
+						box-shadow: none !important;
 					}
 					.no-print {
 						display: none !important;
+					}
+					.overflow-x-auto {
+						overflow: visible !important;
 					}
 					table {
 						width: 100% !important;
@@ -270,13 +283,18 @@ export default function InspectorChecksheet() {
 					}
 					th, td {
 						border: 1px solid #000 !important;
-						padding: 4px !important;
+						padding: 4px 2px !important;
 						font-size: 8px !important;
+						text-align: center !important;
+						word-wrap: break-word !important;
 					}
 					input {
 						border: none !important;
+						outline: none !important;
 						background: transparent !important;
 						font-size: 8px !important;
+						text-align: center !important;
+						width: 100% !important;
 					}
 				}
 			`}</style>
