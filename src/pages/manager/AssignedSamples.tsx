@@ -158,7 +158,21 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		return { ...engineerReports, ...managerReports, ...completedReports };
 	})();
 
-	const getSampleInspectionStatus = (taskId: string, qty: number) => {
+	const getSampleInspectionStatus = (taskId: string, qty: number, requestStatus?: string) => {
+		const isCompleted = requestStatus ? [
+			'INSPECTION_COMPLETED',
+			'UNDER_TESTING',
+			'TESTING_PASSED',
+			'TESTING_FAILED',
+			'TESTING_PARTIAL',
+			'COMPLETED',
+			'REJECTED'
+		].includes(requestStatus) : true;
+
+		if (!isCompleted) {
+			return 'Pending';
+		}
+
 		let passedCount = 0;
 		let failedCount = 0;
 		let pendingCount = 0;
@@ -213,7 +227,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			   t.modelNo.toLowerCase().includes(q) ||
 			   t.testMethodRef.toLowerCase().includes(q);
 
-		const status = getSampleInspectionStatus(t.id, t.sampleQty || 1);
+		const status = getSampleInspectionStatus(t.id, t.sampleQty || 1, t.status);
 		const matchesStatus = statusFilter === 'All' || status === statusFilter;
 
 		const matchesDate = matchesDateRange(t.assignedDate);
@@ -941,7 +955,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 										'COMPLETED',
 										'REJECTED'
 									].includes(task.status);
-									const inspStatus = getSampleInspectionStatus(task.id, task.sampleQty || 1);
+									const inspStatus = getSampleInspectionStatus(task.id, task.sampleQty || 1, task.status);
 									return (
 										<tr key={task.id} className="hover:bg-zinc-50/50 transition-all group">
 											<td className="py-4 px-6 font-extrabold text-zinc-955">{task.requestId}</td>

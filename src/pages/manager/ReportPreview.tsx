@@ -33,7 +33,7 @@ export default function ReportPreview() {
 				const reqs = await getTestRequests()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
-				const eqs = await getTestingEquipments()();
+				const eqs = await getTestingEquipments({ limit: 1000 })();
 				const userList = await getUsers()();
 				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
 

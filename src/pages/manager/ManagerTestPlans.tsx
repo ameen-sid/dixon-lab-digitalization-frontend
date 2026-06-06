@@ -253,12 +253,16 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 
 		try {
+			const reqIdPrefix = (selectedReq.requestId && String(selectedReq.requestId).startsWith('REQ-')) 
+				? selectedReq.requestId 
+				: `REQ-${selectedReq.requestId || selectedReq.id}`;
+
 			// 1. Reserve platform channels in database for this sample
 			const resOp = reservePlatforms(
 				Number(form.stationNo),
 				form.platformNos.map(Number),
 				Number(selectedReq.id),
-				`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
+				`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
 				selectedReq.modelNo,
 				form.endDate
 			);
@@ -269,7 +273,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				const eqResOp = reserveEquipment(
 					Number(form.equipmentId),
 					Number(selectedReq.id),
-					`REQ-${selectedReq.requestId || selectedReq.id} (Sample #${activeSampleIndex + 1})`,
+					`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
 					selectedReq.modelNo,
 					form.endDate
 				);

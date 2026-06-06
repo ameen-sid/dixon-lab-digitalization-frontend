@@ -37,7 +37,7 @@ export default function TestingEquipmentManagement() {
 		setIsLoading(true);
 		setError(null);
 		try {
-			const fetchedEquipments = await testingEquipmentService.getTestingEquipments()();
+			const fetchedEquipments = await testingEquipmentService.getTestingEquipments({ limit: 1000 })();
 			setEquipments(fetchedEquipments);
 		} catch (err) {
 			console.error('Error fetching testing equipment:', err);

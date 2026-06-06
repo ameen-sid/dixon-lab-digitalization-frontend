@@ -16,6 +16,33 @@ import {
 	Shield, Database, Users, ChevronRight, RotateCw, Activity
 } from 'lucide-react';
 
+const getFormattedRequestId = (occupiedBy: string, testRequestId: any) => {
+	if (!occupiedBy) return `#${testRequestId || 'N/A'}`;
+	const match = occupiedBy.match(/(REQ-[A-Za-z0-9-]+)/);
+	if (match) {
+		return match[1].replace(/^REQ-REQ-/, 'REQ-');
+	}
+	return `#${testRequestId || 'N/A'}`;
+};
+
+const formatOccupiedUntil = (dateStr: string) => {
+	if (!dateStr) return 'N/A';
+	const d = new Date(dateStr);
+	if (isNaN(d.getTime())) return dateStr;
+	
+	const day = d.getUTCDate();
+	const month = d.getUTCMonth() + 1;
+	const year = d.getUTCFullYear();
+	
+	const hours = d.getUTCHours();
+	const minutes = d.getUTCMinutes();
+	
+	if (hours === 0 && minutes === 0) {
+		return `${month}/${day}/${year}, 12:00:00 AM`;
+	}
+	return d.toLocaleString();
+};
+
 export default function AdminDashboard() {
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -319,11 +346,11 @@ export default function AdminDashboard() {
 									>
 										{/* Card Header */}
 										<div className="bg-[#11236a] flex items-center justify-between px-4 py-2.5 shrink-0">
-											<div className="flex items-center gap-2">
+											<div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
 												<Activity className="w-3.5 h-3.5 text-white shrink-0" />
-												<span className="text-white text-xs font-extrabold tracking-wide">ID: #{eq.id}</span>
+												<span className="text-white text-xs font-extrabold tracking-wide truncate" title={eq.name}>{eq.name}</span>
 											</div>
-											<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase leading-none ${
+											<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase leading-none shrink-0 ${
 												eq.status === 'MAINTENANCE' || eq.status === 'UNDER_MAINTENANCE'
 													? 'bg-amber-100 text-amber-800'
 													: isOccupied
@@ -336,11 +363,6 @@ export default function AdminDashboard() {
 
 										{/* Card Body */}
 										<div className="p-4 flex-grow flex flex-col justify-between bg-[#f8fafc]/30 space-y-3">
-											<div>
-												<h4 className="text-xs font-bold text-zinc-950 truncate leading-tight">{eq.name}</h4>
-												<p className="text-[10px] text-zinc-500 font-medium mt-0.5">Model No: {eq.modelNo || 'N/A'}</p>
-											</div>
-
 											<div className="border border-zinc-150 bg-zinc-50/50 rounded-xl p-3 flex flex-col gap-2 text-[10px]">
 												<div className="flex items-center justify-between text-zinc-500 font-bold uppercase tracking-wider">
 													<span>Calibration Due</span>
@@ -475,7 +497,7 @@ export default function AdminDashboard() {
 										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
-												<span className="text-zinc-850 font-extrabold text-right">{details?.occupiedBy || 'N/A'}</span>
+												<span className="text-zinc-850 font-extrabold text-right">{(details?.occupiedBy || 'N/A').replace(/^REQ-REQ-/, 'REQ-')}</span>
 											</div>
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Model Number</span>
@@ -483,12 +505,14 @@ export default function AdminDashboard() {
 											</div>
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Test Request ID</span>
-												<span className="text-zinc-850 font-extrabold text-right">#{details?.testRequestId || 'N/A'}</span>
+												<span className="text-zinc-850 font-extrabold text-right">
+													{getFormattedRequestId(details?.occupiedBy, details?.testRequestId)}
+												</span>
 											</div>
 											<div className="flex justify-between items-center py-1.5">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied Until</span>
 												<span className="text-rose-600 font-extrabold text-right">
-													{details?.occupiedUntil ? new Date(details.occupiedUntil).toLocaleString() : 'N/A'}
+													{formatOccupiedUntil(details?.occupiedUntil)}
 												</span>
 											</div>
 										</div>
@@ -560,7 +584,7 @@ export default function AdminDashboard() {
 										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
-												<span className="text-zinc-850 font-extrabold text-right">{selectedEquipmentModal.occupiedBy || 'N/A'}</span>
+												<span className="text-zinc-850 font-extrabold text-right">{(selectedEquipmentModal.occupiedBy || 'N/A').replace(/^REQ-REQ-/, 'REQ-')}</span>
 											</div>
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Model Number</span>
@@ -568,12 +592,14 @@ export default function AdminDashboard() {
 											</div>
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Test Request ID</span>
-												<span className="text-zinc-850 font-extrabold text-right">#{selectedEquipmentModal.testRequestId || 'N/A'}</span>
+												<span className="text-zinc-850 font-extrabold text-right">
+													{getFormattedRequestId(selectedEquipmentModal.occupiedBy, selectedEquipmentModal.testRequestId)}
+												</span>
 											</div>
 											<div className="flex justify-between items-center py-1.5">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied Until</span>
 												<span className="text-rose-600 font-extrabold text-right">
-													{selectedEquipmentModal.occupiedUntil ? new Date(selectedEquipmentModal.occupiedUntil).toLocaleString() : 'N/A'}
+													{formatOccupiedUntil(selectedEquipmentModal.occupiedUntil)}
 												</span>
 											</div>
 										</div>
