@@ -1,4 +1,4 @@
-import { Send, CheckCircle, Clipboard, Plus, FileText, ArrowRight } from 'lucide-react';
+import { CheckCircle, Clipboard, Plus, FileText, ArrowRight } from 'lucide-react';
 
 interface RequestRecord {
 	id: string;
@@ -24,6 +24,7 @@ interface RequestRecord {
 	createdDate: string;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
+	testType?: { id: number; name: string } | null;
 }
 
 interface CapaRecord {
@@ -50,11 +51,12 @@ interface RequesterOverviewProps {
 export default function RequesterOverview({ requests, capas, setActiveTab, setSelectedRequest }: RequesterOverviewProps) {
 	const totalCount = requests.length;
 	const pendingCount = requests.filter(r => ['PENDING', 'PENDING_APPROVAL'].includes(r.status)).length;
-	const approvedCount = requests.filter(r => ['APPROVED', 'PENDING_TEST_SPEC', 'READY_FOR_TESTING'].includes(r.status)).length;
+	const underInspectionCount = requests.filter(r => ['UNDER_INSPECTION'].includes(r.status)).length;
+	const inspectionCompletedCount = requests.filter(r => ['INSPECTION_COMPLETED'].includes(r.status)).length;
 	const rejectedCount = requests.filter(r => ['REJECTED'].includes(r.status)).length;
-	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'RETEST', 'INSPECTION_COMPLETED'].includes(r.status)).length;
+	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING', 'RETEST'].includes(r.status)).length;
 	const completedCount = requests.filter(r => ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(r.status)).length;
-	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(r.status)).length;
+	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED', 'INSPECTION_FAILED'].includes(r.status)).length;
 
 	const totalCapas = capas.length;
 	const openCapas = capas.filter(c => c.status === 'OPEN').length;
@@ -65,7 +67,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 			{/* Requests Status Overview */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-4">Requests Status Overview</h3>
-				<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+				<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
 					{/* Total */}
 					<div className="bg-zinc-50 border border-zinc-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
 						<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider">Total</span>
@@ -78,16 +80,22 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-xl font-black text-amber-700 mt-1">{pendingCount}</span>
 					</div>
 
-					{/* Approved */}
-					<div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
-						<span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Approved</span>
-						<span className="text-xl font-black text-emerald-700 mt-1">{approvedCount}</span>
-					</div>
-
 					{/* Rejected */}
 					<div className="bg-rose-50/50 border border-rose-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
 						<span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider">Rejected</span>
 						<span className="text-xl font-black text-rose-700 mt-1">{rejectedCount}</span>
+					</div>
+
+					{/* Under Inspection */}
+					<div className="bg-blue-50/50 border border-blue-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-blue-600 font-extrabold uppercase tracking-wider">Under Inspection</span>
+						<span className="text-xl font-black text-blue-700 mt-1">{underInspectionCount}</span>
+					</div>
+
+					{/* Inspection Completed */}
+					<div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Inspection Completed</span>
+						<span className="text-xl font-black text-emerald-700 mt-1">{inspectionCompletedCount}</span>
 					</div>
 
 					{/* Under Testing */}
@@ -220,7 +228,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 							<tr className="border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 								<th className="pb-3 px-2">ID</th>
 								<th className="pb-3 px-2">Product Name</th>
-								<th className="pb-3 px-2">Test Method</th>
+								<th className="pb-3 px-2">Test Type</th>
 								<th className="pb-3 px-2">Qty</th>
 								<th className="pb-3 px-2">Status</th>
 								<th className="pb-3 px-2 text-right">Action</th>
@@ -234,7 +242,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 										<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
 										<span className="text-[9px] text-zinc-650 font-bold uppercase">{req.customerNameAddress}</span>
 									</td>
-									<td className="py-3 px-2 text-zinc-700 font-medium">{req.testMethodRef}</td>
+									<td className="py-3 px-2 text-zinc-700 font-medium">{req.testType?.name || 'N/A'}</td>
 									<td className="py-3 px-2">
 										<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">{req.sampleQty} pcs</span>
 									</td>
@@ -251,6 +259,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 													case 'FAILED':
 													case 'TESTING_FAILED':
 													case 'REJECTED':
+													case 'INSPECTION_FAILED':
 														return 'bg-rose-50 text-rose-600 border-rose-100';
 													case 'PARTIAL':
 													case 'TESTING_PARTIAL':
@@ -258,6 +267,10 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 													case 'UNDER_TEST':
 													case 'UNDER_TESTING':
 														return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+													case 'TESTING_COMPLETED':
+														return 'bg-blue-50 text-blue-700 border-blue-150';
+													case 'RETEST':
+														return 'bg-amber-50 text-amber-650 border-amber-100';
 													case 'UNDER_INSPECTION':
 														return 'bg-blue-50 text-blue-600 border-blue-100';
 													case 'PENDING_APPROVAL':
@@ -269,9 +282,9 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 											return (
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'TESTING_FAILED', 'REJECTED', 'FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
 													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 

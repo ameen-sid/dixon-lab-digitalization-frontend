@@ -25,6 +25,7 @@ interface RequestRecord {
 	createdDate: string;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
+	testType?: { id: number; name: string } | null;
 }
 
 interface CreateCapaProps {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { XCircle, Search, RefreshCw, Eye, FileText, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, Eye, FileText, AlertTriangle } from 'lucide-react';
 import { getTestRequests } from '../../services/operations/testRequestService';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
@@ -34,10 +34,15 @@ export default function HeadFailureDecision() {
 		loadRequests();
 	}, []);
 
-	// Filter requests where status is failed/retest, or all samples are failed
 	const failedRequests = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
-		const isFailedStatus = ['testing_failed', 'fail', 'failed', 'retest'].includes(statusLower);
+		if (statusLower === 'testing_completed') {
+			const hasFailedSample = (req.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
+									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
+			return hasFailedSample;
+		}
+
+		const isFailedStatus = ['testing_failed', 'fail', 'failed', 'retest', 'inspection_failed', 'testing_partial', 'partial'].includes(statusLower);
 
 		const qty = req.sampleQty || 1;
 		let failedCount = 0;
@@ -48,6 +53,12 @@ export default function HeadFailureDecision() {
 			}
 		}
 		const isFullyFailed = failedCount === qty;
+
+		if (statusLower === 'inspection_completed') {
+			const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
+			return isFullyFailed && isSubmittedToHead;
+		}
+
 		return isFailedStatus || isFullyFailed;
 	});
 
@@ -63,7 +74,7 @@ export default function HeadFailureDecision() {
 
 		const statusLower = (r.status || '').toLowerCase();
 		const isRetest = statusLower === 'retest';
-		const isCompleted = ['completed', 'failed'].includes(statusLower);
+		const isCompleted = ['completed', 'failed', 'inspection_failed'].includes(statusLower);
 		const hasDecisionBeenTaken = isRetest || isCompleted;
 
 		let matchesStatus = true;
@@ -233,7 +244,10 @@ export default function HeadFailureDecision() {
 									let badgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
 									let badgeText = 'ALL SAMPLES FAILED';
 
-									if (isRetest) {
+									if (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') {
+										badgeClass = 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse';
+										badgeText = 'INSPECTION FAILED (PENDING DECISION)';
+									} else if (isRetest) {
 										badgeClass = 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse';
 										badgeText = 'RETURNED FOR RETEST';
 									} else if (isCompleted) {

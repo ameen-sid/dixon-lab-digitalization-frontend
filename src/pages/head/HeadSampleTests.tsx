@@ -42,6 +42,7 @@ interface RequestRecord {
 	remarks?: string | null;
 	createdAt: string;
 	attachments?: AttachmentRecord[];
+	testType?: { id: number; name: string } | null;
 	requester?: {
 		name: string;
 		department?: {
@@ -155,11 +156,14 @@ export default function HeadSampleTests() {
 							{ value: 'UNDER_INSPECTION', label: 'Under Inspection' },
 							{ value: 'INSPECTION_COMPLETED', label: 'Inspection Completed' },
 							{ value: 'UNDER_TESTING',    label: 'Under Testing' },
+							{ value: 'TESTING_COMPLETED', label: 'Testing Completed' },
 							{ value: 'TESTING_PASSED',   label: 'Testing Passed' },
 							{ value: 'TESTING_FAILED',   label: 'Testing Failed' },
 							{ value: 'TESTING_PARTIAL',  label: 'Testing Partial' },
+							{ value: 'RETEST',           label: 'Returned for Retest' },
 							{ value: 'COMPLETED',        label: 'Completed' },
-							{ value: 'REJECTED',         label: 'Rejected' }
+							{ value: 'REJECTED',         label: 'Rejected' },
+							{ value: 'INSPECTION_FAILED', label: 'Inspection Failed' }
 						]}
 						className="w-44 shrink-0"
 					/>
@@ -234,6 +238,7 @@ export default function HeadSampleTests() {
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">ID</th>
 									<th className="py-4 px-6">Product Details</th>
+									<th className="py-4 px-6">Test Type</th>
 									<th className="py-4 px-6">Requester Name</th>
 									<th className="py-4 px-6">Status</th>
 									<th className="py-4 px-6 text-right">Actions</th>
@@ -252,6 +257,7 @@ export default function HeadSampleTests() {
 											case 'FAILED':
 											case 'TESTING_FAILED':
 											case 'REJECTED':
+											case 'INSPECTION_FAILED':
 												return 'bg-rose-50 text-rose-600 border-rose-100';
 											case 'PARTIAL':
 											case 'TESTING_PARTIAL':
@@ -259,6 +265,10 @@ export default function HeadSampleTests() {
 											case 'UNDER_TEST':
 											case 'UNDER_TESTING':
 												return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+											case 'TESTING_COMPLETED':
+												return 'bg-blue-50 text-blue-700 border-blue-150';
+											case 'RETEST':
+												return 'bg-amber-50 text-amber-650 border-amber-100';
 											case 'UNDER_INSPECTION':
 												return 'bg-blue-50 text-blue-600 border-blue-100';
 											case 'PENDING_APPROVAL':
@@ -276,6 +286,9 @@ export default function HeadSampleTests() {
 												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
 												<span className="text-[9px] text-zinc-655 font-bold block mt-0.5">Qty: {req.sampleQty} Pcs • Ref: {req.testMethodRef}</span>
 											</td>
+											<td className="py-4 px-6 text-zinc-750 font-bold">
+												{req.testType?.name || 'N/A'}
+											</td>
 											<td className="py-4 px-6">
 												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.requester?.name || 'General'}</p>
 												{req.requester?.department?.name && (
@@ -285,14 +298,14 @@ export default function HeadSampleTests() {
 											<td className="py-4 px-6">
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
 													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
 														? 'TESTING PASSED' 
-														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' 
+														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' || req.status === 'FAILED'
 															? 'TESTING FAILED' 
 															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL' 
 																? 'TESTING PARTIAL' 

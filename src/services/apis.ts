@@ -79,6 +79,7 @@ export const testRequestEndpoints = {
 	GET_TEST_REQUEST_DETAILS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
 	UPDATE_TEST_REQUEST_STATUS_API: (id: string | number) => BASE_URL + `/test-requests/${id}`,
 	SAVE_SAMPLE_INSPECTION_API: (id: string | number) => BASE_URL + `/test-requests/${id}/sample-inspections`,
+	SAVE_SAMPLE_REPORT_API: (id: string | number) => BASE_URL + `/test-requests/${id}/sample-reports`,
 };
 
 // Platform Availability Endpoints
@@ -87,6 +88,14 @@ export const platformAvailabilityEndpoints = {
 	TOGGLE_PLATFORM_API: BASE_URL + '/platform-availability/toggle',
 	RESERVE_PLATFORMS_API: BASE_URL + '/platform-availability/reserve',
 	RELEASE_PLATFORMS_API: BASE_URL + '/platform-availability/release',
+};
+
+// NABL Station Availability Endpoints
+export const nablStationAvailabilityEndpoints = {
+	GET_PLATFORMS_API: BASE_URL + '/nabl-station-availability',
+	TOGGLE_PLATFORM_API: BASE_URL + '/nabl-station-availability/toggle',
+	RESERVE_PLATFORMS_API: BASE_URL + '/nabl-station-availability/reserve',
+	RELEASE_PLATFORMS_API: BASE_URL + '/nabl-station-availability/release',
 };
 
 // Reliability Checksheet Endpoints

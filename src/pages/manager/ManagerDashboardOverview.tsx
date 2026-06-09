@@ -1,18 +1,8 @@
 import { useState } from 'react';
 import { 
-	Activity, 
 	ClipboardList, 
-	CheckCircle, 
 	AlertTriangle, 
-	Users, 
-	TrendingUp, 
-	Clock, 
 	Cpu, 
-	Sliders, 
-	FileText, 
-	AlertCircle, 
-	ChevronRight, 
-	HelpCircle,
 	ShieldCheck
 } from 'lucide-react';
 
@@ -23,7 +13,7 @@ interface ManagerDashboardOverviewProps {
 	engineers: any[];
 }
 
-export default function ManagerDashboardOverview({ navigate, requests, capas, engineers }: ManagerDashboardOverviewProps) {
+export default function ManagerDashboardOverview({ navigate, requests, capas, engineers: _engineers }: ManagerDashboardOverviewProps) {
 	// Retrieve manager user details
 	const userStr = localStorage.getItem('user');
 	const managerUser = userStr ? JSON.parse(userStr) : null;
@@ -44,9 +34,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 	// Calculate sum of sample quantities for active test plans
 	const activeTestPlansSamplesCount = activeTestPlans.reduce((acc, r) => acc + (r.sampleQty || 1), 0);
 
-	// 3. Assigned Samples and Pending for Inspection
-	const assignedPendingInspection = requests.filter(r => !!r.engineerId && r.status === 'UNDER_INSPECTION');
-
 	// 4. Samples inspected by Lab Manager
 	const inspectedByManager = requests.filter(r => r.engineerId === managerId && ['UNDER_TEST', 'UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'PASS', 'FAIL', 'PARTIAL', 'COMPLETED'].includes((r.status || '').toUpperCase()));
 
@@ -55,15 +42,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 
 	// 6. Pending CAPA Reports
 	const pendingCapas = capas.filter(c => (c.status || '').toUpperCase() !== 'COMPLETED');
-
-	// Mock equipment/station availability telemetry
-	const stations = [
-		{ name: 'Structural Stress Chamber', status: 'ACTIVE', load: '85% Capacity', tech: 'Vibration & Mechanical' },
-		{ name: 'Thermal Cycling Oven (SMT-1)', status: 'ACTIVE', load: '60% Capacity', tech: 'High Temp Burn-in' },
-		{ name: 'NABL Humidity Chamber', status: 'IDLE', load: '0% Capacity', tech: 'Environmental' },
-		{ name: 'Signal Calibration Station', status: 'MAINTENANCE', load: 'Offline', tech: 'Frequency & Oscilloscopes' },
-		{ name: 'ATE Automated Test Bed', status: 'ACTIVE', load: '40% Capacity', tech: 'Digital Diagnostics' },
-	];
 
 	return (
 		<div className="space-y-8">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, AlertTriangle, FileText, ExternalLink, ShieldCheck, Bookmark, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, FileText, ExternalLink, Bookmark, RefreshCw } from 'lucide-react';
 import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
 
@@ -9,7 +9,6 @@ export default function HeadFailureDetails() {
 	const navigate = useNavigate();
 
 	const [request, setRequest] = useState<any>(null);
-	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 	const [loading, setLoading] = useState(true);
 	const [processing, setProcessing] = useState(false);
 
@@ -20,9 +19,6 @@ export default function HeadFailureDetails() {
 			const fetchOp = getTestRequestDetails(id);
 			const data = await fetchOp();
 			setRequest(data);
-			
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
 		} catch (error) {
 			console.error('Failed to load request details:', error);
 			toast.error('Failed to retrieve request details.');
@@ -50,7 +46,7 @@ export default function HeadFailureDetails() {
 				<AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
 				<h3 className="text-base font-black text-zinc-800">Request Not Found</h3>
 				<p className="text-xs text-zinc-555">The requested test report details could not be found or has been removed.</p>
-				<button 
+				<button
 					onClick={() => navigate('/head/failure-decision')}
 					className="px-4 py-2 bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all hover:bg-zinc-900 active:scale-95"
 				>
@@ -63,7 +59,7 @@ export default function HeadFailureDetails() {
 	const qty = request.sampleQty || 1;
 
 	// Check if already certified/completed, failed, or returned to testing
-	const isActioned = ['completed', 'failed', 'fail', 'retest'].includes((request.status || '').toLowerCase());
+	const isActioned = ['completed', 'failed', 'fail', 'retest', 'inspection_failed'].includes((request.status || '').toLowerCase());
 
 	const handleReturnToTesting = async () => {
 		if (processing) return;
@@ -71,27 +67,43 @@ export default function HeadFailureDetails() {
 		try {
 			// Update status in backend
 			const op = updateTestRequestStatus(
-				request.id, 
-				'RETEST', 
-				`Request returned to testing for a complete retest (Authorized by Head).`
+				request.id,
+				'RETEST',
+				undefined
 			);
 			await op();
 
-			// Clear evaluation status in client and sync to database
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			if (cachedPlans) {
-				const plansMap = JSON.parse(cachedPlans);
-				let changed = false;
-				for (let idx = 0; idx < qty; idx++) {
-					const samplePlanKey = `${request.id}-sample-${idx}`;
-					if (plansMap[samplePlanKey]) {
-						delete plansMap[samplePlanKey].evaluationStatus;
-						delete plansMap[samplePlanKey].evaluationRemarks;
-						changed = true;
+			// Clear evaluation status in DB for all sample test plans
+			for (let idx = 0; idx < qty; idx++) {
+				const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
+				if (planObj) {
+					let platformNosParsed = [];
+					if (planObj.platformNos) {
+						try {
+							platformNosParsed = typeof planObj.platformNos === 'string' ? JSON.parse(planObj.platformNos) : planObj.platformNos;
+						} catch (e) {
+							platformNosParsed = [];
+						}
 					}
-				}
-				if (changed) {
-					localStorage.setItem('dixon_sample_test_plans', JSON.stringify(plansMap));
+					await fetch(`/api/v1/test-requests/${request.id}/test-plans`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+						body: JSON.stringify({
+							sampleIndex: idx,
+							testTypeId: planObj.testTypeId,
+							testCategoryId: planObj.testCategoryId,
+							testProtocolId: planObj.testProtocolId,
+							stationNo: planObj.stationNo,
+							platformNos: platformNosParsed,
+							equipmentId: planObj.equipmentId,
+							numberOfDays: planObj.numberOfDays,
+							startDate: planObj.startDate,
+							endDate: planObj.endDate,
+							remarks: planObj.remarks,
+							evaluationStatus: null,
+							evaluationRemarks: null
+						})
+					});
 				}
 			}
 
@@ -109,12 +121,20 @@ export default function HeadFailureDetails() {
 		if (processing) return;
 		setProcessing(true);
 		try {
-			const op = updateTestRequestStatus(
-				request.id, 
-				'FAILED', 
-				`Test request failure finalized and returned to requester (Approved by Head).`
-			);
-			await op();
+			const targetStatus = request.status === 'INSPECTION_FAILED'
+				? 'INSPECTION_FAILED'
+				: request.status === 'INSPECTION_COMPLETED'
+					? 'INSPECTION_FAILED'
+					: 'FAILED';
+
+			if (request.status !== 'INSPECTION_FAILED') {
+				const op = updateTestRequestStatus(
+					request.id,
+					targetStatus,
+					undefined
+				);
+				await op();
+			}
 			toast.success('Test request failure approved & returned to requester!');
 			navigate('/head/failure-decision');
 		} catch (e) {
@@ -150,10 +170,10 @@ export default function HeadFailureDetails() {
 
 			{/* Main Grid: Request Summary & Action Panel */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				
+
 				{/* Left Columns: Request details & Samples List */}
 				<div className="lg:col-span-2 space-y-6">
-					
+
 					{/* Request Details Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -163,12 +183,11 @@ export default function HeadFailureDetails() {
 									Request Specifications
 								</h3>
 							</div>
-							<span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-								isActioned
-									? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-									: 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse'
-							}`}>
-								{request.status === 'RETEST' ? 'RETURNED FOR RETEST' : ['COMPLETED', 'FAILED', 'FAIL'].includes(request.status) ? 'FINALIZED & RELEASED' : 'AWAITING FAILURE DECISION'}
+							<span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isActioned
+								? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+								: 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse'
+								}`}>
+								{request.status === 'RETEST' ? 'RETURNED FOR RETEST' : ['COMPLETED', 'FAILED', 'FAIL', 'INSPECTION_FAILED'].includes(request.status) ? 'FINALIZED & RELEASED' : 'AWAITING FAILURE DECISION'}
 							</span>
 						</div>
 
@@ -186,8 +205,8 @@ export default function HeadFailureDetails() {
 								<span className="text-zinc-800 font-extrabold">{request.brandName} ({request.modelNo})</span>
 							</div>
 							<div>
-								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Test Protocol / Method</span>
-								<span className="text-zinc-800 font-extrabold">{request.testMethodRef || 'IEC 60695-11-5'}</span>
+								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Test Type</span>
+								<span className="text-zinc-800 font-extrabold">{request.testType?.name || 'N/A'}</span>
 							</div>
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Sample Quantity</span>
@@ -222,8 +241,7 @@ export default function HeadFailureDetails() {
 
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
-								const samplePlanKey = `${request.id}-sample-${idx}`;
-								const planObj = plans[samplePlanKey];
+								const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
 								const inspection = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === idx);
 
 								let statusColor = 'bg-zinc-50 text-zinc-500 border-zinc-200';
@@ -291,7 +309,7 @@ export default function HeadFailureDetails() {
 
 				{/* Right Column: Actions Panel */}
 				<div className="space-y-6">
-					
+
 					{/* Overall Report Preview Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
@@ -314,7 +332,7 @@ export default function HeadFailureDetails() {
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
 							Adjudication Decisions
 						</h3>
-						
+
 						{isActioned ? (
 							<div className="space-y-3">
 								<div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 flex items-start gap-2.5">
@@ -322,8 +340,8 @@ export default function HeadFailureDetails() {
 									<div>
 										<p className="text-xs font-bold text-emerald-800">Decision Signed Off</p>
 										<p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-											{request.status === 'RETEST' 
-												? 'This request was returned to testing for a complete retest.' 
+											{request.status === 'RETEST'
+												? 'This request was returned to testing for a complete retest.'
 												: 'This request was certified as FAILED and returned to requester.'}
 										</p>
 									</div>
@@ -335,17 +353,21 @@ export default function HeadFailureDetails() {
 						) : (
 							<div className="space-y-3.5">
 								<p className="text-xs text-zinc-655 font-semibold leading-relaxed">
-									All samples in this request have failed testing. Please choose one of the options below to adjudicate this failure.
+									{request.status === 'INSPECTION_COMPLETED'
+										? 'All samples in this request have failed the inspection phase. Please review the results and return the request to the requester.'
+										: 'All samples in this request have failed testing. Please choose one of the options below to adjudicate this failure.'}
 								</p>
-								
-								<button
-									onClick={handleReturnToTesting}
-									disabled={processing}
-									className="w-full py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50"
-								>
-									<RefreshCw className="w-4 h-4 text-white" />
-									<span>{processing ? 'Processing...' : 'Return to Testing (Retest)'}</span>
-								</button>
+
+								{request.status !== 'INSPECTION_COMPLETED' && (
+									<button
+										onClick={handleReturnToTesting}
+										disabled={processing}
+										className="w-full py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50"
+									>
+										<RefreshCw className="w-4 h-4 text-white" />
+										<span>{processing ? 'Processing...' : 'Return to Testing (Retest)'}</span>
+									</button>
+								)}
 
 								<button
 									onClick={handleReturnToRequester}

@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Send, Upload, FileText, X, AlertTriangle, HelpCircle, CheckCircle, Edit3 } from 'lucide-react';
+import { getTestTypes } from '../../services/operations/testTypeService';
+import CustomSelect from '../../components/CustomSelect';
+import { toast } from 'react-hot-toast';
 
 interface CreateRequestProps {
 	onSubmit: (input: any, files: File[]) => void;
@@ -24,11 +27,25 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 		testMethodRef: '',
 		conformityStatement: 'not Required',
 		decisionRule: 'As per standard',
-		collectBack: 'No'
+		collectBack: 'No',
+		testTypeId: ''
 	});
 
+	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 	const [showPreview, setShowPreview] = useState(false);
+
+	useEffect(() => {
+		const fetchTypes = async () => {
+			try {
+				const types = await getTestTypes()();
+				setTestTypes(types);
+			} catch (error) {
+				console.error('Failed to fetch test types:', error);
+			}
+		};
+		fetchTypes();
+	}, []);
 
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files) {
@@ -52,6 +69,10 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 
 	const handleFormSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!formInput.testTypeId) {
+			toast.error('Please select a Test Type.');
+			return;
+		}
 		setShowPreview(true);
 	};
 
@@ -146,10 +167,16 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 						{/* SECTION 3 Preview */}
 						<div className="space-y-4 pt-4">
 							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">3. Protocols & Witness Scope</h4>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Ref. Test Method / Specifications</p>
 									<p className="text-xs font-bold text-zinc-955 leading-relaxed">{formInput.testMethodRef}</p>
+								</div>
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Test Type</p>
+									<p className="text-xs font-bold text-zinc-955">
+										{testTypes.find(t => String(t.id) === String(formInput.testTypeId))?.name || 'N/A'}
+									</p>
 								</div>
 								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Witness Requirements</p>
@@ -428,7 +455,7 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 					{/* SECTION 3: Testing Parameters & Witness */}
 					<div className="space-y-4 pt-2">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">3. Testing Protocols & Witness Parameters</h4>
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Ref. Test method / Specification's <span className="text-rose-500 font-extrabold">*</span>
@@ -440,6 +467,18 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									value={formInput.testMethodRef}
 									onChange={(e) => setFormInput({...formInput, testMethodRef: e.target.value})}
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+								/>
+							</div>
+
+							<div>
+								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
+									Test Type <span className="text-rose-500 font-extrabold">*</span>
+								</label>
+								<CustomSelect
+									value={formInput.testTypeId}
+									onChange={(val) => setFormInput({...formInput, testTypeId: val})}
+									options={testTypes.map(t => ({ value: String(t.id), label: t.name }))}
+									placeholder="Select Test Type"
 								/>
 							</div>
 

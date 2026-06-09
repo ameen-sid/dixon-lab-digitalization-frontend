@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Image as ImageIcon, Printer } from 'lucide-react';
 import { getCapaById } from '../../services/operations/capaService';
+import { getTestRequests } from '../../services/operations/testRequestService';
+import toast from 'react-hot-toast';
 
 interface CapaRecord {
 	id: string;
@@ -60,6 +62,28 @@ export default function ManagerCapaDetails() {
 			setLoading(true);
 			try {
 				const data = await getCapaById(id)();
+
+				// Validate access permissions based on manager's department
+				const userStr = localStorage.getItem('user');
+				const currentUser = userStr ? JSON.parse(userStr) : null;
+				const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
+
+				const fetchRequestsOp = getTestRequests();
+				const reqs = await fetchRequestsOp();
+				const matchedReq = reqs.find((r: any) => String(r.id) === String(data.relatedRequest) || r.requestId === data.relatedRequest);
+				if (matchedReq) {
+					const isNablRequest = matchedReq.testType?.name === 'NABL Test';
+					if (isNablDept && !isNablRequest) {
+						toast.error('Access Denied: CAPA details are not accessible by NABL managers.');
+						navigate('/manager/capa-management');
+						return;
+					} else if (!isNablDept && isNablRequest) {
+						toast.error('Access Denied: NABL CAPA details are not accessible by this department.');
+						navigate('/manager/capa-management');
+						return;
+					}
+				}
+
 				const mapped: CapaRecord = {
 					id: data.capaId,
 					relatedRequest: data.relatedRequest,
@@ -109,7 +133,7 @@ export default function ManagerCapaDetails() {
 			}
 		};
 		loadCapa();
-	}, [id]);
+	}, [id, navigate]);
 
 	if (loading) {
 		return (

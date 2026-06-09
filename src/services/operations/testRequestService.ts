@@ -2,7 +2,7 @@ import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
 import { testRequestEndpoints } from '../apis';
 
-const { GET_TEST_REQUESTS_API, CREATE_TEST_REQUEST_API, GET_TEST_REQUEST_DETAILS_API, UPDATE_TEST_REQUEST_STATUS_API, SAVE_SAMPLE_INSPECTION_API } = testRequestEndpoints;
+const { GET_TEST_REQUESTS_API, CREATE_TEST_REQUEST_API, GET_TEST_REQUEST_DETAILS_API, UPDATE_TEST_REQUEST_STATUS_API, SAVE_SAMPLE_INSPECTION_API, SAVE_SAMPLE_REPORT_API } = testRequestEndpoints;
 
 interface AxiosServiceError {
 	response?: {
@@ -99,7 +99,7 @@ export const updateTestRequestStatus = (id: string | number, status: string, rem
 
 export const saveSampleInspection = (id: string | number, payload: FormData) => {
 	return async () => {
-		const toastId = toast.loading('Saving sample report...');
+		const toastId = toast.loading('Saving sample inspection...');
 		try {
 			const response = await apiConnector('POST', SAVE_SAMPLE_INSPECTION_API(id), payload, {
 				'Content-Type': 'multipart/form-data'
@@ -107,7 +107,7 @@ export const saveSampleInspection = (id: string | number, payload: FormData) => 
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to save sample inspection');
 
-			toast.success('Sample report saved to database!');
+			toast.success('Sample inspection saved to database!');
 			return response.data.data || response.data;
 		} catch (error) {
 			console.error('SAVE_SAMPLE_INSPECTION Error: ', error);
@@ -121,12 +121,37 @@ export const saveSampleInspection = (id: string | number, payload: FormData) => 
 	};
 };
 
+export const saveSampleReport = (id: string | number, payload: FormData) => {
+	return async () => {
+		const toastId = toast.loading('Saving sample report...');
+		try {
+			const response = await apiConnector('POST', SAVE_SAMPLE_REPORT_API(id), payload, {
+				'Content-Type': 'multipart/form-data'
+			});
+			const isSuccess = response.data?.success ?? true;
+			if (!isSuccess) throw new Error(response.data?.message || 'Failed to save sample report');
+
+			toast.success('Sample report saved to database!');
+			return response.data.data || response.data;
+		} catch (error) {
+			console.error('SAVE_SAMPLE_REPORT Error: ', error);
+			const err = error as AxiosServiceError;
+			const errMsg = err.response?.data?.message || err.message || 'Failed to save sample report.';
+			toast.error(errMsg);
+			throw new Error(errMsg, { cause: error });
+		} finally {
+			toast.dismiss(toastId);
+		}
+	};
+};
+
 const testRequestService = {
 	getTestRequests,
 	createTestRequest,
 	getTestRequestDetails,
 	updateTestRequestStatus,
-	saveSampleInspection
+	saveSampleInspection,
+	saveSampleReport
 };
 
 export default testRequestService;

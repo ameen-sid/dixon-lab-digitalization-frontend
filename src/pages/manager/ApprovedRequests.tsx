@@ -19,6 +19,7 @@ interface ApprovedRequest {
 	engineerId?: string;
 	engineerName?: string;
 	inspectionResult?: string;
+	testType?: { id: number; name: string } | null;
 }
 
 interface ApprovedRequestsProps {
@@ -39,7 +40,8 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			   r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
+			   (r.sampleDescription && r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
+			   (r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
 		// 2. Status Match
 		const isAllocated = !!r.engineerId;
@@ -193,7 +195,7 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Request ID</th>
 									<th className="py-4 px-6">Brand & Model</th>
-									<th className="py-4 px-6">Sample Description</th>
+									<th className="py-4 px-6">Test Type</th>
 									<th className="py-4 px-6">Requested By</th>
 									<th className="py-4 px-6">Approved Date</th>
 									<th className="py-4 px-6">Allocation Status</th>
@@ -215,7 +217,7 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 												<div className="font-bold text-zinc-900 leading-tight">{req.brandName}</div>
 												<span className="text-[10px] text-zinc-500 font-medium">{req.modelNo}</span>
 											</td>
-											<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.sampleDescription}</td>
+											<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.testType?.name || 'General'}</td>
 											<td className="py-4 px-6 text-zinc-700">{req.requesterName}</td>
 											<td className="py-4 px-6 text-zinc-600 font-medium">{req.approvedDate}</td>
 											<td className="py-4 px-6">

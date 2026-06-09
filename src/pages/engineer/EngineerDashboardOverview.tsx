@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
 	Cpu, 
@@ -26,6 +27,9 @@ interface ApprovedRequest {
 	approvedDate: string;
 	engineerId?: string;
 	engineerName?: string;
+	sampleInspections?: any[];
+	testPlans?: any[];
+	testType?: { id: number; name: string } | null;
 	inspectionResult?: string;
 }
 
@@ -36,17 +40,22 @@ interface EngineerDashboardOverviewProps {
 export default function EngineerDashboardOverview({ requests }: EngineerDashboardOverviewProps) {
 	const navigate = useNavigate();
 
-	// Read compiled inspections from localStorage
-	const mergedReports = (() => {
-		const cachedManager = localStorage.getItem('dixon_sample_inspections');
-		const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-		const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-		
-		const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-		const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-		const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-		return { ...engineerReports, ...managerReports, ...completedReports };
-	})();
+	// Read compiled inspections dynamically from requests relations instead of localStorage
+	const mergedReports = useMemo(() => {
+		const reportsMap: { [key: string]: any } = {};
+		requests.forEach(r => {
+			if (r.sampleInspections) {
+				r.sampleInspections.forEach((insp: any) => {
+					reportsMap[`${r.id}-sample-${insp.sampleIndex}`] = {
+						status: insp.status,
+						remarks: insp.remarks,
+						allottedId: insp.allottedId
+					};
+				});
+			}
+		});
+		return reportsMap;
+	}, [requests]);
 
 	// 1. Calculate Metric Summary Stats
 	let totalAssignedSamples = 0;

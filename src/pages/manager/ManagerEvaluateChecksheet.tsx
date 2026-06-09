@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, XCircle } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { getTestRequests, updateTestRequestStatus } from '../../services/operations/testRequestService';
+import { getTestRequests, updateTestRequestStatus, saveSampleInspection } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
 import { releasePlatforms } from '../../services/operations/platformAvailabilityService';
-import { releaseEquipment } from '../../services/operations/testingEquipmentService';
+import { getTestingEquipments, releaseEquipment } from '../../services/operations/testingEquipmentService';
 import toast from 'react-hot-toast';
 
 interface ColumnDef {
@@ -18,8 +18,8 @@ interface ColumnDef {
 
 const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
-	{ id: 'washCycles', label: 'No. of Cycle (Wash)' },
-	{ id: 'spinCycles', label: 'No. of Cycle (Spin)' },
+	{ id: 'washCycles', label: 'NO. OF CYCLE-wash' },
+	{ id: 'spinCycles', label: 'NO. OF CYCLE-Spin' },
 	{ id: 'washMotor', label: 'Wash Motor' },
 	{ id: 'spinMotor', label: 'Spin Motor' },
 	{ id: 'gearBox', label: 'Gear Box' },
@@ -29,23 +29,24 @@ const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'drainSelector', label: 'Drain Selector' },
 	{ id: 'capacitor', label: 'Capacitor' },
 	{ id: 'safetySwitch', label: 'Safety Switch' },
-	{ id: 'totalCycles', label: 'Total Cycles' },
+	{ id: 'totalCyclesWash', label: 'Total cycles Wash' },
+	{ id: 'totalCyclesSpin', label: 'Total cycles Spin' },
 	{ id: 'remarks', label: 'Remarks' },
 ];
 
 const FATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
-	{ id: 'noOfCycle', label: 'No. of Cycle' },
+	{ id: 'noOfCycle', label: 'NO. OF CYCLE' },
 	{ id: 'motor', label: 'Motor' },
 	{ id: 'clutch', label: 'Clutch' },
 	{ id: 'waterInletValve', label: 'Water Inlet Valve' },
-	{ id: 'pressureSensor', label: 'Pressure Sensor' },
+	{ id: 'pressureSensor', label: 'Pressure sensor' },
 	{ id: 'pcb', label: 'PCB' },
 	{ id: 'suspensionRod', label: 'Suspension Rod' },
 	{ id: 'drainMotor', label: 'Drain Motor' },
 	{ id: 'lidSwitch', label: 'Lid Switch' },
 	{ id: 'inverterBoard', label: 'Inverter Board' },
-	{ id: 'totalCycles', label: 'Total Cycles' },
+	{ id: 'totalCycles', label: 'Total cycles' },
 	{ id: 'remarks', label: 'Remarks' },
 ];
 
@@ -58,6 +59,7 @@ export default function ManagerEvaluateChecksheet() {
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
+	const [equipments, setEquipments] = useState<any[]>([]);
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 	const [cellData, setCellData] = useState<{ [key: string]: string }>({});
 	const [loading, setLoading] = useState(true);
@@ -74,7 +76,29 @@ export default function ManagerEvaluateChecksheet() {
 				const types = await getTestTypes()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
-				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
+				const eqps = await getTestingEquipments({ limit: 100 })();
+
+				const parsedPlans: { [key: string]: any } = {};
+				if (reqs) {
+					for (const r of reqs) {
+						if (r.testPlans) {
+							for (const p of r.testPlans) {
+								let platformNosParsed = [];
+								if (p.platformNos) {
+									try {
+										platformNosParsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+									} catch (e) {
+										platformNosParsed = [];
+									}
+								}
+								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+									...p,
+									platformNos: platformNosParsed
+								};
+							}
+						}
+					}
+				}
 
 				// Fetch entries from backend database
 				const dbEntries = await getChecksheetEntries(planKey)();
@@ -84,7 +108,8 @@ export default function ManagerEvaluateChecksheet() {
 					setTestTypes(types || []);
 					setTestCategories(categories || []);
 					setTestProtocols(protocols || []);
-					setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
+					setEquipments(eqps || []);
+					setPlans(parsedPlans);
 
 					// Map database entries to cellData state
 					const mappedData: { [key: string]: string } = {};
@@ -128,6 +153,72 @@ export default function ManagerEvaluateChecksheet() {
 		};
 	})();
 
+	const isReliability = planInfo?.testType?.name?.toLowerCase().includes('reliability') ?? true;
+
+	const reportData = (() => {
+		if (isReliability) return null;
+		
+		const [reqIdStr, sampleIdxStr] = (planKey || '').split('-sample-');
+		const sampleIdx = parseInt(sampleIdxStr, 10);
+		const request = requests.find(r => String(r.id) === String(reqIdStr));
+		const dbReport = request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx);
+
+		if (!dbReport) return null;
+
+		let dbImages: string[] = [];
+		try {
+			dbImages = dbReport?.images ? (typeof dbReport.images === 'string' ? JSON.parse(dbReport.images) : dbReport.images) : [];
+		} catch (e) {
+			dbImages = [];
+		}
+
+		// Derive equipment details live from plan.equipmentId -> equipments list
+		const planObj = planInfo?.plan;
+		const assignedEq = planObj?.equipmentId ? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId)) : null;
+
+		const getEqField = (field: string, fallback: string) => {
+			if (assignedEq) {
+				if (field === 'name') return assignedEq.name || fallback;
+				if (field === 'make') {
+					const n = (assignedEq.name || '').toLowerCase();
+					if (n.includes('needle') || n.includes('flame')) return 'LISHUN GROUP';
+					if (n.includes('glow') || n.includes('wire')) return 'SANS';
+					if (n.includes('chamber') || n.includes('humidity')) return 'ESPEC';
+					if (n.includes('tracking') || n.includes('index')) return 'LISUN';
+					return 'Dixon Quality';
+				}
+				if (field === 'model') {
+					const n = (assignedEq.name || '').toLowerCase();
+					if (n.includes('needle') || n.includes('flame')) return 'ZY-3';
+					if (n.includes('glow') || n.includes('wire')) return 'ZRS-2';
+					if (n.includes('chamber') || n.includes('humidity')) return 'EPL-4H';
+					if (n.includes('tracking') || n.includes('index')) return 'TTC-1';
+					return `DX-${assignedEq.id || '01'}`;
+				}
+				if (field === 'calibration') {
+					if (!assignedEq.calibrationDueDate) return 'Valid';
+					const d = new Date(assignedEq.calibrationDueDate);
+					const fmt = d.toLocaleDateString();
+					return d >= new Date() ? `Valid (Due: ${fmt})` : `Expired (Due: ${fmt})`;
+				}
+			}
+			return fallback;
+		};
+
+		// Specified requirements always comes from the test protocol's judgement criteria
+		const protocolJudgement = planInfo?.protocol?.judgementCriteria || 'N/A';
+
+		return {
+			specifiedRequirement: protocolJudgement,
+			observationResults: dbReport?.remarks || 'N/A',
+			imagePaths: dbImages || [],
+			eqName: getEqField('name', 'N/A'),
+			eqMake: getEqField('make', 'N/A'),
+			eqModel: getEqField('model', 'N/A'),
+			eqCalibration: getEqField('calibration', 'N/A')
+		};
+	})();
+
 	// Determine column layout strictly from productType
 	const productType = (planInfo?.plan?.productType || planInfo?.protocol?.productType || 'SATL').toUpperCase();
 	const columns = productType === 'FATL' ? FATL_COLUMNS : SATL_COLUMNS;
@@ -162,38 +253,56 @@ export default function ManagerEvaluateChecksheet() {
 		}
 
 		try {
-			// 1. Update dixon_sample_test_plans
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
-			
 			const userStr = localStorage.getItem('user');
 			const currentUser = userStr ? JSON.parse(userStr) : null;
 			const managerName = currentUser ? currentUser.name : 'Lab Manager';
 
-			plansMap[planKey] = {
-				...plansMap[planKey],
+			const [requestId, sampleIdxStr] = planKey.split('-sample-');
+			const sampleIdx = parseInt(sampleIdxStr, 10);
+
+			// 1. Save TestPlan evaluation status to database
+			const planUpdateData = {
+				sampleIndex: sampleIdx,
+				testTypeId: Number(planInfo.plan.testTypeId),
+				testCategoryId: Number(planInfo.plan.testCategoryId),
+				testProtocolId: Number(planInfo.plan.testProtocolId),
+				stationNo: planInfo.plan.stationNo ? Number(planInfo.plan.stationNo) : null,
+				platformNos: planInfo.plan.platformNos,
+				equipmentId: planInfo.plan.equipmentId ? Number(planInfo.plan.equipmentId) : null,
+				numberOfDays: planInfo.plan.numberOfDays ? Number(planInfo.plan.numberOfDays) : null,
+				startDate: planInfo.plan.startDate,
+				endDate: planInfo.plan.endDate,
+				remarks: planInfo.plan.remarks,
 				evaluationStatus: status,
-				evaluationRemarks,
+				evaluationRemarks: evaluationRemarks,
 				evaluatedAt: new Date().toISOString(),
 				evaluatedBy: managerName
 			};
-			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(plansMap));
 
-			// 2. Update dixon_completed_sample_inspections so that it updates the main requests results status
-			const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
-			const completedDict = completedCached ? JSON.parse(completedCached) : {};
-			
-			const [requestId, sampleIdxStr] = planKey.split('-sample-');
-			const sampleIdx = parseInt(sampleIdxStr, 10);
-			
-			completedDict[planKey] = {
-				allottedId: planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`,
-				remarks: evaluationRemarks,
-				images: [],
-				checks: {},
-				status: status
-			};
-			localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+			const planRes = await fetch(`/api/v1/test-requests/${requestId}/test-plans`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				},
+				body: JSON.stringify(planUpdateData)
+			});
+
+			if (!planRes.ok) {
+				throw new Error('Failed to save test plan evaluation to database');
+			}
+
+			// 2. Save evaluation status and remarks to the backend database
+			const existingChecks = {};
+			const formData = new FormData();
+			formData.append('sampleIndex', String(sampleIdx));
+			formData.append('allottedId', planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
+			formData.append('remarks', evaluationRemarks);
+			formData.append('status', status);
+			formData.append('checks', JSON.stringify(existingChecks));
+
+			const saveDbOp = saveSampleInspection(requestId, formData);
+			await saveDbOp();
 
 			// Release reserved platform channels and equipment
 			if (planInfo.plan.stationNo && planInfo.plan.platformNos && planInfo.plan.platformNos.length > 0) {
@@ -217,30 +326,29 @@ export default function ManagerEvaluateChecksheet() {
 				}
 			}
 
-			// 3. Check if all samples for this request are completed/evaluated
-			const request = requests.find(r => String(r.id) === String(requestId));
-			if (request) {
-				const qty = request.sampleQty || 1;
+			// 3. Fetch latest request status with all inspections and plans from DB to check completeness
+			const freshReqRes = await fetch(`/api/v1/test-requests/${requestId}`, {
+				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+			});
+				if (!freshReqRes.ok) {
+				throw new Error('Failed to fetch latest request details from database');
+			}
+			const freshRequest = (await freshReqRes.json()).data;
+
+			if (freshRequest) {
+				const qty = freshRequest.sampleQty || 1;
 				let allSamplesComplete = true;
 
-				const cachedManager = localStorage.getItem('dixon_sample_inspections');
-				const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-				const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-				const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-
 				for (let i = 0; i < qty; i++) {
-					const cacheKey = `${requestId}-sample-${i}`;
-					const dbReport = (request.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-					const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
-					const plan = plansMap[cacheKey];
+					const plan = (freshRequest.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
+					const dbReport = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
 
 					if (plan) {
 						if (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED') {
 							continue;
 						}
-					} else if (mergedReport) {
-						if (mergedReport.status === 'FAILED') {
-							// Sample failed inspection initially, so it's completed (closed as failed)
+					} else if (dbReport) {
+						if (dbReport.status === 'FAILED') {
 							continue;
 						}
 					}
@@ -254,10 +362,8 @@ export default function ManagerEvaluateChecksheet() {
 					let failedCount = 0;
 
 					for (let i = 0; i < qty; i++) {
-						const cacheKey = `${requestId}-sample-${i}`;
-						const dbReport = (request.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-						const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedDict[cacheKey];
-						const plan = plansMap[cacheKey];
+						const plan = (freshRequest.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
+						const dbReport = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
 
 						if (plan) {
 							if (plan.evaluationStatus === 'PASSED') {
@@ -265,25 +371,27 @@ export default function ManagerEvaluateChecksheet() {
 							} else if (plan.evaluationStatus === 'FAILED') {
 								failedCount++;
 							}
-						} else if (mergedReport) {
-							if (mergedReport.status === 'FAILED') {
+						} else if (dbReport) {
+							if (dbReport.status === 'FAILED') {
 								failedCount++;
 							}
 						}
 					}
 
-					let finalStatus = 'TESTING_PARTIAL';
-					if (failedCount === qty) {
-						finalStatus = 'TESTING_FAILED';
-					} else if (passedCount === qty) {
+					let finalStatus = 'TESTING_COMPLETED';
+					if (passedCount === qty) {
 						finalStatus = 'TESTING_PASSED';
+					} else if (failedCount === qty) {
+						finalStatus = 'TESTING_FAILED';
+					} else if (passedCount > 0 && failedCount > 0) {
+						finalStatus = 'TESTING_PARTIAL';
 					}
 
-					// All samples completed/evaluated, update request status from UNDER_TEST to PASS/FAIL/PARTIAL
+					// All samples completed/evaluated, update request status to terminal state
 					const statusUpdateOp = updateTestRequestStatus(
 						Number(requestId),
 						finalStatus,
-						`Testing fully evaluated: ${passedCount} passed, ${failedCount} failed.`
+						undefined
 					);
 					await statusUpdateOp();
 				}
@@ -330,8 +438,8 @@ export default function ManagerEvaluateChecksheet() {
 
 	return (
 		<DashboardLayout
-			title="Evaluate Chronological Checksheet"
-			description="Review chronological checksheet parameters filled out by inspector before evaluating sample result."
+			title={isReliability ? "Evaluate Chronological Checksheet" : "Evaluate Test Report"}
+			description={isReliability ? "Review chronological checksheet parameters filled out by inspector before evaluating sample result." : "Review submitted test report, observations, and specimen photos before evaluating sample result."}
 		>
 			<div className="space-y-6">
 				{/* Top Bar Back button */}
@@ -344,7 +452,7 @@ export default function ManagerEvaluateChecksheet() {
 						<span>Back to Test Specification</span>
 					</button>
 					<span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
-						Evaluation Mode: Read-Only Grid
+						{isReliability ? "Evaluation Mode: Read-Only Grid" : "Evaluation Mode: Report Review"}
 					</span>
 				</div>
 
@@ -360,7 +468,7 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Platform Unit</span>
-						<span className="text-blue-700 mt-1 block font-extrabold">S{planInfo.plan.stationNo} (P: {planInfo.plan.platformNos.join(', ')})</span>
+						<span className="text-blue-700 mt-1 block font-extrabold">S{planInfo.plan.stationNo} (P: {planInfo.plan.platformNos.join(', ') || 'N/A'})</span>
 					</div>
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Scheduled Dates</span>
@@ -368,46 +476,144 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				</div>
 
-				{/* Read only checksheet table */}
-				<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm overflow-hidden flex flex-col gap-4">
-					<h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-500">Filled Daily Checksheet logs</h3>
-					<div className="overflow-x-auto border border-zinc-900 rounded-lg">
-						<table className="min-w-full border-collapse text-left">
-							<thead>
-								<tr className="bg-zinc-100 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
-									<th className="border-r border-zinc-900 p-2.5 text-center min-w-[100px]">Date</th>
-									{columns.map(col => (
-										<th key={col.id} className="border-r border-zinc-900 p-2.5 text-center text-[9px] min-w-[90px]">
-											{col.label}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-zinc-900 text-xs text-zinc-800 font-semibold">
-								{datesList.map((dateStr) => {
-									const [y, m, d] = dateStr.split('-');
-									const formattedDate = `${d}-${m}-${y}`;
+				{/* Read only checksheet table or Report display */}
+				{isReliability ? (
+					<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm overflow-hidden flex flex-col gap-4">
+						<h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-500">
+							{productType === 'FATL' 
+								? 'Fully automatic Washing Machine life test Check-sheet' 
+								: 'Semi-automatic Washing Machine Life Test Check Sheet'}
+						</h3>
+						<div className="overflow-x-auto border border-zinc-900 rounded-lg">
+							<table className="min-w-full border-collapse text-left">
+								<thead>
+									<tr className="bg-zinc-100 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
+										<th className="border-r border-zinc-900 p-2.5 text-center min-w-[100px]">Date</th>
+										{columns.map(col => (
+											<th key={col.id} className="border-r border-zinc-900 p-2.5 text-center text-[9px] min-w-[90px]">
+												{col.label}
+											</th>
+										))}
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-zinc-900 text-xs text-zinc-800 font-semibold">
+									{datesList.map((dateStr) => {
+										const [y, m, d] = dateStr.split('-');
+										const formattedDate = `${d}-${m}-${y}`;
 
-									return (
-										<tr key={dateStr} className="hover:bg-slate-50/50">
-											<td className="border-r border-zinc-900 p-2.5 text-center font-extrabold bg-zinc-50/60 select-none">
-												{formattedDate}
-											</td>
-											{columns.map((col) => {
-												const val = cellData[`${dateStr}_${col.id}`] || '';
-												return (
-													<td key={col.id} className="border-r border-zinc-900 p-2 text-center font-bold">
-														{val || <span className="text-zinc-300 italic">-</span>}
-													</td>
-												);
-											})}
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
+										return (
+											<tr key={dateStr} className="hover:bg-slate-50/50">
+												<td className="border-r border-zinc-900 p-2.5 text-center font-extrabold bg-zinc-50/60 select-none">
+													{formattedDate}
+												</td>
+												{columns.map((col) => {
+													const val = cellData[`${dateStr}_${col.id}`] || '';
+													return (
+														<td key={col.id} className="border-r border-zinc-900 p-2 text-center font-bold">
+															{val || <span className="text-zinc-300 italic">-</span>}
+														</td>
+													);
+												})}
+											</tr>
+										);
+									})}
+								</tbody>
+							</table>
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						{/* Left: Test Details & Equipment */}
+						<div className="space-y-6">
+							<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-4">
+								<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
+									Test Report Information
+								</h3>
+								<div className="space-y-4 text-xs font-bold text-zinc-700">
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Test Name</span>
+										<span className="text-zinc-800 font-black mt-1 block">{planInfo.testCategory?.name || 'N/A'}</span>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Test Method Reference</span>
+										<span className="text-zinc-800 mt-1 block">{planInfo.request?.testMethodRef || 'N/A'}</span>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Specified Requirements</span>
+										<p className="text-zinc-855 mt-1.5 p-3.5 bg-zinc-50 rounded-xl whitespace-pre-wrap font-semibold border border-zinc-100 leading-relaxed">
+											{reportData?.specifiedRequirement || 'N/A'}
+										</p>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Observation / Results</span>
+										<p className="text-zinc-900 mt-1.5 p-3.5 bg-[#f8fafc] rounded-xl whitespace-pre-wrap font-extrabold border border-zinc-150 leading-relaxed">
+											{reportData?.observationResults || 'N/A'}
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-4">
+								<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
+									Equipment Calibration Details
+								</h3>
+								<div className="grid grid-cols-2 gap-4 text-xs font-bold text-zinc-700">
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Equipment Name</span>
+										<span className="text-zinc-800 mt-1 block font-black">{reportData?.eqName || 'N/A'}</span>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Make / Brand</span>
+										<span className="text-zinc-800 mt-1 block">{reportData?.eqMake || 'N/A'}</span>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Model / No.</span>
+										<span className="text-zinc-800 mt-1 block">{reportData?.eqModel || 'N/A'}</span>
+									</div>
+									<div>
+										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Calibration Status</span>
+										<span className="text-indigo-700 mt-1 block font-extrabold">{reportData?.eqCalibration || 'N/A'}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Right: Test Specimen Pictures */}
+						<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-4 flex flex-col">
+							<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
+								Test Specimen Pictures ({reportData?.imagePaths?.length || 0})
+							</h3>
+							{reportData?.imagePaths && reportData.imagePaths.length > 0 ? (
+								<div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[500px] pr-2">
+									{reportData.imagePaths.map((path: string, i: number) => (
+										<div key={i} className="group relative border border-zinc-200 rounded-2xl overflow-hidden aspect-video bg-zinc-50 shadow-sm hover:shadow transition-all duration-300">
+											<img 
+												src={path} 
+												alt={`Specimen ${i + 1}`} 
+												className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+											/>
+											<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+												<a 
+													href={path} 
+													target="_blank" 
+													rel="noopener noreferrer" 
+													className="px-3 py-1.5 bg-white text-zinc-800 text-[10px] font-extrabold rounded-lg shadow hover:bg-zinc-100 transition-colors"
+												>
+													View Full Image
+												</a>
+											</div>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="flex-1 border-2 border-dashed border-zinc-200 rounded-2xl flex flex-col items-center justify-center py-20 text-zinc-400">
+									<Clipboard className="w-10 h-10 mb-2 opacity-55" />
+									<p className="text-xs font-semibold">No specimen images uploaded for this report.</p>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
 
 				{/* Action Section */}
 				<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm flex flex-col gap-4">

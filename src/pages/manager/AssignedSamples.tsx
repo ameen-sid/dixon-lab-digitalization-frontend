@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, ClipboardList, CheckCircle, XCircle, ArrowLeft, Eye, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
@@ -17,6 +17,8 @@ interface InspectionTask {
 	assignedDate: string;
 	engineerId?: string;
 	engineerName?: string;
+	testType?: { id: number; name: string } | null;
+	sampleInspections?: any[];
 }
 
 interface SampleReport {
@@ -62,26 +64,21 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const activePlan = tasks.find(t => t.id === activePlanId);
 	const isPlanCompleted = activePlan ? [
 		'INSPECTION_COMPLETED',
+		'INSPECTION_FAILED',
 		'UNDER_TESTING',
 		'TESTING_PASSED',
 		'TESTING_FAILED',
 		'TESTING_PARTIAL',
+		'RETEST',
 		'COMPLETED',
+		'FAILED',
 		'REJECTED'
 	].includes(activePlan.status) : false;
 
 	const isViewOnly = new URLSearchParams(location.search).get('view') === 'true' || isPlanCompleted;
 
 	// Dictionary mapping unique key `${planId}-sample-${sampleIndex}` to SampleReport
-	const [sampleInspections, setSampleInspections] = useState<{ [key: string]: SampleReport }>(() => {
-		const cached = localStorage.getItem('dixon_sample_inspections');
-		return cached ? JSON.parse(cached) : {};
-	});
-
-	// Persist checklist progress locally
-	useEffect(() => {
-		localStorage.setItem('dixon_sample_inspections', JSON.stringify(sampleInspections));
-	}, [sampleInspections]);
+	const [sampleInspections, setSampleInspections] = useState<{ [key: string]: SampleReport }>({});
 
 	// Fetch and populate sample inspections from DB when activePlanId is set
 	useEffect(() => {
@@ -147,25 +144,57 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const [endDate, setEndDate] = useState('');
 
 	// Dictionary/cache of inspections compiled for statistics and list badges
-	const mergedReports = (() => {
-		const cachedManager = localStorage.getItem('dixon_sample_inspections');
-		const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-		const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-		
-		const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-		const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-		const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-		return { ...engineerReports, ...managerReports, ...completedReports };
-	})();
+	// Compute merged reports dynamically from tasks prop database relations and state
+	const mergedReports = useMemo(() => {
+		const reportsMap: { [key: string]: any } = {};
+
+		tasks.forEach(task => {
+			const taskAny = task as any;
+			if (taskAny.sampleInspections) {
+				taskAny.sampleInspections.forEach((insp: any) => {
+					let checksObj = {};
+					try {
+						checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+					} catch (e) {
+						checksObj = {};
+					}
+					
+					let imagesArr = [];
+					try {
+						imagesArr = typeof insp.images === 'string' ? JSON.parse(insp.images) : (insp.images || []);
+					} catch (e) {
+						imagesArr = [];
+					}
+
+					reportsMap[`${task.id}-sample-${insp.sampleIndex}`] = {
+						allottedId: insp.allottedId,
+						remarks: insp.remarks || '',
+						status: insp.status,
+						checks: checksObj,
+						images: imagesArr
+					};
+				});
+			}
+		});
+
+		Object.entries(sampleInspections).forEach(([key, val]) => {
+			reportsMap[key] = val;
+		});
+
+		return reportsMap;
+	}, [tasks, sampleInspections]);
 
 	const getSampleInspectionStatus = (taskId: string, qty: number, requestStatus?: string) => {
 		const isCompleted = requestStatus ? [
 			'INSPECTION_COMPLETED',
+			'INSPECTION_FAILED',
 			'UNDER_TESTING',
 			'TESTING_PASSED',
 			'TESTING_FAILED',
 			'TESTING_PARTIAL',
+			'RETEST',
 			'COMPLETED',
+			'FAILED',
 			'REJECTED'
 		].includes(requestStatus) : true;
 
@@ -190,6 +219,12 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		}
 
 		if (pendingCount > 0) {
+			if (requestStatus === 'INSPECTION_FAILED' || requestStatus === 'FAILED') {
+				return 'Failed';
+			}
+			if (['UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'RETEST', 'COMPLETED'].includes(requestStatus || '')) {
+				return 'Passed';
+			}
 			return 'Pending';
 		}
 		if (passedCount === qty) {
@@ -225,7 +260,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		const matchesSearch = t.brandName.toLowerCase().includes(q) || 
 			   t.requestId.toLowerCase().includes(q) || 
 			   t.modelNo.toLowerCase().includes(q) ||
-			   t.testMethodRef.toLowerCase().includes(q);
+			   (t.testType?.name || '').toLowerCase().includes(q);
 
 		const status = getSampleInspectionStatus(t.id, t.sampleQty || 1, t.status);
 		const matchesStatus = statusFilter === 'All' || status === statusFilter;
@@ -390,13 +425,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				{ compiledReports }
 			);
 
-			// Save completed reports to permanent history cache before clearing active cache
-			const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
-			const completedDict = completedCached ? JSON.parse(completedCached) : {};
-			compiledReports.forEach((report, i) => {
-				completedDict[`${activePlanId}-sample-${i}`] = report;
-			});
-			localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
+			// Save completed reports in DB via onCompleteInspection
 
 			// Clear local storage cache for this plan
 			setSampleInspections(prev => {
@@ -708,11 +737,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					{(() => {
 						const isPlanCompleted = [
 							'INSPECTION_COMPLETED',
+							'INSPECTION_FAILED',
 							'UNDER_TESTING',
 							'TESTING_PASSED',
 							'TESTING_FAILED',
 							'TESTING_PARTIAL',
+							'RETEST',
 							'COMPLETED',
+							'FAILED',
 							'REJECTED'
 						].includes(activePlan.status);
 						if (isPlanCompleted) {
@@ -937,7 +969,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 								<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 									<th className="py-4 px-6">Plan/Request ID</th>
 									<th className="py-4 px-6">Brand & Model</th>
-									<th className="py-4 px-6">Method Standard</th>
+									<th className="py-4 px-6">Test Type</th>
 									<th className="py-4 px-6">Sample Qty</th>
 									<th className="py-4 px-6 text-center">Inspection Status</th>
 									<th className="py-4 px-6 text-center">Assigned Date</th>
@@ -948,11 +980,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 								{paginatedTasks.map((task) => {
 									const isCompleted = [
 										'INSPECTION_COMPLETED',
+										'INSPECTION_FAILED',
 										'UNDER_TESTING',
 										'TESTING_PASSED',
 										'TESTING_FAILED',
 										'TESTING_PARTIAL',
+										'RETEST',
 										'COMPLETED',
+										'FAILED',
 										'REJECTED'
 									].includes(task.status);
 									const inspStatus = getSampleInspectionStatus(task.id, task.sampleQty || 1, task.status);
@@ -963,8 +998,8 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 												<div className="font-extrabold text-zinc-900">{task.brandName}</div>
 												<span className="text-[10px] text-zinc-500 font-semibold">{task.modelNo}</span>
 											</td>
-											<td className="py-4 px-6 text-[#11236a] font-extrabold max-w-[220px] truncate" title={task.testMethodRef}>
-												{task.testMethodRef}
+											<td className="py-4 px-6 text-[#11236a] font-extrabold max-w-[220px] truncate" title={task.testType?.name || 'N/A'}>
+												{task.testType?.name || 'N/A'}
 											</td>
 											<td className="py-4 px-6">
 												<span className="inline-block text-[11px] font-extrabold px-2.5 py-0.5 bg-indigo-50 text-[#11236a] rounded-lg">

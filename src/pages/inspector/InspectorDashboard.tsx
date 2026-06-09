@@ -38,8 +38,28 @@ export default function InspectorDashboard() {
 				const types = await getTestTypes()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
-				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-				const parsedPlans = cachedPlans ? JSON.parse(cachedPlans) : {};
+
+				const parsedPlans: { [key: string]: any } = {};
+				if (reqs) {
+					for (const r of reqs) {
+						if (r.testPlans) {
+							for (const p of r.testPlans) {
+								let platformNosParsed = [];
+								if (p.platformNos) {
+									try {
+										platformNosParsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+									} catch (e) {
+										platformNosParsed = [];
+									}
+								}
+								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+									...p,
+									platformNos: platformNosParsed
+								};
+							}
+						}
+					}
+				}
 
 				// Concurrently fetch database checksheet entries for all test plans
 				const entriesMap: { [key: string]: any[] } = {};
@@ -83,10 +103,7 @@ export default function InspectorDashboard() {
 		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
 		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
 
-		const isReliability = 
-			(testType && testType.name.toLowerCase().includes('reliability')) ||
-			(testCategory && testCategory.name.toLowerCase().includes('reliability')) ||
-			(protocol && protocol.name.toLowerCase().includes('reliability'));
+		const isReliability = !!(testType && testType.name.toLowerCase().includes('reliability'));
 
 		return {
 			key,
@@ -128,7 +145,8 @@ export default function InspectorDashboard() {
 	let missedCount = 0;
 	let upcomingCount = 0;
 
-	const todayStr = new Date().toISOString().split('T')[0];
+	const _todayLocal = new Date();
+	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
 
 	const alerts: { id: string; type: 'missed' | 'overdue'; message: string; date?: string; planKey: string }[] = [];
 	const todayChecksheets: { planKey: string; request: any; plan: any; status: 'Completed' | 'Pending'; progress: number }[] = [];

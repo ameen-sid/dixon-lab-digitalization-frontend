@@ -39,8 +39,28 @@ export default function InspectorDailyChecksheet() {
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
 				const eqps = await getTestingEquipments({ limit: 100 })();
-				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-				const parsedPlans = cachedPlans ? JSON.parse(cachedPlans) : {};
+
+				const parsedPlans: { [key: string]: any } = {};
+				if (reqs) {
+					for (const r of reqs) {
+						if (r.testPlans) {
+							for (const p of r.testPlans) {
+								let platformNosParsed = [];
+								if (p.platformNos) {
+									try {
+										platformNosParsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+									} catch (e) {
+										platformNosParsed = [];
+									}
+								}
+								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+									...p,
+									platformNos: platformNosParsed
+								};
+							}
+						}
+					}
+				}
 
 				// Concurrently fetch database checksheet entries for all test plans
 				const entriesMap: { [key: string]: any[] } = {};
@@ -77,7 +97,8 @@ export default function InspectorDailyChecksheet() {
 		};
 	}, []);
 
-	const todayStr = new Date().toISOString().split('T')[0];
+	const _todayLocal = new Date();
+	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
 
 	// Filter active test plans to Reliability tests only active today
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
@@ -89,10 +110,7 @@ export default function InspectorDailyChecksheet() {
 		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
 
 		// Check if it qualifies as a reliability test
-		const isReliability = 
-			(testType && testType.name.toLowerCase().includes('reliability')) ||
-			(testCategory && testCategory.name.toLowerCase().includes('reliability')) ||
-			(protocol && protocol.name.toLowerCase().includes('reliability'));
+		const isReliability = !!(testType && testType.name.toLowerCase().includes('reliability'));
 
 		// Check if today falls within start and end date range
 		let isTodayInRange = false;
@@ -121,13 +139,29 @@ export default function InspectorDailyChecksheet() {
 			isReliability,
 			isTodayInRange
 		};
-	}).filter(
-		item =>
+	}).filter(item => {
+		const requestStatus = (item.request?.status || '').toUpperCase();
+		const evaluationStatus = (item.plan?.evaluationStatus || '').toUpperCase();
+
+		const isActiveTestingRequest = [
+			'UNDER_TEST',
+			'UNDER_TESTING'
+		].includes(requestStatus);
+
+		const isNotEvaluated = ![
+			'PASSED',
+			'FAILED',
+			'RETEST'
+		].includes(evaluationStatus);
+
+		return (
 			item.isReliability &&
 			item.request &&
 			item.isTodayInRange &&
-			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
-	);
+			isActiveTestingRequest &&
+			isNotEvaluated
+		);
+	});
 
 	// Static type options
 	const typeOptions = [

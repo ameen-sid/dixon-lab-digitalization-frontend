@@ -8,8 +8,7 @@ import {
 	RefreshCw, 
 	FileText, 
 	Layers, 
-	FolderOpen, 
-	HelpCircle,
+	FolderOpen,
 	TrendingUp
 } from 'lucide-react';
 import { getTestRequests } from '../../services/operations/testRequestService';
@@ -30,6 +29,8 @@ interface RequestRecord {
 	status: string;
 	createdAt: string;
 	sampleInspections?: any[];
+	testPlans?: any[];
+	testType?: { id: number; name: string } | null;
 	requester?: {
 		id: number;
 		name: string;
@@ -76,15 +77,29 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 	const rejectedRequestsCount = requests.filter(r => r.status === 'REJECTED').length;
 
 	// Completed Tests Pending Approval (PASS, FAIL, PARTIAL representing completed tests needing Lab Head certification/approval)
-	const completedPendingApprovalCount = requests.filter(r => ['PASS', 'FAIL', 'PARTIAL'].includes(r.status)).length;
+	const completedPendingApprovalCount = requests.filter(r => {
+		const statusLower = (r.status || '').toLowerCase();
+		if (statusLower === 'testing_completed') {
+			const hasFailedSample = (r.sampleInspections || []).some((si: any) => si.status === 'FAILED') ||
+									(r.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
+			return !hasFailedSample;
+		}
+		return ['pass', 'testing_passed', 'partial', 'testing_partial'].includes(statusLower);
+	}).length;
 
 	// Failed tests pending decision (FAIL, TESTING_FAILED, or all samples failed AND status is NOT actioned/finalized)
 	const failedTestsPendingDecisionCount = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
 		
 		// If already finalized (completed, failed) or retest, it is no longer pending decision
-		if (['completed', 'failed', 'retest'].includes(statusLower)) {
+		if (['completed', 'failed', 'retest', 'inspection_failed'].includes(statusLower)) {
 			return false;
+		}
+
+		if (statusLower === 'testing_completed') {
+			const hasFailedSample = (req.sampleInspections || []).some((si: any) => si.status === 'FAILED') ||
+									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
+			return hasFailedSample;
 		}
 
 		const isFailedStatus = ['testing_failed', 'fail'].includes(statusLower);
@@ -116,7 +131,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		departmentSummary[deptName].total++;
 		if (req.status === 'PENDING_APPROVAL') {
 			departmentSummary[deptName].pending++;
-		} else if (['COMPLETED', 'PASS', 'FAIL', 'PARTIAL'].includes(req.status)) {
+		} else if (['COMPLETED', 'PASS', 'FAIL', 'PARTIAL', 'TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'FAILED'].includes(req.status)) {
 			departmentSummary[deptName].completed++;
 		}
 	});
@@ -345,7 +360,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 								<th className="pb-3 px-2">Request ID</th>
 								<th className="pb-3 px-2">Department</th>
 								<th className="pb-3 px-2">Product Description</th>
-								<th className="pb-3 px-2">Test Standard / Method</th>
+								<th className="pb-3 px-2">Test Type</th>
 								<th className="pb-3 px-2">Quantity</th>
 								<th className="pb-3 px-2">Status</th>
 								<th className="pb-3 px-2 text-right">Action</th>
@@ -366,7 +381,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 										<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
 										<span className="text-[9px] text-zinc-650 font-bold uppercase">{req.customerNameAddress}</span>
 									</td>
-									<td className="py-3.5 px-2 text-zinc-700 font-semibold">{req.testMethodRef}</td>
+									<td className="py-3.5 px-2 text-zinc-750 font-bold">{req.testType?.name || 'N/A'}</td>
 									<td className="py-3.5 px-2">
 										<span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200">
 											{req.sampleQty} pcs
@@ -385,6 +400,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 													case 'FAILED':
 													case 'TESTING_FAILED':
 													case 'REJECTED':
+													case 'INSPECTION_FAILED':
 														return 'bg-rose-50 text-rose-600 border-rose-100';
 													case 'PARTIAL':
 													case 'TESTING_PARTIAL':
@@ -392,6 +408,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 													case 'UNDER_TEST':
 													case 'UNDER_TESTING':
 														return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+													case 'TESTING_COMPLETED':
+														return 'bg-blue-50 text-blue-700 border-blue-150';
+													case 'RETEST':
+														return 'bg-amber-50 text-amber-650 border-amber-100';
 													case 'UNDER_INSPECTION':
 														return 'bg-blue-50 text-blue-600 border-blue-100';
 													case 'PENDING_APPROVAL':
@@ -403,9 +423,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 											return (
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
+													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-													{['UNDER_TEST', 'UNDER_TESTING'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
+													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
 													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 

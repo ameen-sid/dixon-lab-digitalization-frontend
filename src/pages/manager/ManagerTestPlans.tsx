@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -9,7 +9,8 @@ import CustomSelect from '../../components/CustomSelect';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
-import { getPlatforms, reservePlatforms } from '../../services/operations/platformAvailabilityService';
+import { getPlatforms as getNormalPlatforms, reservePlatforms as reserveNormalPlatforms } from '../../services/operations/platformAvailabilityService';
+import { getPlatforms as getNablPlatforms, reservePlatforms as reserveNablPlatforms } from '../../services/operations/nablStationAvailabilityService';
 import { getTestingEquipments, reserveEquipment } from '../../services/operations/testingEquipmentService';
 
 interface ManagerTestPlansProps {
@@ -51,6 +52,19 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
 
+	const isAllInspectionFailed = (() => {
+		if (!selectedReq) return false;
+		const qty = selectedReq.sampleQty || 1;
+		let failedCount = 0;
+		for (let i = 0; i < qty; i++) {
+			const realReport = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+			if (realReport && realReport.status === 'FAILED') {
+				failedCount++;
+			}
+		}
+		return failedCount === qty;
+	})();
+
 	// Filter requests to those inspected (status INSPECTION_COMPLETED, UNDER_TESTING, or other testing states)
 	const inspectedRequests = requests.filter((r: any) =>
 		[
@@ -61,7 +75,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			'TESTING_FAILED',
 			'TESTING_PARTIAL',
 			'COMPLETED',
-			'RETEST'
+			'RETEST',
+			'INSPECTION_FAILED'
 		].includes(r.status)
 	);
 
@@ -80,14 +95,45 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
-	const [platforms, setPlatforms] = useState<any[]>([]);
+	const [normalPlatforms, setNormalPlatforms] = useState<any[]>([]);
+	const [nablPlatforms, setNablPlatforms] = useState<any[]>([]);
 	const [equipments, setEquipments] = useState<any[]>([]);
 
-	// Saved test plans cache state
-	const [savedPlans, setSavedPlans] = useState<{ [key: string]: TestPlanForm }>(() => {
-		const cached = localStorage.getItem('dixon_sample_test_plans');
-		return cached ? JSON.parse(cached) : {};
-	});
+	// Saved test plans computed dynamically from database requests prop
+	const savedPlans = useMemo(() => {
+		const plansMap: { [key: string]: TestPlanForm } = {};
+		for (const req of requests) {
+			if (req.testPlans) {
+				for (const p of req.testPlans) {
+					let platformNosParsed = [];
+					if (p.platformNos) {
+						try {
+							platformNosParsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+						} catch (e) {
+							platformNosParsed = [];
+						}
+					}
+					plansMap[`${req.id}-sample-${p.sampleIndex}`] = {
+						testTypeId: String(p.testTypeId),
+						testCategoryId: String(p.testCategoryId),
+						productType: p.productType || 'FATL',
+						stationNo: p.stationNo || 1,
+						platformNos: platformNosParsed,
+						testProtocolId: String(p.testProtocolId),
+						referenceStandard: p.referenceStandard || '',
+						numberOfDays: p.numberOfDays || 9,
+						startDate: p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '',
+						endDate: p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : '',
+						remarks: p.remarks || '',
+						equipmentId: String(p.equipmentId || ''),
+						evaluationStatus: p.evaluationStatus || undefined,
+						evaluationRemarks: p.evaluationRemarks || undefined
+					};
+				}
+			}
+		}
+		return plansMap;
+	}, [requests]);
 
 	// Active planning form state
 	const [form, setForm] = useState<TestPlanForm>({
@@ -105,19 +151,25 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		equipmentId: ''
 	});
 
+	// Helpers to determine test type context
+	const isNabl = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
+	const isReliability = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('reliability') || false;
+
 	// Fetch dynamic data parameters
 	const loadDbOptions = async () => {
 		try {
 			const types = await getTestTypes()();
 			const categories = await getTestCategories()();
 			const protocols = await getTestProtocols()();
-			const plts = await getPlatforms()();
+			const normalPlts = await getNormalPlatforms()();
+			const nablPlts = await getNablPlatforms()();
 			const eqps = await getTestingEquipments({ limit: 100 })();
 
 			setTestTypes(types || []);
 			setTestCategories(categories || []);
 			setTestProtocols(protocols || []);
-			setPlatforms(plts || []);
+			setNormalPlatforms(normalPlts || []);
+			setNablPlatforms(nablPlts || []);
 			setEquipments(eqps || []);
 
 			// Do not auto-prefill equipment so it remains optional unless explicitly chosen
@@ -194,8 +246,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 		// Synchronize fresh real-time platform & equipment bookings
 		try {
-			const plts = await getPlatforms()();
-			setPlatforms(plts || []);
+			const normalPlts = await getNormalPlatforms()();
+			setNormalPlatforms(normalPlts || []);
+			const nablPlts = await getNablPlatforms()();
+			setNablPlatforms(nablPlts || []);
 			const eqps = await getTestingEquipments({ limit: 100 })();
 			setEquipments(eqps || []);
 		} catch (e) {
@@ -205,18 +259,41 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		const key = `${selectedReq.id}-sample-${sampleIndex}`;
 		const existing = savedPlans[key];
 
+		const requestTestTypeId = selectedReq.testTypeId ? String(selectedReq.testTypeId) : (selectedReq.testType?.id ? String(selectedReq.testType.id) : '');
+		const isRequestNabl = requestTestTypeId && testTypes.find(t => String(t.id) === String(requestTestTypeId))?.name?.toLowerCase().includes('nabl') || false;
+
+		// Populate categories & protocols based on the requestTestTypeId
+		const filteredCats = testCategories.filter(c => String(c.testTypeId) === String(requestTestTypeId));
+		const firstCat = filteredCats[0] || null;
+		const catId = firstCat ? String(firstCat.id) : '';
+
+		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
+		const firstProto = filteredProtos[0] || null;
+		const protoId = firstProto ? String(firstProto.id) : '';
+
 		if (existing) {
-			setForm(existing);
+			setForm({
+				...existing,
+				startDate: selectedReq.status === 'RETEST' ? getLocalTodayStr() : (existing.startDate || getLocalTodayStr()),
+				endDate: '', // Let it auto-calculate
+				evaluationStatus: selectedReq.status === 'RETEST' ? undefined : existing.evaluationStatus,
+				evaluationRemarks: selectedReq.status === 'RETEST' ? undefined : existing.evaluationRemarks,
+				testTypeId: requestTestTypeId,
+				testCategoryId: existing.testCategoryId || catId,
+				testProtocolId: existing.testProtocolId || protoId,
+				productType: existing.productType || 'FATL',
+				stationNo: isRequestNabl ? 1 : (existing.stationNo || 1)
+			});
 		} else {
 			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
 
 			setForm({
-				testTypeId: '',
-				testCategoryId: '',
+				testTypeId: requestTestTypeId,
+				testCategoryId: catId,
 				productType: 'FATL',
-				stationNo: 1,
+				stationNo: isRequestNabl ? 1 : 1,
 				platformNos: [],
-				testProtocolId: '',
+				testProtocolId: protoId,
 				referenceStandard: '',
 				numberOfDays: 9,
 				startDate: getLocalTodayStr(),
@@ -247,29 +324,66 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			return;
 		}
 
-		if (form.platformNos.length === 0) {
-			toast.error('Please assign at least one physical Platform channel.');
-			return;
+		// Validation checks based on Test Type
+		if (isReliability) {
+			if (form.platformNos.length === 0) {
+				toast.error('Platform selection is mandatory for Reliability test plans.');
+				return;
+			}
+			if (form.platformNos.length > 1) {
+				toast.error('Only one platform selection is allowed for Reliability test plans.');
+				return;
+			}
+		} else if (isNabl) {
+			if (form.platformNos.length === 0) {
+				toast.error('Platform/Station selection is mandatory for NABL test plans.');
+				return;
+			}
+			if (!form.equipmentId) {
+				toast.error('Assigned R&D Equipment is mandatory for NABL test plans.');
+				return;
+			}
+		} else {
+			// Other test types (e.g. Performance)
+			if (form.platformNos.length > 1) {
+				toast.error('Only one platform selection is allowed for this test type.');
+				return;
+			}
+			if (!form.equipmentId) {
+				toast.error('Assigned R&D Equipment is mandatory for this test type.');
+				return;
+			}
 		}
 
 		try {
-			const reqIdPrefix = (selectedReq.requestId && String(selectedReq.requestId).startsWith('REQ-')) 
-				? selectedReq.requestId 
+			const reqIdPrefix = (selectedReq.requestId && String(selectedReq.requestId).startsWith('REQ-'))
+				? selectedReq.requestId
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
 
-			// 1. Reserve platform channels in database for this sample
-			const resOp = reservePlatforms(
-				Number(form.stationNo),
-				form.platformNos.map(Number),
-				Number(selectedReq.id),
-				`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
-				selectedReq.modelNo,
-				form.endDate
-			);
-			await resOp();
+			// 1. Reserve platform channels in database for this sample if assigned
+			if (form.platformNos.length > 0) {
+				const resOp = isNabl
+					? reserveNablPlatforms(
+						Number(form.stationNo),
+						form.platformNos.map(Number),
+						Number(selectedReq.id),
+						`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
+						selectedReq.modelNo,
+						form.endDate
+					)
+					: reserveNormalPlatforms(
+						Number(form.stationNo),
+						form.platformNos.map(Number),
+						Number(selectedReq.id),
+						`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
+						selectedReq.modelNo,
+						form.endDate
+					);
+				await resOp();
+			}
 
-			// 2. Reserve physical R&D Equipment in database if selected
-			if (form.equipmentId) {
+			// 2. Reserve physical R&D Equipment in database if selected and permitted (not reliability)
+			if (form.equipmentId && !isReliability) {
 				const eqResOp = reserveEquipment(
 					Number(form.equipmentId),
 					Number(selectedReq.id),
@@ -280,36 +394,42 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				await eqResOp();
 			}
 
-			// 3. Perform parent status sync if callback is provided
+			// 3. Save to database
+			const testPlanData = {
+				sampleIndex: activeSampleIndex,
+				testTypeId: Number(form.testTypeId),
+				testCategoryId: Number(form.testCategoryId),
+				testProtocolId: Number(form.testProtocolId),
+				productType: form.productType,
+				stationNo: Number(form.stationNo),
+				platformNos: form.platformNos,
+				equipmentId: (form.equipmentId && !isReliability) ? Number(form.equipmentId) : null,
+				numberOfDays: Number(form.numberOfDays),
+				startDate: form.startDate,
+				endDate: form.endDate,
+				remarks: form.remarks,
+			};
+
+			const planRes = await fetch(`/api/v1/test-requests/${selectedReq.id}/test-plans`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				},
+				body: JSON.stringify(testPlanData)
+			});
+
+			if (!planRes.ok) {
+				throw new Error('Failed to save test plan to database');
+			}
+
+			// 4. Perform parent status sync if callback is provided
 			if (onUpdateStatus) {
 				await onUpdateStatus(
 					selectedReq.id,
 					'UNDER_TESTING',
-					`Test Plan configured for Sample #${activeSampleIndex + 1} at Station S${form.stationNo}.`
+					undefined
 				);
-			}
-
-			const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
-			const updatedPlans = {
-				...savedPlans,
-				[key]: {
-					...form,
-					evaluationStatus: undefined,
-					evaluationRemarks: undefined,
-					evaluatedAt: undefined,
-					evaluatedBy: undefined
-				}
-			};
-
-			setSavedPlans(updatedPlans);
-			localStorage.setItem('dixon_sample_test_plans', JSON.stringify(updatedPlans));
-
-			// Clear previous completed inspection evaluations if any
-			const completedCached = localStorage.getItem('dixon_completed_sample_inspections');
-			if (completedCached) {
-				const completedDict = JSON.parse(completedCached);
-				delete completedDict[key];
-				localStorage.setItem('dixon_completed_sample_inspections', JSON.stringify(completedDict));
 			}
 
 			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved, platforms & equipment reserved!`);
@@ -329,13 +449,16 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			idStr.includes(searchQuery.toLowerCase()) ||
 			(r.requestId && r.requestId.toLowerCase().includes(searchQuery.toLowerCase())) ||
 			r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase());
+			(r.sampleDescription && r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
+			(r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
 		// 2. Status Match
 		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL'].includes((r.status || '').toUpperCase());
 		const isFailed = ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase());
 		const isTesting = ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase());
-		const isPending = !isCompleted && !isFailed && !isTesting;
+		const isSubmittedToHead = (r.remarks || '').includes('Submitted to Head');
+		const isInspectionFailed = (r.status || '').toUpperCase() === 'INSPECTION_FAILED' || isSubmittedToHead;
+		const isPending = !isCompleted && !isFailed && !isTesting && !isInspectionFailed;
 
 		let matchStatus = true;
 		if (statusFilter === 'PENDING') {
@@ -346,6 +469,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			matchStatus = isCompleted;
 		} else if (statusFilter === 'FAILED') {
 			matchStatus = isFailed;
+		} else if (statusFilter === 'INSPECTION_FAILED') {
+			matchStatus = isInspectionFailed;
 		}
 
 		// 3. Date Range Match
@@ -390,7 +515,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 								{searchQuery && (
-									<button 
+									<button
 										onClick={() => {
 											setSearchQuery('');
 											setCurrentPage(1);
@@ -415,7 +540,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										{ value: 'PENDING', label: 'Pending Setup' },
 										{ value: 'UNDER_TEST', label: 'Under Testing' },
 										{ value: 'COMPLETED', label: 'Completed' },
-										{ value: 'FAILED', label: 'Failed' }
+										{ value: 'FAILED', label: 'Failed' },
+										{ value: 'INSPECTION_FAILED', label: 'Inspection Failed' }
 									]}
 									className="w-44 shrink-0"
 								/>
@@ -432,7 +558,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
 									/>
 									{startDate && (
-										<button 
+										<button
 											onClick={() => {
 												setStartDate('');
 												setCurrentPage(1);
@@ -456,7 +582,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										className="bg-transparent border-none text-xs font-semibold text-zinc-850 outline-none p-1 cursor-pointer"
 									/>
 									{endDate && (
-										<button 
+										<button
 											onClick={() => {
 												setEndDate('');
 												setCurrentPage(1);
@@ -486,7 +612,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										<tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider">
 											<th className="py-4 px-6">Request ID</th>
 											<th className="py-4 px-6">Brand & Model</th>
-											<th className="py-4 px-6">Sample Description</th>
+											<th className="py-4 px-6">Test Type</th>
 											<th className="py-4 px-6">Inspection Metrics</th>
 											<th className="py-4 px-6">Planning Status</th>
 											<th className="py-4 px-6 text-right">Action</th>
@@ -499,14 +625,29 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											let failedCount = 0;
 											let plansCreated = 0;
 
+											const testTypeName = (req.testType?.name || '').toLowerCase();
+											const isReliabilityReq = testTypeName.includes('reliability');
+
 											for (let i = 0; i < qty; i++) {
-												const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+												const report = (req.sampleInspections || []).find(
+													(r: any) => Number(r.sampleIndex) === i
+												);
+
 												if (req.status === 'RETEST') {
 													passedCount++;
 												} else if (report) {
-													if (report.status === 'PASSED') passedCount++;
-													else if (report.status === 'FAILED') failedCount++;
+													const reportStatus = (report.status || '').toUpperCase();
+
+													if (
+														reportStatus === 'PASSED' ||
+														(!isReliabilityReq && reportStatus === 'UNDER_REVIEW')
+													) {
+														passedCount++;
+													} else if (reportStatus === 'FAILED') {
+														failedCount++;
+													}
 												}
+
 												if (savedPlans[`${req.id}-sample-${i}`]) {
 													plansCreated++;
 												}
@@ -527,7 +668,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														<div className="font-bold text-zinc-900 leading-tight">{req.brandName}</div>
 														<span className="text-[10px] text-zinc-555 font-medium">{req.modelNo}</span>
 													</td>
-													<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.sampleDescription}</td>
+													<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.testType?.name || 'General'}</td>
 													<td className="py-4 px-6">
 														<div className="flex flex-wrap gap-1.5 items-center">
 															<span className="text-[9px] font-bold px-1.5 py-0.5 bg-zinc-100 text-zinc-600 rounded">
@@ -552,7 +693,27 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														</div>
 													</td>
 													<td className="py-4 px-6">
-														{isAllPlanned ? (
+														{req.status === 'INSPECTION_COMPLETED' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
+																Pending Plan Creation ({plansCreated}/{passedCount})
+															</span>
+														) : req.status === 'INSPECTION_FAILED' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-200 rounded-full uppercase tracking-wider">
+																Submitted
+															</span>
+														) : req.status === 'RETEST' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded-full uppercase tracking-wider">
+																Pending Reconfigure Retest
+															</span>
+														) : req.status === 'TESTING_FAILED' || req.status === 'FAILED' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded-full uppercase tracking-wider">
+																Testing Failed
+															</span>
+														) : req.status === 'TESTING_PASSED' || req.status === 'COMPLETED' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-250 rounded-full uppercase tracking-wider">
+																Testing Passed
+															</span>
+														) : isAllPlanned ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full uppercase tracking-wider">
 																Plan Created
 															</span>
@@ -643,7 +804,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</div>
 									<div>
 										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Reference</p>
-										<p className="font-bold text-[#11236a] mt-1">{selectedReq.testMethodRef}</p>
+										<p className="font-bold text-[#11236a] mt-1">
+											{selectedReq.testMethodRef}
+											<span className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-extrabold uppercase ml-2 inline-block">
+												{selectedReq.testType?.name || 'General'}
+											</span>
+										</p>
 									</div>
 									<div>
 										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Quantity</p>
@@ -713,11 +879,24 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 									return list.map(({ index, report, plan }) => {
 										const sampleNo = index + 1;
-										const isFailed = report?.status === 'FAILED' && selectedReq.status !== 'RETEST';
-										const isPassed = report?.status === 'PASSED' || selectedReq.status === 'RETEST';
+										const isRetestOrTesting = ['RETEST', 'UNDER_TESTING', 'UNDER_TEST', 'TESTING_FAILED', 'TESTING_PASSED', 'FAILED', 'COMPLETED'].includes(selectedReq.status);
+										const isFailed = report?.status === 'FAILED' && !isRetestOrTesting;
+										const isPassed = report?.status === 'PASSED' || isRetestOrTesting;
 
 										const todayStr = getLocalTodayStr();
 										const isTesting = plan && plan.startDate <= todayStr;
+
+										const testType = testTypes.find(t => String(t.id) === String(selectedReq.testTypeId));
+										const isReliability = testType ? testType.name.toLowerCase().includes('reliability') : true;
+										const isUnderReview = report?.status === 'UNDER_REVIEW';
+										const showActionButtons = isPassed || (!isReliability && isUnderReview);
+
+										const requestTestingCompleted = ['COMPLETED', 'TESTING_PASSED'].includes(
+											(selectedReq.status || '').toUpperCase()
+										);
+
+										const testPlanEvaluationFailed = (plan?.evaluationStatus || '').toUpperCase() === 'FAILED';
+										const hideEditTestPlanButton = requestTestingCompleted || testPlanEvaluationFailed;
 
 										return (
 											<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -725,8 +904,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<div className="flex items-center gap-2 flex-wrap">
 														<span className="text-xs font-bold text-zinc-855">Sample #{sampleNo}</span>
 														{report ? (
-															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isPassed
-																	? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+																? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+																: report.status === 'UNDER_REVIEW'
+																	? 'bg-amber-50 text-amber-700 border border-amber-100'
 																	: 'bg-rose-50 text-rose-700 border border-rose-100'
 																}`}>
 																{report.status}
@@ -736,18 +917,18 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																No Inspection Report
 															</span>
 														)}
-														{selectedReq.status === 'RETEST' ? (
-															<span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
-																Retest Config Required
-															</span>
-														) : plan && (
+														{plan ? (
 															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isTesting
-																	? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
-																	: 'bg-amber-50 text-amber-700 border border-amber-100'
+																? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
+																: 'bg-amber-50 text-amber-700 border border-amber-100'
 																}`}>
 																{isTesting ? 'Testing' : 'Scheduled'}
 															</span>
-														)}
+														) : selectedReq.status === 'RETEST' ? (
+															<span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
+																Retest Config Required
+															</span>
+														) : null}
 													</div>
 													{report && (
 														<p className="text-[10px] text-zinc-555 font-semibold mt-0.5">
@@ -755,11 +936,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														</p>
 													)}
 													{plan && (
-														<div className={`text-[9px] rounded-lg p-2 mt-2 space-y-0.5 border ${
-															selectedReq.status === 'RETEST'
-																? 'text-orange-700 bg-orange-50/50 border-orange-100/50'
-																: 'text-indigo-650 bg-indigo-50/50 border-indigo-100/50'
-														}`}>
+														<div className={`text-[9px] rounded-lg p-2 mt-2 space-y-0.5 border ${selectedReq.status === 'RETEST'
+															? 'text-orange-700 bg-orange-50/50 border-orange-100/50'
+															: 'text-indigo-650 bg-indigo-50/50 border-indigo-100/50'
+															}`}>
 															<p className="font-extrabold">
 																{selectedReq.status === 'RETEST' ? 'Previous Test Plan (Retest Required):' : 'Active Test Plan Configured:'}
 															</p>
@@ -778,21 +958,22 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														<AlertTriangle className="w-3.5 h-3.5 shrink-0" />
 														Plan Disabled - Sample Failed
 													</span>
-												) : isPassed ? (
+												) : showActionButtons ? (
 													<div className="flex flex-wrap items-center gap-2 shrink-0">
-														<button
-															onClick={() => handleOpenPlanForm(index)}
-															className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${
-																selectedReq.status === 'RETEST'
-																	? 'bg-orange-650 hover:bg-orange-700 text-white'
+														{!hideEditTestPlanButton && (
+															<button
+																onClick={() => handleOpenPlanForm(index)}
+																className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${selectedReq.status === 'RETEST'
+																	? 'bg-orange-600 hover:bg-orange-700 text-white'
 																	: plan
 																		? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
 																		: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
-															}`}
-														>
-															<Clipboard className="w-3.5 h-3.5 shrink-0" />
-															{selectedReq.status === 'RETEST' ? 'Configure Retest Plan' : plan ? 'Edit Test Plan' : 'Create Test Plan'}
-														</button>
+																	}`}
+															>
+																<Clipboard className="w-3.5 h-3.5 shrink-0" />
+																{selectedReq.status === 'RETEST' ? 'Configure Retest Plan' : plan ? 'Edit Test Plan' : 'Create Test Plan'}
+															</button>
+														)}
 
 														{plan && selectedReq.status !== 'RETEST' && (() => {
 															const todayStr = getLocalTodayStr();
@@ -802,11 +983,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															if (isEvaluated) {
 																return (
 																	<div className="flex items-center gap-2">
-																		<span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${
-																			plan.evaluationStatus === 'PASSED'
-																				? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-																				: 'bg-rose-50 text-rose-600 border-rose-100'
-																		}`}>
+																		<span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${plan.evaluationStatus === 'PASSED'
+																			? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+																			: 'bg-rose-50 text-rose-600 border-rose-100'
+																			}`}>
 																			{plan.evaluationStatus === 'PASSED' ? (
 																				<CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
 																			) : (
@@ -824,7 +1004,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																	</div>
 																);
 															}
-															if (isLastDateOrLater) {
+
+															const showEvaluate = isReliability ? isLastDateOrLater : isUnderReview;
+															if (showEvaluate) {
 																return (
 																	<button
 																		onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-sample-${index}`)}
@@ -850,6 +1032,34 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 							{/* Activation Footer */}
 							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
+								{isAllInspectionFailed && ['INSPECTION_COMPLETED', 'INSPECTION_FAILED'].includes(selectedReq.status) && (
+									(selectedReq.status === 'INSPECTION_FAILED' || (selectedReq.remarks || '').includes('Submitted to Head')) ? (
+										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
+											Submitted to Head Panel
+										</span>
+									) : (
+										<button
+											onClick={async () => {
+												if (onUpdateStatus) {
+													try {
+														const remarksText = selectedReq.remarks ? `${selectedReq.remarks}` : '';
+														const newRemarks = remarksText.includes('Submitted to Head') ? remarksText : `Submitted to Head. ${remarksText}`;
+														await onUpdateStatus(selectedReq.id, 'INSPECTION_COMPLETED', newRemarks);
+														toast.success('Failed request successfully submitted to Head Panel.');
+														navigate('/manager/test-plans');
+													} catch (e) {
+														toast.error('Failed to submit request.');
+													}
+												}
+											}}
+											className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer outline-none shadow-sm active:scale-95 hover:scale-[1.01] border-none"
+										>
+											<CheckCircle className="w-4 h-4" />
+											<span>Submit Failed Request</span>
+										</button>
+									)
+								)}
+
 								{(() => {
 									const canGenerateOverallReport = (() => {
 										const qty = selectedReq.sampleQty || 1;
@@ -930,8 +1140,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<select
 										id="testType"
 										value={form.testTypeId}
+										disabled
 										onChange={(e) => handleTestTypeChange(e.target.value)}
-										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
+										className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 text-zinc-500 text-xs font-semibold outline-none cursor-not-allowed h-[42px] opacity-75"
 									>
 										<option value="">-- Select Test Type --</option>
 										{testTypes.map((t: any) => (
@@ -972,8 +1183,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												type="button"
 												onClick={() => setForm({ ...form, productType: pType })}
 												className={`py-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer outline-none border-none text-center ${isActive
-														? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-														: 'bg-white border-zinc-250 text-zinc-555 hover:bg-zinc-50'
+													? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+													: 'bg-white border-zinc-250 text-zinc-555 hover:bg-zinc-50'
 													}`}
 											>
 												{pType}
@@ -984,104 +1195,196 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 							{/* R&D Equipment selection */}
 							<div className="flex flex-col gap-1.5">
-								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">Assign R&D Equipment (Optional)</label>
+								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">
+									Assign R&D Equipment {isReliability ? '(Not permitted)' : (isNabl || (!isReliability && !isNabl)) ? '(Mandatory)' : '(Optional)'}
+								</label>
 								<select
 									id="equipmentSelect"
-									value={form.equipmentId}
+									value={isReliability ? "" : form.equipmentId}
+									disabled={isReliability}
 									onChange={(e) => setForm({ ...form, equipmentId: e.target.value })}
-									className="bg-[#f8fafc] border border-[#d1d5db] rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
+									className={`bg-[#f8fafc] border border-[#d1d5db] rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px] ${isReliability ? 'opacity-50 cursor-not-allowed bg-zinc-100' : ''}`}
 								>
-									<option value="">-- Select R&D Equipment --</option>
-									{equipments.map((eq: any) => {
-										const isOccupied = !eq.isAvailable;
-										return (
-											<option
-												key={eq.id}
-												value={String(eq.id)}
-												disabled={isOccupied && String(form.equipmentId) !== String(eq.id)}
-											>
-												{eq.name} {isOccupied ? `(Occupied - busy)` : '(Available)'}
-											</option>
-										);
-									})}
+									{isReliability ? (
+										<option value="">-- R&D Equipment not permitted for Reliability --</option>
+									) : (
+										<>
+											<option value="">-- Select R&D Equipment --</option>
+											{equipments.map((eq: any) => {
+												const isOccupied = !eq.isAvailable;
+												return (
+													<option
+														key={eq.id}
+														value={String(eq.id)}
+														disabled={isOccupied && String(form.equipmentId) !== String(eq.id)}
+													>
+														{eq.name} {isOccupied ? `(Occupied - busy)` : '(Available)'}
+													</option>
+												);
+											})}
+										</>
+									)}
 								</select>
 							</div>
 
-							{/* Dynamic Platform Telemetry grid for ALL Stations */}
+							{/* Dynamic Platform Telemetry grid for Stations */}
 							<div className="flex flex-col gap-3">
-								<label className="text-[10px] text-zinc-500 font-extrabold">Assign Platforms (Select platforms from a single Station unit)</label>
+								<label className="text-[10px] text-zinc-500 font-extrabold">
+									{isNabl
+										? 'Assign NABL Station Platforms (Select platforms from NABL Station unit - Mandatory)'
+										: `Assign Platforms (Select platform from a single Station unit - ${isReliability ? 'Mandatory, Max 1 selection' : 'Optional, Max 1 selection'})`
+									}
+								</label>
 								<div className="space-y-4 max-h-[350px] overflow-y-auto p-3 bg-[#f8fafc] rounded-2xl border border-zinc-150">
-									{Array.from({ length: 14 }, (_, stationIdx) => {
-										const sNum = stationIdx + 1;
-										const isStationActive = form.stationNo === sNum;
+									{isNabl ? (
+										// Only render NABL Station 1
+										(() => {
+											const sNum = 1;
+											const isStationActive = form.stationNo === sNum;
+											return (
+												<div key={sNum} className="bg-white border border-[#e4e4e7]/60 rounded-[22px] p-5 shadow-sm">
+													<div className="flex items-center justify-between mb-3.5">
+														<span className="text-xs font-bold text-slate-400 tracking-wider">NABL Station {sNum}</span>
+														{isStationActive && form.platformNos.length > 0 && (
+															<span className="text-[8px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+																Active (Selected: {form.platformNos.join(', ')})
+															</span>
+														)}
+													</div>
 
-										return (
-											<div key={sNum} className="bg-white border border-[#e4e4e7]/60 rounded-[22px] p-5 shadow-sm">
-												<div className="flex items-center justify-between mb-3.5">
-													<span className="text-xs font-bold text-slate-400 tracking-wider">P{sNum}</span>
-													{isStationActive && form.platformNos.length > 0 && (
-														<span className="text-[8px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-															Active (Selected: {form.platformNos.join(', ')})
-														</span>
-													)}
-												</div>
+													<div className="grid grid-cols-5 gap-3">
+														{Array.from({ length: 10 }, (_, platformIdx) => {
+															const pNum = platformIdx + 1;
+															const isSelected = isStationActive && form.platformNos.includes(pNum);
+															const slot = nablPlatforms.find(
+																(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
+															);
+															const isOccupied = slot ? !slot.isAvailable : false;
 
-												<div className="grid grid-cols-5 gap-3">
-													{Array.from({ length: 10 }, (_, platformIdx) => {
-														const pNum = platformIdx + 1;
-														const isSelected = isStationActive && form.platformNos.includes(pNum);
-														// Query real-time database state
-														const slot = platforms.find(
-															(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
-														);
-														const isOccupied = slot ? !slot.isAvailable : false;
-
-														return (
-															<button
-																key={pNum}
-																type="button"
-																onClick={() => {
-																	if (isOccupied) return;
-																	setForm(prev => {
-																		// If switching station, reset selection to only this platform
-																		if (prev.stationNo !== sNum) {
-																			return {
-																				...prev,
-																				stationNo: sNum,
-																				platformNos: [pNum]
-																			};
-																		}
-																		// If same station, toggle platform
-																		const current = prev.platformNos;
-																		const updated = current.includes(pNum)
-																			? current.filter(n => n !== pNum)
-																			: [...current, pNum];
-																		return { ...prev, platformNos: updated };
-																	});
-																}}
-																className={`h-11 rounded-2xl text-xs font-bold transition-all relative flex items-center justify-center cursor-pointer outline-none border-none ${isOccupied
+															return (
+																<button
+																	key={pNum}
+																	type="button"
+																	onClick={() => {
+																		if (isOccupied) return;
+																		setForm(prev => {
+																			if (prev.stationNo !== sNum) {
+																				return {
+																					...prev,
+																					stationNo: sNum,
+																					platformNos: [pNum]
+																				};
+																			}
+																			const current = prev.platformNos;
+																			const updated = current.includes(pNum)
+																				? current.filter(n => n !== pNum)
+																				: [...current, pNum];
+																			return { ...prev, platformNos: updated };
+																		});
+																	}}
+																	className={`h-11 rounded-2xl text-xs font-bold transition-all relative flex items-center justify-center cursor-pointer outline-none border-none ${isOccupied
 																		? 'bg-[#fff1f2] text-[#f87171] cursor-not-allowed opacity-90'
 																		: isSelected
 																			? 'bg-[#185adb] text-white shadow-md shadow-blue-500/20 font-bold'
 																			: 'bg-white border border-[#e4e4e7] text-slate-800 hover:bg-slate-50'
-																	}`}
-																title={
-																	isOccupied
-																		? `Occupied by: ${slot?.occupiedBy || 'N/A'}\nUntil: ${slot?.occupiedUntil ? new Date(slot.occupiedUntil).toLocaleDateString() : 'N/A'}`
-																		: `Station S${sNum} Platform #${pNum} (Available)`
-																}
-															>
-																<span className="text-xs">{pNum}</span>
-																{isOccupied && (
-																	<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#f43f5e] rounded-full border border-white shadow-sm"></span>
-																)}
-															</button>
-														);
-													})}
+																		}`}
+																	title={
+																		isOccupied
+																			? `Occupied by: ${slot?.occupiedBy || 'N/A'}\nUntil: ${slot?.occupiedUntil ? new Date(slot.occupiedUntil).toLocaleDateString() : 'N/A'}`
+																			: `NABL Station S${sNum} Platform #${pNum} (Available)`
+																	}
+																>
+																	<span className="text-xs">{pNum}</span>
+																	{isOccupied && (
+																		<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#f43f5e] rounded-full border border-white shadow-sm"></span>
+																	)}
+																</button>
+															);
+														})}
+													</div>
 												</div>
-											</div>
-										);
-									})}
+											);
+										})()
+									) : (
+										// Render normal Stations 1 to 14
+										Array.from({ length: 14 }, (_, stationIdx) => {
+											const sNum = stationIdx + 1;
+											const isStationActive = form.stationNo === sNum;
+
+											return (
+												<div key={sNum} className="bg-white border border-[#e4e4e7]/60 rounded-[22px] p-5 shadow-sm">
+													<div className="flex items-center justify-between mb-3.5">
+														<span className="text-xs font-bold text-slate-400 tracking-wider">Station Unit S{sNum}</span>
+														{isStationActive && form.platformNos.length > 0 && (
+															<span className="text-[8px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+																Active (Selected: {form.platformNos.join(', ')})
+															</span>
+														)}
+													</div>
+
+													<div className="grid grid-cols-5 gap-3">
+														{Array.from({ length: 10 }, (_, platformIdx) => {
+															const pNum = platformIdx + 1;
+															const isSelected = isStationActive && form.platformNos.includes(pNum);
+															const slot = normalPlatforms.find(
+																(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
+															);
+															const isOccupied = slot ? !slot.isAvailable : false;
+
+															return (
+																<button
+																	key={pNum}
+																	type="button"
+																	onClick={() => {
+																		if (isOccupied) return;
+																		setForm(prev => {
+																			const isSingleAllowed = isReliability || (!isReliability && !isNabl);
+																			if (isSingleAllowed) {
+																				return {
+																					...prev,
+																					stationNo: sNum,
+																					platformNos: prev.platformNos.includes(pNum) && prev.stationNo === sNum ? [] : [pNum]
+																				};
+																			}
+
+																			if (prev.stationNo !== sNum) {
+																				return {
+																					...prev,
+																					stationNo: sNum,
+																					platformNos: [pNum]
+																				};
+																			}
+																			const current = prev.platformNos;
+																			const updated = current.includes(pNum)
+																				? current.filter(n => n !== pNum)
+																				: [...current, pNum];
+																			return { ...prev, platformNos: updated };
+																		});
+																	}}
+																	className={`h-11 rounded-2xl text-xs font-bold transition-all relative flex items-center justify-center cursor-pointer outline-none border-none ${isOccupied
+																		? 'bg-[#fff1f2] text-[#f87171] cursor-not-allowed opacity-90'
+																		: isSelected
+																			? 'bg-[#185adb] text-white shadow-md shadow-blue-500/20 font-bold'
+																			: 'bg-white border border-[#e4e4e7] text-slate-800 hover:bg-slate-50'
+																		}`}
+																	title={
+																		isOccupied
+																			? `Occupied by: ${slot?.occupiedBy || 'N/A'}\nUntil: ${slot?.occupiedUntil ? new Date(slot.occupiedUntil).toLocaleDateString() : 'N/A'}`
+																			: `Station S${sNum} Platform #${pNum} (Available)`
+																	}
+																>
+																	<span className="text-xs">{pNum}</span>
+																	{isOccupied && (
+																		<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#f43f5e] rounded-full border border-white shadow-sm"></span>
+																	)}
+																</button>
+															);
+														})}
+													</div>
+												</div>
+											);
+										})
+									)}
 								</div>
 							</div>
 

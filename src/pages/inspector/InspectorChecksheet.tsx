@@ -17,8 +17,8 @@ interface ColumnDef {
 // Columns for Semi-automatic Washing Machine Life Test (SATL)
 const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
-	{ id: 'washCycles', label: 'No. of Cycle (Wash)' },
-	{ id: 'spinCycles', label: 'No. of Cycle (Spin)' },
+	{ id: 'washCycles', label: 'NO. OF CYCLE-wash' },
+	{ id: 'spinCycles', label: 'NO. OF CYCLE-Spin' },
 	{ id: 'washMotor', label: 'Wash Motor' },
 	{ id: 'spinMotor', label: 'Spin Motor' },
 	{ id: 'gearBox', label: 'Gear Box' },
@@ -28,24 +28,25 @@ const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'drainSelector', label: 'Drain Selector' },
 	{ id: 'capacitor', label: 'Capacitor' },
 	{ id: 'safetySwitch', label: 'Safety Switch' },
-	{ id: 'totalCycles', label: 'Total Cycles' },
+	{ id: 'totalCyclesWash', label: 'Total cycles Wash' },
+	{ id: 'totalCyclesSpin', label: 'Total cycles Spin' },
 	{ id: 'remarks', label: 'Remarks' },
 ];
 
 // Columns for Fully automatic Washing Machine Life Test (FATL)
 const FATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
-	{ id: 'noOfCycle', label: 'No. of Cycle' },
+	{ id: 'noOfCycle', label: 'NO. OF CYCLE' },
 	{ id: 'motor', label: 'Motor' },
 	{ id: 'clutch', label: 'Clutch' },
 	{ id: 'waterInletValve', label: 'Water Inlet Valve' },
-	{ id: 'pressureSensor', label: 'Pressure Sensor' },
+	{ id: 'pressureSensor', label: 'Pressure sensor' },
 	{ id: 'pcb', label: 'PCB' },
 	{ id: 'suspensionRod', label: 'Suspension Rod' },
 	{ id: 'drainMotor', label: 'Drain Motor' },
 	{ id: 'lidSwitch', label: 'Lid Switch' },
 	{ id: 'inverterBoard', label: 'Inverter Board' },
-	{ id: 'totalCycles', label: 'Total Cycles' },
+	{ id: 'totalCycles', label: 'Total cycles' },
 	{ id: 'remarks', label: 'Remarks' },
 ];
 
@@ -79,7 +80,27 @@ export default function InspectorChecksheet() {
 				const types = await getTestTypes()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
-				const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
+				const plansMap: { [key: string]: any } = {};
+				if (reqs && Array.isArray(reqs)) {
+					reqs.forEach((req: any) => {
+						if (req.testPlans) {
+							req.testPlans.forEach((plan: any) => {
+								let platformNosParsed = [];
+								if (plan.platformNos) {
+									try {
+										platformNosParsed = typeof plan.platformNos === 'string' ? JSON.parse(plan.platformNos) : plan.platformNos;
+									} catch (e) {
+										platformNosParsed = [];
+									}
+								}
+								plansMap[`${req.id}-sample-${plan.sampleIndex}`] = {
+									...plan,
+									platformNos: platformNosParsed
+								};
+							});
+						}
+					});
+				}
 
 				// Fetch entries from backend database
 				const dbEntries = await getChecksheetEntries(planKey)();
@@ -89,7 +110,7 @@ export default function InspectorChecksheet() {
 					setTestTypes(types || []);
 					setTestCategories(categories || []);
 					setTestProtocols(protocols || []);
-					setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
+					setPlans(plansMap);
 
 					// Map database entries to cellData state
 					const mappedData: { [key: string]: string } = {};
@@ -203,7 +224,16 @@ export default function InspectorChecksheet() {
 	// Format platforms list text
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
-		return plan.platformNos.map((pNum: number) => `P${plan.stationNo}-S${pNum}`).join(', ');
+		let platforms = plan.platformNos;
+		if (typeof platforms === 'string') {
+			try {
+				platforms = JSON.parse(platforms);
+			} catch (e) {
+				platforms = [];
+			}
+		}
+		if (!Array.isArray(platforms)) return 'N/A';
+		return platforms.map((pNum: number) => `P${plan.stationNo}-S${pNum}`).join(', ');
 	};
 
 	// Print sheets helper
@@ -338,11 +368,10 @@ export default function InspectorChecksheet() {
 						</div>
 						<div className="col-span-2 border-r border-zinc-900 p-3.5 flex flex-col items-center justify-center text-center">
 							<h2 className="text-sm font-black tracking-wider uppercase leading-snug">
-								Reliability Life Test Chronology Check-Sheet
+								{productType === 'FATL' 
+									? 'Fully automatic Washing Machine life test Check-sheet' 
+									: 'Semi-automatic Washing Machine Life Test Check Sheet'}
 							</h2>
-							<span className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-widest mt-1 block">
-								Format: {productType} Endurance Test
-							</span>
 						</div>
 						<div className="col-span-1 p-3.5 flex items-center justify-center text-[10px] font-black uppercase">
 							Plan #{planInfo.plan.stationNo}

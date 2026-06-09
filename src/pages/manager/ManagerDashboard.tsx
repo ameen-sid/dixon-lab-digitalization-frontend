@@ -39,6 +39,8 @@ interface ApprovedRequest {
 	customerContactDetails?: string;
 	manufacturerNameAddress?: string;
 	sampleInspections?: any[];
+	testType?: { id: number; name: string } | null;
+	testPlans?: any[];
 }
 
 interface InspectionTask {
@@ -55,6 +57,7 @@ interface InspectionTask {
 	remarks?: string;
 	engineerId?: string;
 	engineerName?: string;
+	testType?: { id: number; name: string } | null;
 }
 
 interface CapaRecord {
@@ -99,7 +102,7 @@ export default function ManagerDashboard() {
 	const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
 	const [loadingRequests, setLoadingRequests] = useState(false);
 	const [engineers, setEngineers] = useState<{ id: string; name: string; role: string }[]>([]);
-	
+
 	// Dynamic request details loading state
 	const [activeRequestDetails, setActiveRequestDetails] = useState<ApprovedRequest | null>(null);
 	const [loadingDetails, setLoadingDetails] = useState(false);
@@ -110,7 +113,7 @@ export default function ManagerDashboard() {
 		try {
 			const fetchOp = getTestRequests();
 			const data = await fetchOp();
-			
+
 			const mapped = data.map((req: any) => ({
 				id: String(req.id),
 				requestId: req.requestId,
@@ -128,18 +131,12 @@ export default function ManagerDashboard() {
 				inspectionResult: req.status === 'COMPLETED' ? 'PASSED' : undefined,
 				inspectionRemarks: req.remarks,
 				remarks: req.remarks,
-				sampleInspections: req.sampleInspections
+				sampleInspections: req.sampleInspections,
+				testType: req.testType,
+				testPlans: req.testPlans
 			}));
 
 			// Perform an automatic check for completed requests that are still UNDER_TEST
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
-			const cachedManager = localStorage.getItem('dixon_sample_inspections');
-			const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-			const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-			const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-			const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-			const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
 			for (const req of mapped) {
 				if (req.status === 'UNDER_TESTING' || req.status === 'UNDER_TEST') {
 					const qty = req.sampleQty || 1;
@@ -147,21 +144,19 @@ export default function ManagerDashboard() {
 					let hasPlans = false;
 
 					for (let i = 0; i < qty; i++) {
-						const cacheKey = `${req.id}-sample-${i}`;
 						const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-						const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedReports[cacheKey];
-						const plan = plansMap[cacheKey];
+						const plan = (req.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
 
 						if (plan) {
 							hasPlans = true;
 						}
 
-						if (mergedReport) {
-							if (mergedReport.status === 'FAILED') {
+						if (dbReport) {
+							if (dbReport.status === 'FAILED') {
 								// Failed inspection means it's complete/failed
 								continue;
-							} else if (mergedReport.status === 'PASSED') {
-								// Passed inspection means it must have a completed evaluation status
+							} else if (dbReport.status === 'PASSED') {
+								// Passed inspection means it must have a completed evaluation status in the DB
 								if (plan && (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED')) {
 									continue;
 								}
@@ -177,15 +172,13 @@ export default function ManagerDashboard() {
 						let failedCount = 0;
 
 						for (let i = 0; i < qty; i++) {
-							const cacheKey = `${req.id}-sample-${i}`;
 							const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-							const mergedReport = dbReport || engineerReports[cacheKey] || managerReports[cacheKey] || completedReports[cacheKey];
-							const plan = plansMap[cacheKey];
+							const plan = (req.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
 
-							if (mergedReport) {
-								if (mergedReport.status === 'FAILED') {
+							if (dbReport) {
+								if (dbReport.status === 'FAILED') {
 									failedCount++;
-								} else if (mergedReport.status === 'PASSED') {
+								} else if (dbReport.status === 'PASSED') {
 									if (plan && plan.evaluationStatus === 'PASSED') {
 										passedCount++;
 									} else if (plan && plan.evaluationStatus === 'FAILED') {
@@ -195,18 +188,20 @@ export default function ManagerDashboard() {
 							}
 						}
 
-						let finalStatus = 'TESTING_PARTIAL';
-						if (failedCount === qty) {
-							finalStatus = 'TESTING_FAILED';
-						} else if (passedCount === qty) {
+						let finalStatus = 'TESTING_COMPLETED';
+						if (passedCount === qty) {
 							finalStatus = 'TESTING_PASSED';
+						} else if (failedCount === qty) {
+							finalStatus = 'TESTING_FAILED';
+						} else if (passedCount > 0 && failedCount > 0) {
+							finalStatus = 'TESTING_PARTIAL';
 						}
 
 						try {
 							const statusUpdateOp = updateTestRequestStatus(
 								Number(req.id),
 								finalStatus,
-								`Testing fully evaluated: ${passedCount} passed, ${failedCount} failed.`
+								undefined
 							);
 							await statusUpdateOp();
 							req.status = finalStatus;
@@ -219,7 +214,14 @@ export default function ManagerDashboard() {
 
 			// Approved requests are those which have been signed off by the Lab Head 
 			// (Status is NOT PENDING_APPROVAL and NOT REJECTED)
-			const filtered = mapped.filter((r: any) => r.status !== 'PENDING_APPROVAL' && r.status !== 'REJECTED');
+			let filtered = mapped.filter((r: any) => r.status !== 'PENDING_APPROVAL' && r.status !== 'REJECTED');
+			const currentUser = userStr ? JSON.parse(userStr) : null;
+			const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
+			if (isNablDept) {
+				filtered = filtered.filter((r: any) => r.testType?.name === 'NABL Test');
+			} else {
+				filtered = filtered.filter((r: any) => r.testType?.name !== 'NABL Test');
+			}
 			setApprovedRequests(filtered);
 		} catch (error) {
 			console.error('Failed to load approved requests from database:', error);
@@ -242,7 +244,8 @@ export default function ManagerDashboard() {
 				.map((u: any) => ({
 					id: String(u.id),
 					name: u.name,
-					role: u.role
+					role: u.role,
+					department: u.department
 				}));
 			setEngineers(staff);
 		} catch (error) {
@@ -270,7 +273,7 @@ export default function ManagerDashboard() {
 			try {
 				const fetchOp = getTestRequestDetails(id);
 				const req = await fetchOp();
-				
+
 				const mapped = {
 					id: String(req.id),
 					requestId: req.requestId,
@@ -289,10 +292,30 @@ export default function ManagerDashboard() {
 					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
-					manufacturerNameAddress: req.manufacturerNameAddress
+					manufacturerNameAddress: req.manufacturerNameAddress,
+					testType: req.testType,
+					testPlans: req.testPlans,
+					sampleInspections: req.sampleInspections
 				};
+
+				const currentUser = userStr ? JSON.parse(userStr) : null;
+				const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
+				const isNablRequest = mapped.testType?.name === 'NABL Test';
+
+				if (isNablDept && !isNablRequest) {
+					setActiveRequestDetails(null);
+					toast.error('Access Denied: Non-NABL test requests are not accessible by NABL managers.');
+					navigate('/manager/dashboard');
+					return;
+				} else if (!isNablDept && isNablRequest) {
+					setActiveRequestDetails(null);
+					toast.error('Access Denied: NABL test requests are not accessible by this department.');
+					navigate('/manager/dashboard');
+					return;
+				}
+
 				setActiveRequestDetails(mapped);
-				
+
 				// Instantly reload available engineers list to stay synchronized
 				await loadEngineers();
 			} catch (error) {
@@ -302,7 +325,7 @@ export default function ManagerDashboard() {
 			}
 		};
 		loadDetails();
-	}, [id, location.pathname]);
+	}, [id, location.pathname, userStr, navigate]);
 
 	// ==========================================
 	// MOCK DATABASE STATES FOR OFFLINE MODULES
@@ -327,7 +350,21 @@ export default function ManagerDashboard() {
 				owner: c.owner || '',
 				createdDate: new Date(c.createdAt).toISOString().split('T')[0],
 			}));
-			setCapas(mapped);
+
+			const currentUser = userStr ? JSON.parse(userStr) : null;
+			const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
+
+			const fetchRequestsOp = getTestRequests();
+			const allReqs = await fetchRequestsOp();
+
+			const filteredMapped = mapped.filter((c: any) => {
+				const matchedReq = allReqs.find((r: any) => String(r.id) === String(c.relatedRequest) || r.requestId === c.relatedRequest);
+				if (!matchedReq) return false;
+				const isNablRequest = matchedReq.testType?.name === 'NABL Test';
+				return isNablDept ? isNablRequest : !isNablRequest;
+			});
+
+			setCapas(filteredMapped);
 		} catch (err) {
 			console.error('Failed to load CAPAs', err);
 		}
@@ -341,16 +378,16 @@ export default function ManagerDashboard() {
 	// ==========================================
 
 	// 1. Assign Engineer to Request (Live Backend Integration)
-	const handleAssignEngineer = async (requestId: string, engineerId: string, engineerName: string) => {
+	const handleAssignEngineer = async (requestId: string, engineerId: string, _engineerName: string) => {
 		try {
 			const numericRequestId = Number(requestId);
 			const numericEngineerId = Number(engineerId);
 
 			// Call backend update API to transition status to UNDER_TEST & assign scientist
 			const updateOp = updateTestRequestStatus(
-				numericRequestId, 
-				'UNDER_INSPECTION', 
-				`Assigned testing plan to specialized engineer: ${engineerName}`, 
+				numericRequestId,
+				'UNDER_INSPECTION',
+				undefined,
 				numericEngineerId
 			);
 			await updateOp();
@@ -380,7 +417,8 @@ export default function ManagerDashboard() {
 					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
-					manufacturerNameAddress: req.manufacturerNameAddress
+					manufacturerNameAddress: req.manufacturerNameAddress,
+					testType: req.testType
 				};
 				setActiveRequestDetails(mapped);
 			}
@@ -427,7 +465,8 @@ export default function ManagerDashboard() {
 					remarks: req.remarks,
 					inspectionRemarks: req.remarks,
 					customerContactDetails: req.customerContactDetails,
-					manufacturerNameAddress: req.manufacturerNameAddress
+					manufacturerNameAddress: req.manufacturerNameAddress,
+					testType: req.testType
 				};
 				setActiveRequestDetails(mapped);
 			}
@@ -437,7 +476,7 @@ export default function ManagerDashboard() {
 	};
 
 	// 3. Form inspection completion (from Manager's Assigned task screen checklist)
-	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', remarks: string, _checks: any) => {
+	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', _remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
 			const statusTransition = 'INSPECTION_COMPLETED';
@@ -445,7 +484,7 @@ export default function ManagerDashboard() {
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,
 				statusTransition,
-				remarks
+				undefined
 			);
 			await updateOp();
 
@@ -458,25 +497,7 @@ export default function ManagerDashboard() {
 	};
 
 	// 4. Initiate CAPA Report Submission
-	const handleAddCapa = (newCapa: any) => {
-		const newId = `CAPA-2026-00${capas.length + 1}`;
-		const capaRecord: CapaRecord = {
-			id: newId,
-			relatedRequest: newCapa.relatedRequest,
-			productName: newCapa.productName,
-			nonConformity: newCapa.nonConformity,
-			rootCause: newCapa.rootCause,
-			correctiveAction: newCapa.correctiveAction,
-			preventiveAction: newCapa.preventiveAction,
-			targetedDate: newCapa.targetedDate,
-			status: 'OPEN',
-			owner: 'Lab Operations Manager',
-			createdDate: new Date().toISOString().split('T')[0]
-		};
 
-		setCapas(prev => [capaRecord, ...prev]);
-		toast.success(`CAPA plan ${newId} initialized and queued.`);
-	};
 
 	// Set active tab logic
 	let activeTab = 'dashboard';
@@ -521,7 +542,7 @@ export default function ManagerDashboard() {
 		switch (activeTab) {
 			case 'dashboard':
 				return (
-					<ManagerDashboardOverview 
+					<ManagerDashboardOverview
 						navigate={navigate}
 						requests={approvedRequests}
 						capas={capas}
@@ -538,7 +559,7 @@ export default function ManagerDashboard() {
 					);
 				}
 				return (
-					<ApprovedRequests 
+					<ApprovedRequests
 						requests={approvedRequests}
 					/>
 				);
@@ -552,10 +573,16 @@ export default function ManagerDashboard() {
 						</div>
 					);
 				}
+				const currentUserForEng = userStr ? JSON.parse(userStr) : null;
+				const isNablDeptForEng = currentUserForEng?.department?.name?.toUpperCase() === 'NABL';
+				const filteredEngineers = engineers.filter((eng: any) => {
+					const isEngNabl = eng.department?.name?.toUpperCase() === 'NABL';
+					return isNablDeptForEng ? isEngNabl : !isEngNabl;
+				});
 				return (
-					<ApprovedRequestDetails 
+					<ApprovedRequestDetails
 						request={activeRequestDetails}
-						engineers={engineers}
+						engineers={filteredEngineers}
 						onAssignEngineer={handleAssignEngineer}
 						onSimulateInspectionCompletion={handleSimulateInspectionCompletion}
 					/>
@@ -578,10 +605,12 @@ export default function ManagerDashboard() {
 						status: r.status,
 						assignedDate: r.approvedDate,
 						engineerId: r.engineerId,
-						engineerName: r.engineerName
+						engineerName: r.engineerName,
+						testType: r.testType,
+						sampleInspections: r.sampleInspections
 					}));
 				return (
-					<AssignedSamples 
+					<AssignedSamples
 						tasks={dynamicTasks}
 						onCompleteInspection={handleCompleteInspectionForm}
 					/>
@@ -589,7 +618,7 @@ export default function ManagerDashboard() {
 
 			case 'capa-management':
 				return (
-					<ManagerCapaManagement 
+					<ManagerCapaManagement
 						capas={capas}
 						onAddCapa={async (newCapa: any) => {
 							try {
@@ -612,7 +641,7 @@ export default function ManagerDashboard() {
 
 			case 'test-plans':
 				return (
-					<ManagerTestPlans 
+					<ManagerTestPlans
 						requests={approvedRequests}
 						onUpdateStatus={async (requestId, status, remarks) => {
 							const numId = Number(requestId);
@@ -631,7 +660,7 @@ export default function ManagerDashboard() {
 
 			case 'test-plan-details':
 				return (
-					<ManagerTestPlans 
+					<ManagerTestPlans
 						requests={approvedRequests}
 						selectedRequestId={id}
 						onUpdateStatus={async (requestId, status, remarks) => {

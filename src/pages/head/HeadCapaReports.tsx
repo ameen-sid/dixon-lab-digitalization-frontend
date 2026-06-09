@@ -32,14 +32,7 @@ export default function HeadCapaReports() {
 
 	useEffect(() => { loadCapas(); }, []);
 
-	const handleResolve = async (id: number) => {
-		try {
-			await updateCapaStatus(id, 'COMPLETED')();
-			await loadCapas();
-		} catch (err) {
-			console.error('Failed to update CAPA status', err);
-		}
-	};
+
 
 	const filtered = capas.filter(c => {
 		const matchSearch =

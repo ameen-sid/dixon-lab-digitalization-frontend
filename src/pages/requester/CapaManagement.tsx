@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
 

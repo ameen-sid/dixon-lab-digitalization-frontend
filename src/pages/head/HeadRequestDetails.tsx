@@ -46,7 +46,9 @@ interface RequestRecord {
 	createdAt: string;
 	updatedAt: string;
 	attachments?: AttachmentRecord[];
+	testType?: { id: number; name: string } | null;
 	sampleInspections?: any[];
+	testPlans?: any[];
 	requester?: {
 		name: string;
 		email: string;
@@ -82,7 +84,6 @@ export default function HeadRequestDetails() {
 	// Telemetry and active sample timeline details
 	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
 
-
 	const loadRequestDetails = async () => {
 		if (!id) return;
 		setLoading(true);
@@ -102,46 +103,35 @@ export default function HeadRequestDetails() {
 		loadRequestDetails();
 	}, [id]);
 
-	const reqDbIdVal = request?.dbId || (request?.id ? (typeof request.id === 'string' && isNaN(Number(request.id)) ? Number((request.id as string).split('-').pop()) : Number(request.id)) : null);
-	const sampleKey = (request && activeTimelineSampleIndex !== null && reqDbIdVal) ? `${reqDbIdVal}-sample-${activeTimelineSampleIndex}` : '';
-
 	const testPlan = (() => {
-		if (!sampleKey) return null;
-		try {
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
-			return plansMap[sampleKey] || null;
-		} catch (e) {
-			return null;
+		if (activeTimelineSampleIndex === null || !request?.testPlans) return null;
+		const planObj = request.testPlans.find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex);
+		if (!planObj) return null;
+		let parsedPlatforms = [];
+		if (planObj.platformNos) {
+			try {
+				parsedPlatforms = typeof planObj.platformNos === 'string' ? JSON.parse(planObj.platformNos) : planObj.platformNos;
+			} catch (e) {
+				parsedPlatforms = [];
+			}
 		}
+		return {
+			...planObj,
+			platformNos: parsedPlatforms
+		};
 	})();
 
-
-
 	const sampleReport = (() => {
-		if (!sampleKey || !request) return null;
-		try {
-			const dbInspections = request.sampleInspections || [];
-			const dbReport = dbInspections.find((r: any) => Number(r.sampleIndex) === activeTimelineSampleIndex);
-			if (dbReport) {
-				return {
-					allottedId: dbReport.allottedId,
-					status: dbReport.status,
-					remarks: dbReport.remarks
-				};
-			}
-
-			const cachedManager = localStorage.getItem('dixon_sample_inspections');
-			const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-			const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-			const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-			const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-			const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-			const merged = { ...engineerReports, ...managerReports, ...completedReports };
-			return merged[sampleKey] || null;
-		} catch (e) {
-			return null;
+		if (activeTimelineSampleIndex === null || !request?.sampleInspections) return null;
+		const dbReport = request.sampleInspections.find((r: any) => Number(r.sampleIndex) === activeTimelineSampleIndex);
+		if (dbReport) {
+			return {
+				allottedId: dbReport.allottedId,
+				status: dbReport.status,
+				remarks: dbReport.remarks
+			};
 		}
+		return null;
 	})();
 
 	const timelineSteps = (() => {
@@ -282,13 +272,18 @@ export default function HeadRequestDetails() {
 								case 'FAILED':
 								case 'TESTING_FAILED':
 								case 'REJECTED':
+								case 'INSPECTION_FAILED':
 									return 'bg-rose-50 text-rose-600 border-rose-100';
 								case 'PARTIAL':
 								case 'TESTING_PARTIAL':
 									return 'bg-amber-50 text-amber-600 border-amber-100';
 								case 'UNDER_TEST':
 								case 'UNDER_TESTING':
-									return 'bg-indigo-50 text-indigo-650 border-indigo-100';
+									return 'bg-indigo-50 text-indigo-655 border-indigo-100';
+								case 'TESTING_COMPLETED':
+									return 'bg-blue-50 text-blue-700 border-blue-150';
+								case 'RETEST':
+									return 'bg-amber-50 text-amber-650 border-amber-100';
 								case 'UNDER_INSPECTION':
 									return 'bg-blue-50 text-blue-600 border-blue-100';
 								case 'PENDING_APPROVAL':
@@ -300,8 +295,8 @@ export default function HeadRequestDetails() {
 						return (
 							<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(request.status)}`}>
 								{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(request.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-								{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED'].includes(request.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
-								{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(request.status) && (
+								{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED', 'INSPECTION_FAILED'].includes(request.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
+								{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'RETEST'].includes(request.status) && (
 									<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
 								)}
 								{request.status === 'PASS' || request.status === 'TESTING_PASSED'
@@ -428,6 +423,10 @@ export default function HeadRequestDetails() {
 								Test Protocol Configuration
 							</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
+								<div>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Type</p>
+									<p className="font-bold text-[#11236a] mt-1 leading-relaxed">{request.testType?.name || 'N/A'}</p>
+								</div>
 								<div>
 									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Ref</p>
 									<p className="font-bold text-zinc-800 mt-1 leading-relaxed">{request.testMethodRef}</p>
@@ -563,7 +562,7 @@ export default function HeadRequestDetails() {
 							<button
 								onClick={async () => {
 									try {
-										const op = updateTestRequestStatus(request.id, 'COMPLETED', `Final test report approved and certified by Lab Head. Result: ${request.status}`);
+										const op = updateTestRequestStatus(request.id, 'COMPLETED', undefined);
 										await op();
 										toast.success('Final report successfully certified!');
 										await loadRequestDetails();
@@ -588,12 +587,19 @@ export default function HeadRequestDetails() {
 						<div className="space-y-5 relative pl-5 border-l border-zinc-200 ml-2 pt-1">
 							{(() => {
 								const isRejected = request.status === 'REJECTED';
-								const isFailedStatus = ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(request.status) || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'));
+								const isInspectionFailed = request.status === 'INSPECTION_FAILED';
+								const isRetest = request.status === 'RETEST';
+								const isFailedStatus = ['FAIL', 'TESTING_FAILED', 'FAILED', 'INSPECTION_FAILED'].includes(request.status) || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'));
+								const isFinalFailedStatus = ['FAIL', 'FAILED', 'INSPECTION_FAILED'].includes(request.status) || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'));
+
+								const hasFailedSample = (request.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
+									(request.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
+
 								const steps = [
 									{
 										step: 'Testing Request Submitted',
 										date: formatCompletionDate(request.createdAt),
-										completed: ["PENDING_APPROVAL", "UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
+										completed: ["PENDING_APPROVAL", "UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "INSPECTION_FAILED", "TESTING_COMPLETED"].includes(request.status)
 									},
 									{
 										step: 'Approved Testing Request by Head of Lab',
@@ -602,60 +608,103 @@ export default function HeadRequestDetails() {
 											: (request.status !== 'PENDING_APPROVAL'
 												? formatCompletionDate(request.updatedAt || request.createdAt)
 												: 'Awaiting approval'),
-										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status),
+										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "INSPECTION_FAILED", "TESTING_COMPLETED"].includes(request.status),
 										failed: isRejected
 									},
-									...(!isRejected ? [
-										{
-											step: 'Samples Checked',
-											date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: (request.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
-											completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST"].includes(request.status),
-										},
-										{
-											step: 'Test Plan Created',
-											date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: 'Awaiting plan',
-											completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-										},
-										{
-											step: 'Testing',
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-										},
-										{
-											step: request.status === 'TESTING_PASSED' || (request.status === 'COMPLETED' && !request.remarks?.toLowerCase().includes('fail') && !request.remarks?.toLowerCase().includes('partial'))
-												? 'Testing Passed'
-												: (request.status === 'TESTING_FAILED' || request.status === 'FAILED' || request.status === 'FAIL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'))
-													? 'Testing Failed'
-													: (request.status === 'TESTING_PARTIAL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
-											date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: 'Awaiting results',
-											completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
-											failed: isFailedStatus
-										},
-										{
-											step: 'Report Generation',
-											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: 'Pending release',
-											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
-											failed: isFailedStatus
-										},
-										{
-											step: 'Approved Final Report',
-											date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-												? formatCompletionDate(request.updatedAt || request.createdAt)
-												: 'Pending final sign-off',
-											completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
-											failed: isFailedStatus
-										}
-									] : [])
+									...(!isRejected ? (
+										isInspectionFailed ? [
+											{
+												step: 'Samples Checked',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true
+											},
+											{
+												step: 'Inspection Failed',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true,
+												failed: true
+											}
+										] : isRetest ? [
+											{
+												step: 'Samples Checked',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true
+											},
+											{
+												step: 'Test Plan Created',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true
+											},
+											{
+												step: 'Testing',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true
+											},
+											{
+												step: 'Testing Failed',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true,
+												failed: true
+											},
+											{
+												step: 'Returned for Retesting',
+												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												completed: true
+											}
+										] : [
+											{
+												step: 'Samples Checked',
+												date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: (request.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
+												completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(request.status),
+											},
+											{
+												step: 'Test Plan Created',
+												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: 'Awaiting plan',
+												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+											},
+											{
+												step: 'Testing',
+												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
+												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+											},
+											{
+												step: request.status === 'TESTING_COMPLETED'
+													? (hasFailedSample ? 'Testing Completed (Failed Samples)' : 'Testing Completed (Passed)')
+													: request.status === 'TESTING_PASSED' || (request.status === 'COMPLETED' && !request.remarks?.toLowerCase().includes('fail') && !request.remarks?.toLowerCase().includes('partial'))
+														? 'Testing Passed'
+														: (request.status === 'TESTING_FAILED' || request.status === 'FAILED' || request.status === 'FAIL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('fail'))
+															? 'Testing Failed'
+															: (request.status === 'TESTING_PARTIAL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
+												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: 'Awaiting results',
+												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status),
+												failed: isFailedStatus || (request.status === 'TESTING_COMPLETED' && hasFailedSample)
+											},
+											{
+												step: 'Report Generation',
+												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: 'Pending release',
+												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
+												failed: isFinalFailedStatus
+											},
+											{
+												step: 'Approved Final Report',
+												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
+													? formatCompletionDate(request.updatedAt || request.createdAt)
+													: 'Pending final sign-off',
+												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
+												failed: isFinalFailedStatus
+											}
+										]
+									) : [])
 								];
 
 								const activeIdx = steps.findIndex(s => !s.completed && !s.failed);
@@ -707,31 +756,14 @@ export default function HeadRequestDetails() {
 
 									for (let i = 0; i < qty; i++) {
 										const dbReport = dbInspections.find((r: any) => Number(r.sampleIndex) === i);
-										if (dbReport) {
-											list.push({
-												index: i,
-												report: {
-													allottedId: dbReport.allottedId,
-													status: dbReport.status,
-													remarks: dbReport.remarks
-												}
-											});
-										} else {
-											const cacheKey = `${request.id}-sample-${i}`;
-											const cachedManager = localStorage.getItem('dixon_sample_inspections');
-											const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-											const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-
-											const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-											const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-											const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-
-											const merged = { ...engineerReports, ...managerReports, ...completedReports };
-											list.push({
-												index: i,
-												report: merged[cacheKey]
-											});
-										}
+										list.push({
+											index: i,
+											report: dbReport ? {
+												allottedId: dbReport.allottedId,
+												status: dbReport.status,
+												remarks: dbReport.remarks
+											} : null
+										});
 									}
 
 									return list.map(({ index, report }) => {

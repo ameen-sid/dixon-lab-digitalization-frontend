@@ -42,6 +42,9 @@ interface ApprovedRequest {
 	remarks?: string | null;
 	inspectionDate?: string;
 	attachments?: AttachmentRecord[];
+	testType?: { id: number; name: string } | null;
+	testPlans?: any[];
+	sampleInspections?: any[];
 }
 
 interface EngineerRecord {
@@ -98,14 +101,8 @@ export default function ApprovedRequestDetails({
 	const sampleKey = activeTimelineSampleIndex !== null ? `${request.id}-sample-${activeTimelineSampleIndex}` : '';
 
 	const testPlan = (() => {
-		if (!sampleKey) return null;
-		try {
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			const plansMap = cachedPlans ? JSON.parse(cachedPlans) : {};
-			return plansMap[sampleKey] || null;
-		} catch (e) {
-			return null;
-		}
+		if (activeTimelineSampleIndex === null) return null;
+		return (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex) || null;
 	})();
 
 	const equipmentName = (() => {
@@ -116,18 +113,33 @@ export default function ApprovedRequestDetails({
 
 	const sampleReport = (() => {
 		if (!sampleKey) return null;
-		try {
-			const cachedManager = localStorage.getItem('dixon_sample_inspections');
-			const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-			const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-			const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-			const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-			const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-			const merged = { ...engineerReports, ...managerReports, ...completedReports };
-			return merged[sampleKey] || null;
-		} catch (e) {
-			return null;
+		const [, sampleIdxStr] = sampleKey.split('-sample-');
+		const sampleIdx = parseInt(sampleIdxStr, 10);
+		if (request && request.sampleInspections) {
+			const insp = request.sampleInspections.find((si: any) => Number(si.sampleIndex) === sampleIdx);
+			if (insp) {
+				let checksObj = {};
+				try {
+					checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+				} catch (e) {
+					checksObj = {};
+				}
+				let imagesArr = [];
+				try {
+					imagesArr = typeof insp.images === 'string' ? JSON.parse(insp.images) : (insp.images || []);
+				} catch (e) {
+					imagesArr = [];
+				}
+				return {
+					allottedId: insp.allottedId,
+					remarks: insp.remarks || '',
+					status: insp.status,
+					checks: checksObj,
+					images: imagesArr
+				};
+			}
 		}
+		return null;
 	})();
 
 	const timelineSteps = (() => {
@@ -303,6 +315,10 @@ export default function ApprovedRequestDetails({
 						</h4>
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
 							<div>
+								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Type</p>
+								<p className="font-bold text-[#11236a] mt-1 leading-relaxed">{request.testType?.name || 'N/A'}</p>
+							</div>
+							<div>
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Test Method Ref</p>
 								<p className="font-bold text-zinc-800 mt-1 leading-relaxed">{request.testMethodRef}</p>
 							</div>
@@ -446,23 +462,36 @@ export default function ApprovedRequestDetails({
 
 						<div className="divide-y divide-zinc-150/70">
 							{(() => {
-								const cachedManager = localStorage.getItem('dixon_sample_inspections');
-								const cachedEngineer = localStorage.getItem('dixon_engineer_sample_inspections');
-								const cachedCompleted = localStorage.getItem('dixon_completed_sample_inspections');
-
-								const managerReports = cachedManager ? JSON.parse(cachedManager) : {};
-								const engineerReports = cachedEngineer ? JSON.parse(cachedEngineer) : {};
-								const completedReports = cachedCompleted ? JSON.parse(cachedCompleted) : {};
-
-								const merged = { ...engineerReports, ...managerReports, ...completedReports };
 								const qty = request.sampleQty || 1;
 								const list = [];
 
 								for (let i = 0; i < qty; i++) {
-									const cacheKey = `${request.id}-sample-${i}`;
+									const dbReport = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === i);
+									let parsedReport = null;
+									if (dbReport) {
+										let checksObj = {};
+										try {
+											checksObj = typeof dbReport.checks === 'string' ? JSON.parse(dbReport.checks) : (dbReport.checks || {});
+										} catch (e) {
+											checksObj = {};
+										}
+										let imagesArr = [];
+										try {
+											imagesArr = typeof dbReport.images === 'string' ? JSON.parse(dbReport.images) : (dbReport.images || []);
+										} catch (e) {
+											imagesArr = [];
+										}
+										parsedReport = {
+											allottedId: dbReport.allottedId,
+											remarks: dbReport.remarks || '',
+											status: dbReport.status,
+											checks: checksObj,
+											images: imagesArr
+										};
+									}
 									list.push({
 										index: i,
-										report: merged[cacheKey]
+										report: parsedReport
 									});
 								}
 
@@ -500,8 +529,8 @@ export default function ApprovedRequestDetails({
 											</div>
 											<div className="flex items-center gap-2">
 												<span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-														: 'bg-rose-50 border border-rose-100 text-rose-700'
+													? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+													: 'bg-rose-50 border border-rose-100 text-rose-700'
 													}`}>
 													{report.status}
 												</span>
@@ -553,16 +582,16 @@ export default function ApprovedRequestDetails({
 									return (
 										<div key={idx} className="relative">
 											<div className={`absolute -left-[30px] top-1 w-3 h-3 rounded-full border-2 ${item.completed
-													? 'bg-emerald-500 border-emerald-500'
-													: isActive
-														? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
-														: 'bg-white border-zinc-300'
+												? 'bg-emerald-500 border-emerald-500'
+												: isActive
+													? 'bg-indigo-650 border-indigo-700 ring-4 ring-indigo-100 animate-pulse'
+													: 'bg-white border-zinc-300'
 												}`} />
 											<p className={`text-sm font-extrabold leading-tight ${item.completed
-													? 'text-zinc-900'
-													: isActive
-														? 'text-[#11236a]'
-														: 'text-zinc-555'
+												? 'text-zinc-900'
+												: isActive
+													? 'text-[#11236a]'
+													: 'text-zinc-555'
 												}`}>
 												{item.step}
 											</p>

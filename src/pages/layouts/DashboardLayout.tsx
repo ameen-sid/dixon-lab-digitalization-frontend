@@ -38,6 +38,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	} else if (user.role.toLowerCase() === 'lab manager') {
 		if (path.includes('/admin/platform-availability')) {
 			derivedActiveTab = 'platform-availability';
+		} else if (path.includes('/admin/nabl-station-availability')) {
+			derivedActiveTab = 'nabl-station-availability';
 		} else if (path.includes('/admin/equipment-availability')) {
 			derivedActiveTab = 'equipment-availability';
 		} else if (path.includes('/manager/approved-requests') || path.includes('/manager/approved-request-details')) {
@@ -54,6 +56,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	} else if (user.role.toLowerCase() === 'engineer') {
 		if (path.includes('/engineer/assigned-samples')) {
 			derivedActiveTab = 'assigned-samples';
+		} else if (path.includes('/engineer/test-report')) {
+			derivedActiveTab = 'test-report';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -68,6 +72,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'dashboard';
 		} else if (path.includes('/admin/platform-availability')) {
 			derivedActiveTab = 'platform-availability';
+		} else if (path.includes('/admin/nabl-station-availability')) {
+			derivedActiveTab = 'nabl-station-availability';
 		} else if (path.includes('/admin/equipment-availability')) {
 			derivedActiveTab = 'equipment-availability';
 		} else if (path.includes('/admin/departments-management')) {
@@ -102,6 +108,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else if (userRoleLower === 'admin') {
 			if (itemId === 'dashboard') navigate('/admin/dashboard');
 			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
+			else if (itemId === 'nabl-station-availability') navigate('/admin/nabl-station-availability');
 			else if (itemId === 'equipment-availability') navigate('/admin/equipment-availability');
 			else if (itemId === 'departments-management') navigate('/admin/departments-management');
 			else if (itemId === 'users-management') navigate('/admin/users-management');
@@ -114,6 +121,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else if (userRoleLower === 'lab manager') {
 			if (itemId === 'dashboard') navigate('/manager/dashboard');
 			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
+			else if (itemId === 'nabl-station-availability') navigate('/admin/nabl-station-availability');
 			else if (itemId === 'equipment-availability') navigate('/admin/equipment-availability');
 			else if (itemId === 'approved-requests') navigate('/manager/approved-requests');
 			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
@@ -122,6 +130,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
+			else if (itemId === 'test-report') navigate('/engineer/test-report');
 		} else if (userRoleLower === 'ceo') {
 			if (itemId === 'dashboard') navigate('/ceo/dashboard');
 		} else if (userRoleLower === 'inspector') {
@@ -188,6 +197,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
 											{ id: 'platform-availability', label: 'Platform Availability', icon: Server },
+											{ id: 'nabl-station-availability', label: 'NABL Station Availability', icon: Server },
 											{ id: 'equipment-availability', label: 'Equipment Availability', icon: Activity },
 										]
 									},
@@ -246,7 +256,12 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										category: 'Overview & Systems',
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
-											{ id: 'platform-availability', label: 'Platform Availability', icon: Server },
+											...(user.department?.name?.toUpperCase() !== 'NABL'
+												? [{ id: 'platform-availability', label: 'Platform Availability', icon: Server }]
+												: []),
+											...(user.department?.name?.toUpperCase() === 'NABL'
+												? [{ id: 'nabl-station-availability', label: 'NABL Station Availability', icon: Server }]
+												: []),
 											{ id: 'equipment-availability', label: 'Equipment Availability', icon: Activity },
 										]
 									},
@@ -299,6 +314,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										category: 'Operations & Testing',
 										items: [
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
+											{ id: 'test-report', label: 'Test Reports', icon: FileText },
 										]
 									}
 								].map((cat, groupIdx) => (

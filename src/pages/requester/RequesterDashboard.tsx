@@ -43,6 +43,7 @@ interface RequestRecord {
 	updatedAt?: string;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
+	testType?: { id: number; name: string } | null;
 }
 
 interface CapaRecord {
@@ -154,7 +155,8 @@ export default function RequesterDashboard() {
 				createdAt: db.createdAt,
 				updatedAt: db.updatedAt,
 				telemetry: db.telemetry || [],
-				attachments: db.attachments || []
+				attachments: db.attachments || [],
+				testType: db.testType
 			}));
 
 			setRequests(mapped);
@@ -241,6 +243,9 @@ export default function RequesterDashboard() {
 		try {
 			const formData = new FormData();
 			Object.keys(input).forEach((key) => {
+				if (key === 'testTypeId' && (input[key] === '' || input[key] === null || input[key] === undefined)) {
+					return;
+				}
 				formData.append(key, input[key]);
 			});
 			files.forEach((file) => {

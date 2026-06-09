@@ -9,7 +9,6 @@ export default function HeadReportDetails() {
 	const navigate = useNavigate();
 
 	const [request, setRequest] = useState<any>(null);
-	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 	const [loading, setLoading] = useState(true);
 	const [approving, setApproving] = useState(false);
 
@@ -20,9 +19,6 @@ export default function HeadReportDetails() {
 			const fetchOp = getTestRequestDetails(id);
 			const data = await fetchOp();
 			setRequest(data);
-			
-			const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-			setPlans(cachedPlans ? JSON.parse(cachedPlans) : {});
 		} catch (error) {
 			console.error('Failed to load request details:', error);
 			toast.error('Failed to retrieve request details.');
@@ -70,7 +66,7 @@ export default function HeadReportDetails() {
 			const op = updateTestRequestStatus(
 				request.id, 
 				'COMPLETED', 
-				`Final test report approved and certified by Lab Head.`
+				undefined
 			);
 			await op();
 			toast.success('Final report successfully certified!');
@@ -144,8 +140,8 @@ export default function HeadReportDetails() {
 								<span className="text-zinc-800 font-extrabold">{request.brandName} ({request.modelNo})</span>
 							</div>
 							<div>
-								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Test Protocol / Method</span>
-								<span className="text-zinc-800 font-extrabold">{request.testMethodRef || 'IEC 60695-11-5'}</span>
+								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Test Type</span>
+								<span className="text-zinc-800 font-extrabold">{request.testType?.name || 'N/A'}</span>
 							</div>
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Sample Quantity</span>
@@ -180,8 +176,7 @@ export default function HeadReportDetails() {
 
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
-								const samplePlanKey = `${request.id}-sample-${idx}`;
-								const planObj = plans[samplePlanKey];
+								const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
 								const inspection = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === idx);
 
 								let statusColor = 'bg-zinc-50 text-zinc-500 border-zinc-200';

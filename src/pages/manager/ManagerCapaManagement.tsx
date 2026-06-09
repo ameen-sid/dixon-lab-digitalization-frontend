@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, Plus, X, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Search, X, AlertTriangle } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import CreateCapa from '../requester/CreateCapa';
 

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { getPlatforms } from '../../services/operations/platformAvailabilityService';
+import { getPlatforms as getNablPlatforms } from '../../services/operations/nablStationAvailabilityService';
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
@@ -18,7 +19,7 @@ import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import { 
-	Shield, Users, ChevronRight, RotateCw, Activity,
+	Users, ChevronRight, RotateCw, Activity,
 	Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
@@ -57,6 +58,7 @@ export default function AdminDashboard() {
 	let activeTab = 'departments-management'; // Set default to Departments Management
 	if (path.includes('/admin/dashboard')) activeTab = 'dashboard';
 	else if (path.includes('/admin/platform-availability')) activeTab = 'platform-availability';
+	else if (path.includes('/admin/nabl-station-availability')) activeTab = 'nabl-station-availability';
 	else if (path.includes('/admin/equipment-availability')) activeTab = 'equipment-availability';
 	else if (path.includes('/admin/departments-management')) activeTab = 'departments-management';
 	else if (path.includes('/admin/users-management')) activeTab = 'users-management';
@@ -69,10 +71,26 @@ export default function AdminDashboard() {
 
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
+	const currentUser = userStr ? JSON.parse(userStr) : null;
+	const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
+
+	useEffect(() => {
+		if (currentUser && (currentUser.role === 'Lab Manager' || currentUser.role?.toLowerCase() === 'lab manager')) {
+			if (isNablDept && path.includes('/admin/platform-availability')) {
+				navigate('/admin/nabl-station-availability');
+			} else if (!isNablDept && path.includes('/admin/nabl-station-availability')) {
+				navigate('/admin/platform-availability');
+			}
+		}
+	}, [path, currentUser, isNablDept, navigate]);
 
 	const [platformSlots, setPlatformSlots] = useState<{ [key: string]: boolean }>({});
 	const [platformOccupancies, setPlatformOccupancies] = useState<any[]>([]);
 	const [selectedPlatformModal, setSelectedPlatformModal] = useState<{ stationNo: number; platformNo: number } | null>(null);
+
+	const [nablPlatformSlots, setNablPlatformSlots] = useState<{ [key: string]: boolean }>({});
+	const [nablPlatformOccupancies, setNablPlatformOccupancies] = useState<any[]>([]);
+	const [selectedNablPlatformModal, setSelectedNablPlatformModal] = useState<{ stationNo: number; platformNo: number } | null>(null);
 
 	// Dashboard summary stats
 	const [dashUsers, setDashUsers] = useState<any[]>([]);
@@ -95,6 +113,20 @@ export default function AdminDashboard() {
 			setPlatformSlots(mapping);
 		} catch (err) {
 			console.error('Failed to load platform availability telemetry:', err);
+		}
+	};
+
+	const loadNablPlatformTelemetry = async () => {
+		try {
+			const data = await getNablPlatforms()();
+			setNablPlatformOccupancies(data || []);
+			const mapping: { [key: string]: boolean } = {};
+			(data || []).forEach((item: any) => {
+				mapping[`${item.stationNo}-${item.platformNo}`] = item.isAvailable;
+			});
+			setNablPlatformSlots(mapping);
+		} catch (err) {
+			console.error('Failed to load NABL platform availability telemetry:', err);
 		}
 	};
 
@@ -135,6 +167,7 @@ export default function AdminDashboard() {
 	useEffect(() => {
 		if (token && userStr) {
 			loadPlatformTelemetry();
+			loadNablPlatformTelemetry();
 			loadEquipmentTelemetry();
 			loadDashboardStats();
 		}
@@ -142,12 +175,16 @@ export default function AdminDashboard() {
 
 	const resetSlots = async () => {
 		await loadPlatformTelemetry();
+		await loadNablPlatformTelemetry();
 		await loadEquipmentTelemetry();
 		toast.success('Resource availability synchronized from database.');
 	};
 
 	const availableCount = Object.values(platformSlots).filter(v => v === true).length;
 	const occupiedCount = Object.values(platformSlots).filter(v => v === false).length;
+
+	const nablAvailableCount = Object.values(nablPlatformSlots).filter(v => v === true).length;
+	const nablOccupiedCount = Object.values(nablPlatformSlots).filter(v => v === false).length;
 
 	const availableEq = equipmentList.filter(e => e.isAvailable && e.status === 'ACTIVE').length;
 	const occupiedEq = equipmentList.filter(e => !e.isAvailable && e.status === 'ACTIVE').length;
@@ -160,6 +197,8 @@ export default function AdminDashboard() {
 				return { title: 'Dashboard', desc: 'System configuration, user metrics, and operational statistics.' };
 			case 'platform-availability':
 				return { title: 'Platform Availability', desc: 'Real-time service uptime, backend node states, and DB latencies.' };
+			case 'nabl-station-availability':
+				return { title: 'NABL Station Availability', desc: 'Real-time service uptime, backend node states, and DB latencies for NABL station.' };
 			case 'equipment-availability':
 				return { title: 'Equipment Availability', desc: 'Chamber utilization telemetry and active machine queue counts.' };
 			case 'departments-management':
@@ -400,6 +439,78 @@ export default function AdminDashboard() {
 					</div>
 				);
 
+			case 'nabl-station-availability':
+				return (
+					<div className="space-y-6">
+						{/* Header Card with Metrics */}
+						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
+								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+									NABL Station Live Tracking
+								</h2>
+								<div className="flex items-center gap-4">
+									<div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs bg-emerald-50/70 border border-emerald-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+										AVAILABLE: {nablAvailableCount}
+									</div>
+									<div className="flex items-center gap-1.5 text-rose-600 font-bold text-xs bg-rose-50/70 border border-rose-100 rounded-full px-3 py-1 shadow-sm shrink-0">
+										<span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+										OCCUPIED/RESERVED: {nablOccupiedCount}
+									</div>
+								</div>
+							</div>
+							<button
+								onClick={resetSlots}
+								title="Reset telemetry view"
+								className="w-10 h-10 bg-zinc-50 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all hover:bg-zinc-100 cursor-pointer outline-none active:scale-95 border-none shrink-0"
+							>
+								<RotateCw className="w-4 h-4" />
+							</button>
+						</div>
+
+						{/* Interactive NABL Platform 1-Grid */}
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+							{Array.from({ length: 1 }, (_, i) => {
+								const pNum = i + 1;
+								return (
+									<div key={pNum} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+										{/* Card Header */}
+										<div className="bg-[#11236a] flex items-center justify-between px-3 py-2 shrink-0">
+											<span className="text-white text-xs font-extrabold tracking-wide">NABL Station {pNum}</span>
+											<span className="text-zinc-500 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
+										</div>
+										{/* Card Body Grid */}
+										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
+											{Array.from({ length: 10 }, (_, j) => {
+												const sNum = j + 1;
+												const isAvailable = nablPlatformSlots[`${pNum}-${sNum}`];
+												return (
+													<button
+														key={sNum}
+														onClick={() => setSelectedNablPlatformModal({ stationNo: pNum, platformNo: sNum })}
+														className={`group flex flex-col items-center justify-center p-2 rounded-lg transition-all border outline-none cursor-pointer active:scale-95 border-none ${
+															isAvailable
+																? 'bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 text-emerald-700 hover:border-emerald-250'
+																: 'bg-rose-50/70 hover:bg-rose-100/70 border-rose-150 text-rose-700 hover:border-rose-250'
+														}`}
+													>
+														<span className="text-[11px] font-extrabold">{sNum}</span>
+														<span className={`w-1.5 h-1.5 rounded-full mt-1 transition-all ${
+															isAvailable
+																? 'bg-emerald-500 group-hover:scale-125'
+																: 'bg-rose-500 group-hover:scale-125'
+														}`} />
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								);
+							})}
+						</div>
+					</div>
+				);
+
 			case 'equipment-availability':
 				return (
 					<div className="space-y-6">
@@ -530,6 +641,7 @@ export default function AdminDashboard() {
 			onTabChange={(tab) => {
 				if (tab === 'dashboard') navigate('/admin/dashboard');
 				else if (tab === 'platform-availability') navigate('/admin/platform-availability');
+				else if (tab === 'nabl-station-availability') navigate('/admin/nabl-station-availability');
 				else if (tab === 'equipment-availability') navigate('/admin/equipment-availability');
 				else if (tab === 'departments-management') navigate('/admin/departments-management');
 				else if (tab === 'users-management') navigate('/admin/users-management');
@@ -623,6 +735,96 @@ export default function AdminDashboard() {
 							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
 								<button
 									onClick={() => setSelectedPlatformModal(null)}
+									className="bg-zinc-900 hover:bg-zinc-850 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all outline-none border-none cursor-pointer active:scale-95 shadow-sm"
+								>
+									Close Details
+								</button>
+							</div>
+						</div>
+					</div>
+				);
+			})()}
+
+			{/* High-Fidelity NABL Occupancy Details Modal */}
+			{selectedNablPlatformModal && (() => {
+				const details = nablPlatformOccupancies.find(
+					(item: any) => String(item.stationNo) === String(selectedNablPlatformModal.stationNo) && String(item.platformNo) === String(selectedNablPlatformModal.platformNo)
+				);
+				const isAvailable = nablPlatformSlots[`${selectedNablPlatformModal.stationNo}-${selectedNablPlatformModal.platformNo}`];
+				
+				return (
+					<div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
+						<div className="bg-white border border-zinc-200 rounded-[24px] max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+							{/* Header */}
+							<div className="bg-[#11236a] text-white px-6 py-4 flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<Activity className="w-5 h-5 text-white/90" />
+									<h3 className="font-extrabold text-sm tracking-wide uppercase">
+										NABL Station {selectedNablPlatformModal.stationNo} - Platform {selectedNablPlatformModal.platformNo}
+									</h3>
+								</div>
+								<button 
+									onClick={() => setSelectedNablPlatformModal(null)}
+									className="text-white/70 hover:text-white transition-all bg-white/10 hover:bg-white/20 rounded-full w-7 h-7 flex items-center justify-center outline-none border-none cursor-pointer"
+								>
+									✕
+								</button>
+							</div>
+							
+							{/* Content */}
+							<div className="p-6 space-y-4">
+								{isAvailable ? (
+									<div className="text-center py-6 space-y-3">
+										<div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
+											<span className="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse" />
+										</div>
+										<div className="space-y-1">
+											<h4 className="text-base font-extrabold text-zinc-950">Platform is Available</h4>
+											<p className="text-xs text-zinc-500 max-w-xs mx-auto leading-relaxed">
+												This testing channel is currently free and idle.
+											</p>
+										</div>
+									</div>
+								) : (
+									<div className="space-y-4">
+										<div className="bg-rose-50/70 border border-rose-100 rounded-2xl p-4 flex items-center gap-3">
+											<span className="w-3 h-3 rounded-full bg-rose-500 animate-pulse shrink-0" />
+											<div>
+												<h4 className="text-xs font-extrabold text-rose-950">Active Testing Reservation</h4>
+												<p className="text-[11px] text-rose-700/80 font-medium">Platform is currently occupied and running load cycles.</p>
+											</div>
+										</div>
+										
+										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
+												<span className="text-zinc-850 font-extrabold text-right">{(details?.occupiedBy || 'N/A').replace(/^REQ-REQ-/, 'REQ-')}</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Model Number</span>
+												<span className="text-zinc-850 font-extrabold text-right">{details?.modelNo || 'N/A'}</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Test Request ID</span>
+												<span className="text-zinc-850 font-extrabold text-right">
+													{getFormattedRequestId(details?.occupiedBy, details?.testRequestId)}
+												</span>
+											</div>
+											<div className="flex justify-between items-center py-1.5">
+												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied Until</span>
+												<span className="text-rose-600 font-extrabold text-right">
+													{formatOccupiedUntil(details?.occupiedUntil)}
+												</span>
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+							
+							{/* Footer */}
+							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
+								<button
+									onClick={() => setSelectedNablPlatformModal(null)}
 									className="bg-zinc-900 hover:bg-zinc-850 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all outline-none border-none cursor-pointer active:scale-95 shadow-sm"
 								>
 									Close Details

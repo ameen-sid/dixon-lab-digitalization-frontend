@@ -34,12 +34,16 @@ export default function HeadCompletedReports() {
 		loadRequests();
 	}, []);
 
-	// Filter completed and partial completed requests (exclude fully failed requests)
 	const completedOrPartialRequests = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
-		
+		if (statusLower === 'testing_completed') {
+			const hasFailedSample = (req.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
+									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
+			return !hasFailedSample;
+		}
+
 		const allowedStatuses = [
-			'completed', 'pass', 'testing_passed', 'partial', 'testing_partial'
+			'completed', 'pass', 'testing_passed'
 		];
 		if (!allowedStatuses.includes(statusLower)) return false;
 
@@ -69,7 +73,7 @@ export default function HeadCompletedReports() {
 		const statusLower = (r.status || '').toLowerCase();
 		let matchesStatus = true;
 		if (statusFilter === 'PENDING_APPROVAL') {
-			matchesStatus = ['pass', 'testing_passed', 'partial', 'testing_partial'].includes(statusLower);
+			matchesStatus = ['pass', 'testing_passed', 'partial', 'testing_partial', 'testing_completed'].includes(statusLower);
 		} else if (statusFilter === 'APPROVED') {
 			matchesStatus = statusLower === 'completed';
 		}
