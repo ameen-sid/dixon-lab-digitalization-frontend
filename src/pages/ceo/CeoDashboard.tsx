@@ -15,86 +15,359 @@ import {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const getSafeStatusText = (status: any) => {
+  if (!status) return '';
+
+  if (typeof status === 'string') {
+    return status.trim().toLowerCase();
+  }
+
+  if (typeof status === 'object') {
+    return String(status.name || status.status || status.title || '')
+      .trim()
+      .toLowerCase();
+  }
+
+  return String(status).trim().toLowerCase();
+};
+
+const isFailed = (s: any) => {
+  const status = getSafeStatusText(s);
+
+  return [
+    'failed',
+    'fail',
+    'inspection_failed',
+    'testing_failed',
+    'retest',
+    'restest',
+  ].includes(status);
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const isCompleted = (s: string) => ['pass', 'fail', 'partial', 'completed', 'testing_passed', 'testing_failed', 'testing_partial'].includes(s.toLowerCase());
-const isFailed = (s: string) => ['fail', 'testing_failed'].includes(s.toLowerCase());
-const isPending = (s: string) => ['pending_approval', 'under_inspection', 'under_test', 'under_testing', 'inspection_completed'].includes(s.toLowerCase());
+const isCompleted = (s: any) => ['pass', 'fail', 'partial', 'completed', 'testing_passed', 'testing_failed', 'testing_partial'].includes(getSafeStatusText(s));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CUSTOM SVG CHARTS WITH LIVE DATA
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Donut Chart for Statuses
-function Donut({ segments, size = 100 }: { segments: { value: number; color: string; label: string }[]; size?: number }) {
-  const total = segments.reduce((a, s) => a + s.value, 0) || 1;
-  const r = 36; const cx = 50; const cy = 50; const stroke = 14;
+function Donut({
+  segments,
+  size = 100,
+  onSegmentClick,
+}: {
+  segments: { value: number; color: string; label: string }[];
+  size?: number;
+  onSegmentClick?: (label: string) => void;
+}) {
+  const [hoveredSeg, setHoveredSeg] = useState<{ label: string; value: number; color: string } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const sum = segments.reduce((a, s) => a + s.value, 0);
+  const totalForDiv = sum || 1;
+  const r = 36;
+  const cx = 50;
+  const cy = 50;
+  const stroke = 14;
   let offset = 0;
   const circ = 2 * Math.PI * r;
+
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100">
-      {segments.map((seg, i) => {
-        const pct = seg.value / total;
-        const dash = pct * circ;
-        const gap = circ - dash;
-        const el = (
-          <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color}
-            strokeWidth={stroke} strokeDasharray={`${dash} ${gap}`}
-            strokeDashoffset={-offset * circ} strokeLinecap="butt"
-            style={{ transformOrigin: '50px 50px', transform: 'rotate(-90deg)' }} />
-        );
-        offset += pct;
-        return el;
-      })}
-      <text x="50" y="54" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#18181b">{total}</text>
-    </svg>
+    <div className="relative flex items-center justify-center">
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 100 100"
+        className="overflow-visible"
+        onMouseMove={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+      >
+        {segments.map((seg, i) => {
+          const pct = seg.value / totalForDiv;
+          const dash = pct * circ;
+          const gap = circ - dash;
+          const isHovered = hoveredSeg?.label === seg.label;
+
+          const el = (
+            <circle
+              key={i}
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={isHovered ? stroke + 2 : stroke}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={-offset * circ}
+              strokeLinecap="butt"
+              onMouseEnter={() => setHoveredSeg({ ...seg, color: seg.color })}
+              onMouseLeave={() => setHoveredSeg(null)}
+              onClick={() => {
+                if (onSegmentClick) {
+                  onSegmentClick(seg.label);
+                }
+              }}
+              className="transition-all duration-200 cursor-pointer"
+              style={{
+                transformOrigin: '50px 50px',
+                transform: 'rotate(-90deg)',
+                opacity: hoveredSeg && !isHovered ? 0.65 : 1,
+              }}
+            >
+              <title>{`${seg.label}: ${seg.value} (${((seg.value / totalForDiv) * 100).toFixed(1)}%)`}</title>
+            </circle>
+          );
+
+          offset += pct;
+          return el;
+        })}
+
+        {hoveredSeg ? (
+          <>
+            <text x="50" y="47" textAnchor="middle" fontSize="13" fontWeight="900" fill="#18181b">
+              {hoveredSeg.value}
+            </text>
+            <text x="50" y="60" textAnchor="middle" fontSize="5.5" fontWeight="800" className="fill-zinc-500 uppercase tracking-wider">
+              {hoveredSeg.label.length > 14 ? hoveredSeg.label.substring(0, 11) + '…' : hoveredSeg.label}
+            </text>
+          </>
+        ) : (
+          <text x="50" y="54" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#18181b">
+            {sum}
+          </text>
+        )}
+      </svg>
+
+      {hoveredSeg && (
+        <div
+          className="fixed z-[9999] bg-zinc-950/95 text-white p-3 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] text-[11px] pointer-events-none transition-all duration-75 border border-zinc-800/80 backdrop-blur-md flex flex-col gap-0.5"
+          style={{ left: tooltipPos.x + 15, top: tooltipPos.y + 15 }}
+        >
+          <div className="font-extrabold flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: hoveredSeg.color }} />
+            <span className="text-zinc-100">{hoveredSeg.label}</span>
+          </div>
+          <div className="text-[10px] text-zinc-400 font-semibold mt-1">
+            Quantity: <span className="text-white font-black">{hoveredSeg.value}</span>{' '}
+            ({((hoveredSeg.value / totalForDiv) * 100).toFixed(1)}%)
+          </div>
+          <div className="text-[9px] text-zinc-500 font-semibold mt-1">
+            Click to view details
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
-// Vertical Bar Chart for Monthly Trends
-function BarChart({ data, color = '#11236a' }: { data: { label: string; value: number }[]; color?: string }) {
-  const height = 140;
-  const width = 320;
-  const padding = { top: 15, right: 15, bottom: 25, left: 30 };
+// Vertical Bar Chart for Monthly Trends with hover details and stacked sub-bars
+type TrendBarBreakdown = {
+  key: string;
+  label: string;
+  color: string;
+};
 
-  const maxVal = Math.max(...data.map(d => d.value), 4);
-  const step = Math.ceil(maxVal / 4);
+type TrendBarData = {
+  label: string;
+  value: number;
+  [key: string]: any;
+};
+
+function BarChart({
+  data,
+  color = '#11236a',
+  tooltipTitle = 'Monthly Details',
+  breakdown = [],
+}: {
+  data: TrendBarData[];
+  color?: string;
+  tooltipTitle?: string;
+  breakdown?: TrendBarBreakdown[];
+}) {
+  const [hoveredBar, setHoveredBar] = useState<TrendBarData | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const height = 250;
+  const width = 780;
+  const padding = { top: 28, right: 24, bottom: 48, left: 46 };
+
+  const maxVal = Math.max(...data.map((d) => Number(d.value) || 0), 4);
+  const step = Math.max(1, Math.ceil(maxVal / 4));
+  const yMax = step * 4;
   const yTicks = [0, step, step * 2, step * 3, step * 4];
+
   const chartHeight = height - padding.top - padding.bottom;
   const chartWidth = width - padding.left - padding.right;
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[200px]" style={{ maxHeight: 160 }}>
+    <div className="relative w-full overflow-x-auto overflow-y-visible">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full min-w-[680px] overflow-visible"
+        style={{ height: 245 }}
+        onMouseMove={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+        onMouseLeave={() => setHoveredBar(null)}
+      >
         {/* Grid lines */}
         {yTicks.map((tick) => {
-          const y = padding.top + chartHeight - (tick / (step * 4)) * chartHeight;
+          const y = padding.top + chartHeight - (tick / yMax) * chartHeight;
           return (
             <g key={tick}>
-              <line x1={padding.left} y1={y} x2={padding.left + chartWidth} y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3,3" />
-              <text x={padding.left - 8} y={y + 3} textAnchor="end" className="text-[9px] fill-zinc-400 font-bold">{tick}</text>
+              <line
+                x1={padding.left}
+                y1={y}
+                x2={padding.left + chartWidth}
+                y2={y}
+                stroke="#e5e7eb"
+                strokeWidth="1"
+                strokeDasharray="4,4"
+              />
+              <text
+                x={padding.left - 10}
+                y={y + 4}
+                textAnchor="end"
+                className="text-[11px] fill-zinc-500 font-semibold"
+              >
+                {tick}
+              </text>
             </g>
           );
         })}
 
         {/* Bars */}
         {data.map((d, i) => {
-          const colWidth = chartWidth / data.length;
+          const colWidth = chartWidth / Math.max(data.length, 1);
           const xCenter = padding.left + i * colWidth + colWidth / 2;
-          const barWidth = 16;
-          const barHeight = (d.value / (step * 4)) * chartHeight;
+          const barWidth = Math.min(32, Math.max(18, colWidth * 0.5));
+          const totalValue = Number(d.value) || 0;
+          const barHeight = yMax === 0 ? 0 : (totalValue / yMax) * chartHeight;
           const barY = padding.top + chartHeight - barHeight;
+          const isHovered = hoveredBar?.label === d.label;
+
+          let currentBottomY = padding.top + chartHeight;
+          const visibleBreakdown = breakdown.filter((item) => Number(d[item.key]) > 0);
+          const breakdownTotal = visibleBreakdown.reduce((sum, item) => sum + Number(d[item.key] || 0), 0);
+          const shouldUseBreakdown = visibleBreakdown.length > 0 && breakdownTotal > 0;
 
           return (
-            <g key={i}>
-              <rect x={xCenter - barWidth / 2} y={barY} width={barWidth} height={barHeight} fill={color} rx="3" />
-              <text x={xCenter} y={padding.top + chartHeight + 14} textAnchor="middle" className="text-[9px] fill-zinc-400 font-bold">{d.label}</text>
-              {d.value > 0 && (
-                <text x={xCenter} y={barY - 4} textAnchor="middle" className="text-[9px] fill-zinc-700 font-black">{d.value}</text>
+            <g
+              key={`${d.label}-${i}`}
+              onMouseEnter={() => setHoveredBar(d)}
+              className="cursor-pointer"
+              opacity={hoveredBar && !isHovered ? 0.55 : 1}
+            >
+              {/* Invisible wider hover target */}
+              <rect
+                x={xCenter - colWidth / 2}
+                y={padding.top}
+                width={colWidth}
+                height={chartHeight + 30}
+                fill="transparent"
+              />
+
+              {/* Background track */}
+              <rect
+                x={xCenter - barWidth / 2}
+                y={padding.top}
+                width={barWidth}
+                height={chartHeight}
+                fill="#f4f4f5"
+                rx="8"
+              />
+
+              {shouldUseBreakdown ? (
+                visibleBreakdown.map((item, idx) => {
+                  const segmentValue = Number(d[item.key]) || 0;
+                  const segmentHeight = yMax === 0 ? 0 : (segmentValue / yMax) * chartHeight;
+                  currentBottomY -= segmentHeight;
+
+                  return (
+                    <rect
+                      key={item.key}
+                      x={xCenter - barWidth / 2}
+                      y={currentBottomY}
+                      width={barWidth}
+                      height={segmentHeight}
+                      fill={item.color}
+                      rx={idx === 0 ? 0 : 2}
+                    />
+                  );
+                })
+              ) : (
+                <rect
+                  x={xCenter - barWidth / 2}
+                  y={barY}
+                  width={barWidth}
+                  height={barHeight}
+                  fill={color}
+                  rx="8"
+                />
+              )}
+
+              {/* If breakdown total is less than total, fill remaining with main color */}
+              {shouldUseBreakdown && breakdownTotal < totalValue && (
+                <rect
+                  x={xCenter - barWidth / 2}
+                  y={padding.top + chartHeight - barHeight}
+                  width={barWidth}
+                  height={((totalValue - breakdownTotal) / yMax) * chartHeight}
+                  fill={color}
+                  rx="8"
+                />
+              )}
+
+              <text
+                x={xCenter}
+                y={padding.top + chartHeight + 24}
+                textAnchor="middle"
+                className="text-[11px] fill-zinc-500 font-bold"
+              >
+                {d.label}
+              </text>
+
+              {totalValue > 0 && (
+                <text
+                  x={xCenter}
+                  y={barY - 8}
+                  textAnchor="middle"
+                  className="text-[12px] fill-zinc-900 font-extrabold"
+                >
+                  {totalValue}
+                </text>
               )}
             </g>
           );
         })}
       </svg>
+
+      {hoveredBar && (
+        <div
+          className="fixed z-[9999] min-w-[190px] rounded-2xl border border-zinc-800/80 bg-zinc-950/95 p-3 text-[11px] text-white shadow-[0_10px_40px_rgba(0,0,0,0.22)] pointer-events-none backdrop-blur-md"
+          style={{ left: tooltipPos.x + 14, top: tooltipPos.y + 14 }}
+        >
+          <div className="text-[12px] font-extrabold text-zinc-100">
+            {tooltipTitle} - {hoveredBar.label}
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-6 text-zinc-300">
+            <span>Total</span>
+            <span className="font-black text-white">{Number(hoveredBar.value) || 0}</span>
+          </div>
+
+          {breakdown.length > 0 && (
+            <div className="mt-2 space-y-1 border-t border-zinc-800 pt-2">
+              {breakdown.map((item) => (
+                <div key={item.key} className="flex items-center justify-between gap-6 text-zinc-300">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    {item.label}
+                  </span>
+                  <span className="font-black text-white">{Number(hoveredBar[item.key]) || 0}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -241,9 +514,27 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-zinc-250/30 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] transition-all">
+    <div className="bg-white border border-zinc-250/30 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] transition-all min-h-[350px] relative">
       <h3 className="text-sm font-extrabold text-zinc-950 mb-4 tracking-tight" style={{ fontFamily: "Outfit, Inter, sans-serif" }}>{title}</h3>
-      {children}
+      <div className="flex-1 flex flex-col justify-between">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] transition-all min-h-[310px] flex flex-col">
+      <h3
+        className="text-[15px] font-extrabold text-zinc-950 mb-5 tracking-tight"
+        style={{ fontFamily: 'Outfit, Inter, sans-serif' }}
+      >
+        {title}
+      </h3>
+      <div className="flex-1 flex flex-col justify-between">
+        {children}
+      </div>
     </div>
   );
 }
@@ -259,6 +550,20 @@ export default function CeoDashboard() {
   const [plans, setPlans] = useState<{ [key: string]: any }>({});
   const [checksheetEntriesMap, setChecksheetEntriesMap] = useState<{ [key: string]: any[] }>({});
   const [loading, setLoading] = useState(true);
+
+  const [detailModal, setDetailModal] = useState<{
+    open: boolean;
+    title: string;
+    type: 'request' | 'capa' | 'equipment' | 'station' | '';
+    label: string;
+    data: any[];
+  }>({
+    open: false,
+    title: '',
+    type: '',
+    label: '',
+    data: [],
+  });
 
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -279,8 +584,27 @@ export default function CeoDashboard() {
         getPlatforms()().catch(() => []),
       ]);
       const reqs = (reqRes as any)?.data?.data || (reqRes as any)?.data || [];
-      const cachedPlans = localStorage.getItem('dixon_sample_test_plans');
-      const parsedPlans = cachedPlans ? JSON.parse(cachedPlans) : {};
+      const parsedPlans: { [key: string]: any } = {};
+      if (Array.isArray(reqs)) {
+        reqs.forEach((req: any) => {
+          if (req.testPlans) {
+            req.testPlans.forEach((plan: any) => {
+              let platformNosParsed = [];
+              if (plan.platformNos) {
+                try {
+                  platformNosParsed = typeof plan.platformNos === 'string' ? JSON.parse(plan.platformNos) : plan.platformNos;
+                } catch (e) {
+                  platformNosParsed = [];
+                }
+              }
+              parsedPlans[`${req.id}-sample-${plan.sampleIndex}`] = {
+                ...plan,
+                platformNos: platformNosParsed
+              };
+            });
+          }
+        });
+      }
 
       // Fetch checksheet entries count for plans
       const entriesMap: { [key: string]: any[] } = {};
@@ -339,24 +663,60 @@ export default function CeoDashboard() {
   const periodCapas = capas.filter(c => matchesFilter(c.createdAt, selectedMonth));
 
   // ── Main Dashboard General Metrics ─────────────────────────────────────────
-  const pending = periodRequests.filter(r => isPending(r.status)).length;
-  const completed = periodRequests.filter(r => isCompleted(r.status)).length;
-  const failed = periodRequests.filter(r => isFailed(r.status)).length;
-  const rejected = periodRequests.filter(r => r.status?.toLowerCase() === 'rejected').length;
-  const retest = periodRequests.filter(r => r.status?.toLowerCase() === 'retest').length;
-  const passed = periodRequests.filter(r => ['pass', 'testing_passed'].includes(r.status?.toLowerCase())).length;
-  const partial = periodRequests.filter(r => ['partial', 'testing_partial'].includes(r.status?.toLowerCase())).length;
-  const underTest = periodRequests.filter(r => ['under_test', 'under_testing'].includes(r.status?.toLowerCase())).length;
+  const failed = periodRequests.filter((r) =>
+    ['failed', 'fail', 'inspection_failed', 'testing_failed', 'retest', 'restest'].includes(getSafeStatusText(r.status))
+  ).length;
 
-  const capaOpen = periodCapas.filter(c => c.status?.toLowerCase() === 'open').length;
-  const capaInProg = periodCapas.filter(c => ['in_progress', 'inprogress', 'in progress'].includes(c.status?.toLowerCase())).length;
-  const capaClosed = periodCapas.filter(c => ['closed', 'resolved', 'completed'].includes(c.status?.toLowerCase())).length;
+  // Detailed statuses for the Test Request Status Card
+  const countPendingApproval = periodRequests.filter(r =>
+    getSafeStatusText(r.status) === 'pending_approval'
+  ).length;
+
+  const countUnderInspection = periodRequests.filter(r =>
+    ['under_inspection', 'inspection_completed'].includes(getSafeStatusText(r.status))
+  ).length;
+
+  const countInspectionFailed = periodRequests.filter(r =>
+    getSafeStatusText(r.status) === 'inspection_failed'
+  ).length;
+
+  const countUnderTesting = periodRequests.filter(r =>
+    ['under_testing', 'under_test', 'testing_completed'].includes(getSafeStatusText(r.status))
+  ).length;
+
+  const countCompleted = periodRequests.filter(r =>
+    ['completed', 'testing_passed', 'testing_partial'].includes(getSafeStatusText(r.status))
+  ).length;
+
+  const countRejected = periodRequests.filter(r =>
+    getSafeStatusText(r.status) === 'rejected'
+  ).length;
+
+  const countRetest = periodRequests.filter(r =>
+    ['retest', 'restest'].includes(getSafeStatusText(r.status))
+  ).length;
+
+  const countFailed = periodRequests.filter(r =>
+    ['failed', 'fail', 'testing_failed'].includes(getSafeStatusText(r.status))
+  ).length;
+
+  const capaOpenStatuses = ['pending', 'open', 'in_progress', 'under_review'];
+  const capaClosedStatuses = ['completed', 'closed', 'resolved', 'done'];
+
+  const capaOpen = periodCapas.filter(c =>
+    capaOpenStatuses.includes(getSafeStatusText(c.status))
+  ).length;
+
+  const capaClosed = periodCapas.filter(c =>
+    capaClosedStatuses.includes(getSafeStatusText(c.status))
+  ).length;
+
   const capaTotal = periodCapas.length;
 
   const eqTotal = equipment.length;
-  const eqAvail = equipment.filter(e => e.isAvailable === true && !['maintenance', 'under_maintenance'].includes(e.status?.toLowerCase())).length;
+  const eqAvail = equipment.filter(e => e.isAvailable === true && !['maintenance', 'under_maintenance'].includes(getSafeStatusText(e.status))).length;
   const eqOccupied = equipment.filter(e => e.isAvailable === false).length;
-  const eqMaint = equipment.filter(e => ['maintenance', 'under_maintenance'].includes(e.status?.toLowerCase())).length;
+  const eqMaint = equipment.filter(e => ['maintenance', 'under_maintenance'].includes(getSafeStatusText(e.status))).length;
 
   const stTotal = platforms.length;
   const stAvail = platforms.filter(p => p.isAvailable === true).length;
@@ -385,8 +745,8 @@ export default function CeoDashboard() {
   const getSuccessRateForPeriod = (monthVal: string) => {
     const periodReqs = requests.filter(r => matchesFilter(r.createdAt, monthVal));
     const done = periodReqs.filter(r => isCompleted(r.status));
-    const typePassed = done.filter(r => ['pass', 'testing_passed'].includes(r.status?.toLowerCase())).length;
-    const typeFailed = done.filter(r => ['fail', 'testing_failed'].includes(r.status?.toLowerCase())).length;
+    const typePassed = done.filter(r => ['pass', 'testing_passed'].includes(getSafeStatusText(r.status))).length;
+    const typeFailed = done.filter(r => ['fail', 'testing_failed'].includes(getSafeStatusText(r.status))).length;
     const totalConcluded = typePassed + typeFailed;
     if (totalConcluded === 0) return 0;
     return Number(((typePassed / totalConcluded) * 100).toFixed(1));
@@ -508,9 +868,19 @@ export default function CeoDashboard() {
   })();
 
   const now = new Date();
-  const last6 = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    return { label: MONTHS[d.getMonth()], y: d.getFullYear(), m: d.getMonth() };
+
+  const selectedYear = selectedMonth
+    ? Number(selectedMonth.split('-')[0])
+    : now.getFullYear();
+
+  const fullYearMonths = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(selectedYear, i, 1);
+
+    return {
+      label: MONTHS[i],
+      y: d.getFullYear(),
+      m: d.getMonth(),
+    };
   });
 
   const matchMonth = (dateStr: string, y: number, m: number) => {
@@ -519,36 +889,298 @@ export default function CeoDashboard() {
     return d.getFullYear() === y && d.getMonth() === m;
   };
 
-  const monthlyReqs = last6.map(mo => ({ label: mo.label, value: requests.filter(r => matchMonth(r.createdAt, mo.y, mo.m)).length }));
-  const monthlyFailed = last6.map(mo => ({ label: mo.label, value: requests.filter(r => isFailed(r.status) && matchMonth(r.createdAt, mo.y, mo.m)).length }));
-  const monthlyCapa = last6.map(mo => ({ label: mo.label, value: capas.filter(c => matchMonth(c.createdAt, mo.y, mo.m)).length }));
+  const getRequestReferenceKeys = (request: any) => {
+    const keys = [
+      request?.id,
+      request?.requestId,
+      request?.sampleRequestId,
+      request?.requestNo,
+      request?.testRequestId,
+      request?.id ? `REQ-${request.id}` : '',
+    ];
+
+    return keys
+      .filter((key) => key !== null && key !== undefined && key !== '')
+      .map((key) => String(key).trim().toLowerCase());
+  };
+
+  const getCapaRequestReference = (capa: any) => {
+    const ref =
+      capa?.relatedRequest ||
+      capa?.testRequestId ||
+      capa?.requestId ||
+      capa?.requestNo ||
+      capa?.testRequest?.requestId ||
+      capa?.request?.requestId ||
+      capa?.testRequest?.id ||
+      capa?.request?.id ||
+      '';
+
+    if (typeof ref === 'object') {
+      return String(ref.requestId || ref.id || ref.name || '').trim().toLowerCase();
+    }
+
+    return String(ref).trim().toLowerCase();
+  };
+
+  const monthlyReqs = fullYearMonths.map((mo) => {
+    const monthRequests = requests.filter((r) => matchMonth(r.createdAt, mo.y, mo.m));
+    const completed = monthRequests.filter((r) => isCompleted(r.status)).length;
+    const notCompleted = Math.max(0, monthRequests.length - completed);
+
+    return {
+      label: mo.label,
+      value: monthRequests.length,
+      completed,
+      notCompleted,
+    };
+  });
+
+  const monthlyFailed = fullYearMonths.map((mo) => {
+    const failedRequests = requests.filter((r) =>
+      isFailed(r.status) && matchMonth(r.createdAt, mo.y, mo.m)
+    );
+
+    const failedRequestKeys = new Set(
+      failedRequests.flatMap((request) => getRequestReferenceKeys(request))
+    );
+
+    const capaSubmitted = capas.filter((capa) => {
+      const capaRef = getCapaRequestReference(capa);
+      return (
+        capaRef &&
+        failedRequestKeys.has(capaRef) &&
+        matchMonth(capa.createdAt, mo.y, mo.m)
+      );
+    }).length;
+
+    const cappedCapaSubmitted = Math.min(failedRequests.length, capaSubmitted);
+    const withoutCapa = Math.max(0, failedRequests.length - cappedCapaSubmitted);
+
+    return {
+      label: mo.label,
+      value: failedRequests.length,
+      capaSubmitted: cappedCapaSubmitted,
+      withoutCapa,
+    };
+  });
+
+  const monthlyCapa = fullYearMonths.map((mo) => {
+    const monthCapas = capas.filter((c) => matchMonth(c.createdAt, mo.y, mo.m));
+    const open = monthCapas.filter((c) => capaOpenStatuses.includes(getSafeStatusText(c.status))).length;
+    const closed = monthCapas.filter((c) => capaClosedStatuses.includes(getSafeStatusText(c.status))).length;
+    const other = Math.max(0, monthCapas.length - open - closed);
+
+    return {
+      label: mo.label,
+      value: monthCapas.length,
+      open,
+      closed,
+      other,
+    };
+  });
 
   const statusSegs = [
-    { label: 'Pending', value: pending, color: '#f59e0b' },
-    { label: 'Under Test', value: underTest, color: '#6366f1' },
-    { label: 'Passed', value: passed, color: '#10b981' },
-    { label: 'Failed', value: failed, color: '#e11d48' },
-    { label: 'Partial', value: partial, color: '#f97316' },
-    { label: 'Rejected', value: rejected, color: '#71717a' },
-    { label: 'Retest', value: retest, color: '#0ea5e9' },
-  ].filter(s => s.value > 0);
+    { label: 'Pending Approval', value: countPendingApproval, color: '#f59e0b' },
+    { label: 'Under Inspection', value: countUnderInspection, color: '#8b5cf6' },
+    { label: 'Inspection Failed', value: countInspectionFailed, color: '#ef4444' },
+    { label: 'Under Testing', value: countUnderTesting, color: '#3b82f6' },
+    { label: 'Completed', value: countCompleted, color: '#15803d' },
+    { label: 'Rejected', value: countRejected, color: '#64748b' },
+    { label: 'Retest', value: countRetest, color: '#0ea5e9' },
+    { label: 'Failed', value: countFailed, color: '#b91c1c' },
+  ];
 
   const capaSegs = [
     { label: 'Open', value: capaOpen, color: '#f59e0b' },
-    { label: 'In Progress', value: capaInProg, color: '#6366f1' },
     { label: 'Closed', value: capaClosed, color: '#10b981' },
-  ].filter(s => s.value > 0);
+  ];
 
   const eqSegs = [
     { label: 'Available', value: eqAvail, color: '#10b981' },
     { label: 'Occupied', value: eqOccupied, color: '#6366f1' },
     { label: 'Maintenance', value: eqMaint, color: '#f59e0b' },
-  ].filter(s => s.value > 0);
+  ];
 
   const stSegs = [
     { label: 'Available', value: stAvail, color: '#10b981' },
     { label: 'Occupied', value: stOccupied, color: '#e11d48' },
-  ].filter(s => s.value > 0);
+  ];
+
+  const getRequestDetailsByStatus = (label: string) => {
+    const statusMap: Record<string, string[]> = {
+      'Pending Approval': ['pending_approval'],
+      'Under Inspection': ['under_inspection', 'inspection_completed'],
+      'Inspection Failed': ['inspection_failed'],
+      'Under Testing': ['under_testing', 'under_test', 'testing_completed'],
+      'Completed': ['completed', 'testing_passed', 'testing_partial'],
+      'Rejected': ['rejected'],
+      'Retest': ['retest', 'restest'],
+      'Failed': ['failed', 'fail', 'testing_failed'],
+    };
+
+    const allowedStatuses = statusMap[label] || [];
+
+    const data = periodRequests.filter((r) =>
+      allowedStatuses.includes(getSafeStatusText(r.status))
+    );
+
+    setDetailModal({
+      open: true,
+      title: `Test Request Status - ${label}`,
+      type: 'request',
+      label,
+      data,
+    });
+  };
+
+  const getCapaDetailsByStatus = (label: string) => {
+    const allowedStatuses =
+      label === 'Open'
+        ? capaOpenStatuses
+        : capaClosedStatuses;
+
+    const data = periodCapas.filter((c) =>
+      allowedStatuses.includes(getSafeStatusText(c.status))
+    );
+
+    setDetailModal({
+      open: true,
+      title: `CAPA Status - ${label}`,
+      type: 'capa',
+      label,
+      data,
+    });
+  };
+
+  const getEquipmentDetailsByStatus = (label: string) => {
+    let data: any[] = [];
+
+    if (label === 'Available') {
+      data = equipment.filter(
+        (e) =>
+          e.isAvailable === true &&
+          !['maintenance', 'under_maintenance'].includes(getSafeStatusText(e.status))
+      );
+    }
+
+    if (label === 'Occupied') {
+      data = equipment
+        .filter((e) => e.isAvailable === false)
+        .map((eq) => {
+          const relatedPlans = Object.entries(plans)
+            .filter(([_, plan]: [string, any]) => String(plan.equipmentId) === String(eq.id))
+            .map(([key, plan]: [string, any]) => {
+              const [reqIdStr] = key.split('-sample-');
+              const request = requests.find((r) => String(r.id) === String(reqIdStr));
+
+              return {
+                key,
+                plan,
+                request,
+              };
+            })
+            .filter((item) => item.request);
+
+          return {
+            ...eq,
+            relatedPlans,
+          };
+        });
+    }
+
+    if (label === 'Maintenance') {
+      data = equipment.filter((e) =>
+        ['maintenance', 'under_maintenance'].includes(getSafeStatusText(e.status))
+      );
+    }
+
+    setDetailModal({
+      open: true,
+      title: `Equipment Availability - ${label}`,
+      type: 'equipment',
+      label,
+      data,
+    });
+  };
+
+  const getStationDetailsByStatus = (label: string) => {
+    let data: any[] = [];
+
+    if (label === 'Available') {
+      data = platforms.filter((p) => p.isAvailable === true);
+    }
+
+    if (label === 'Occupied') {
+      data = platforms
+        .filter((p) => p.isAvailable === false)
+        .map((platform) => {
+          const relatedPlans = Object.entries(plans)
+            .filter(([_, plan]: [string, any]) => {
+              const stationMatch = String(plan.stationNo) === String(platform.stationNo || platform.station || platform.name);
+              const platformMatch = Array.isArray(plan.platformNos)
+                ? plan.platformNos.map(String).includes(String(platform.platformNo || platform.no || platform.id))
+                : false;
+
+              return stationMatch || platformMatch;
+            })
+            .map(([key, plan]: [string, any]) => {
+              const [reqIdStr] = key.split('-sample-');
+              const request = requests.find((r) => String(r.id) === String(reqIdStr));
+
+              return {
+                key,
+                plan,
+                request,
+              };
+            })
+            .filter((item) => item.request);
+
+          return {
+            ...platform,
+            relatedPlans,
+          };
+        });
+    }
+
+    setDetailModal({
+      open: true,
+      title: `Station Occupancy - ${label}`,
+      type: 'station',
+      label,
+      data,
+    });
+  };
+
+  const displayValue = (value: any, fallback = '-') => {
+    if (value === null || value === undefined || value === '') return fallback;
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    if (typeof value === 'object') {
+      return (
+        value.name ||
+        value.title ||
+        value.requestId ||
+        value.capaId ||
+        value.status ||
+        value.type ||
+        value.id ||
+        fallback
+      );
+    }
+
+    return fallback;
+  };
+
+  const displayDate = (value: any) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString();
+  };
 
   if (loading) {
     return (
@@ -694,62 +1326,117 @@ export default function CeoDashboard() {
         {/* Row 2: Status Donuts (Original Data Modules) */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <Card title="Test Request Status">
-            <div className="flex items-center gap-4">
-              <Donut segments={statusSegs.length ? statusSegs : [{ value: 1, color: '#e4e4e7', label: 'None' }]} size={90} />
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                {statusSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
-                {!statusSegs.length && <p className="text-xs text-zinc-400">No data</p>}
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <Donut segments={statusSegs} size={140} onSegmentClick={getRequestDetailsByStatus} />
               </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-zinc-100 pt-3">
+                {statusSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
+              </div>
+              {!statusSegs.length && <p className="text-xs text-zinc-400 text-center">No data</p>}
             </div>
           </Card>
 
           <Card title="CAPA Status Breakdown">
-            <div className="flex items-center gap-4">
-              <Donut segments={capaSegs.length ? capaSegs : [{ value: 1, color: '#e4e4e7', label: 'None' }]} size={90} />
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                {capaSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
-                {!capaSegs.length && <p className="text-xs text-zinc-400">No CAPAs</p>}
-                <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold">Total: {capaTotal}</div>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <Donut
+                  segments={capaSegs}
+                  size={140}
+                  onSegmentClick={getCapaDetailsByStatus}
+                />
               </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-zinc-100 pt-3">
+                {capaSegs.map(s => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => getCapaDetailsByStatus(s.label)}
+                    className="text-left"
+                  >
+                    <Legend color={s.color} label={s.label} value={s.value} />
+                  </button>
+                ))}
+              </div>
+              {!capaSegs.length && <p className="text-xs text-zinc-400 text-center">No CAPAs</p>}
+              <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold text-center">Total: {capaTotal}</div>
             </div>
           </Card>
 
           <Card title="Equipment Availability">
-            <div className="flex items-center gap-4">
-              <Donut segments={eqSegs.length ? eqSegs : [{ value: 1, color: '#e4e4e7', label: 'None' }]} size={90} />
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                {eqSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
-                {!eqSegs.length && <p className="text-xs text-zinc-400">No equipment</p>}
-                <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold">Total: {eqTotal}</div>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <Donut segments={eqSegs} size={140} onSegmentClick={getEquipmentDetailsByStatus} />
               </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-zinc-100 pt-3">
+                {eqSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
+              </div>
+              {!eqSegs.length && <p className="text-xs text-zinc-400 text-center">No equipment</p>}
+              <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold text-center">Total: {eqTotal}</div>
             </div>
           </Card>
 
           <Card title="Station Occupancy">
-            <div className="flex items-center gap-4">
-              <Donut segments={stSegs.length ? stSegs : [{ value: 1, color: '#e4e4e7', label: 'None' }]} size={90} />
-              <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                {stSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
-                {!stSegs.length && <p className="text-xs text-zinc-400">No platforms</p>}
-                <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold">Total slots: {stTotal}</div>
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-center">
+                <Donut segments={stSegs} size={140} onSegmentClick={getStationDetailsByStatus} />
               </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-zinc-100 pt-3">
+                {stSegs.map(s => <Legend key={s.label} color={s.color} label={s.label} value={s.value} />)}
+              </div>
+              {!stSegs.length && <p className="text-xs text-zinc-400 text-center">No platforms</p>}
+              <div className="mt-1 text-[10px] text-zinc-500 border-t border-zinc-100 pt-1 font-bold text-center">Total slots: {stTotal}</div>
             </div>
           </Card>
         </div>
 
-        {/* Row 3: Monthly bar charts (Original Data Modules) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card title="Monthly Sample Requests">
-            <BarChart data={monthlyReqs} color="#11236a" />
-          </Card>
-          <Card title="Monthly Failure Trend">
-            <BarChart data={monthlyFailed} color="#e11d48" />
-            <p className="text-[10px] text-zinc-400 mt-1">Total failed: {failed}</p>
-          </Card>
-          <Card title="Monthly CAPA Submissions">
-            <BarChart data={monthlyCapa} color="#f59e0b" />
-            <p className="text-[10px] text-zinc-400 mt-1">Total CAPAs: {capaTotal}</p>
-          </Card>
+        {/* Row 3: Monthly bar charts - Full Year Timeline */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <ChartCard title="Monthly Sample Requests">
+            <BarChart
+              data={monthlyReqs}
+              color="#11236a"
+              tooltipTitle="Sample Requests"
+              breakdown={[
+                { key: 'completed', label: 'Completed', color: '#15803d' },
+                { key: 'notCompleted', label: 'Not completed', color: '#11236a' },
+              ]}
+            />
+            <p className="text-xs text-zinc-500 font-semibold mt-3">
+              Total requests this year: {monthlyReqs.reduce((sum, item) => sum + item.value, 0)}
+            </p>
+          </ChartCard>
+
+          <ChartCard title="Monthly Failure Trend">
+            <BarChart
+              data={monthlyFailed}
+              color="#e11d48"
+              tooltipTitle="Failure Trend"
+              breakdown={[
+                { key: 'capaSubmitted', label: 'CAPA submitted', color: '#8b5cf6' },
+                { key: 'withoutCapa', label: 'Without CAPA', color: '#e11d48' },
+              ]}
+            />
+            <p className="text-xs text-zinc-500 font-semibold mt-3">
+              Total failed / retest this year: {monthlyFailed.reduce((sum, item) => sum + item.value, 0)}
+            </p>
+          </ChartCard>
+
+          <ChartCard title="Monthly CAPA Submissions">
+            <BarChart
+              data={monthlyCapa}
+              color="#f59e0b"
+              tooltipTitle="CAPA Submissions"
+              breakdown={[
+                { key: 'closed', label: 'Closed', color: '#10b981' },
+                { key: 'open', label: 'Open', color: '#f59e0b' },
+                { key: 'other', label: 'Other', color: '#64748b' },
+              ]}
+            />
+            <p className="text-xs text-zinc-500 font-semibold mt-3">
+              Total CAPAs this year: {monthlyCapa.reduce((sum, item) => sum + item.value, 0)}
+            </p>
+          </ChartCard>
         </div>
 
         {/* Active Lab Endurance Runs Table (Original Data Modules) */}
@@ -813,6 +1500,288 @@ export default function CeoDashboard() {
         </div>
 
       </div>
+
+      {detailModal.open && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden border border-zinc-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+              <div>
+                <h2 className="text-lg font-extrabold text-zinc-900">{detailModal.title}</h2>
+                <p className="text-xs text-zinc-500 font-semibold mt-0.5">
+                  Total Records: {detailModal.data.length}
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  setDetailModal({
+                    open: false,
+                    title: '',
+                    type: '',
+                    label: '',
+                    data: [],
+                  })
+                }
+                className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              {detailModal.data.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-zinc-200 rounded-xl">
+                  <p className="text-sm font-bold text-zinc-500">No details found for this section.</p>
+                </div>
+              ) : (
+                <>
+                  {detailModal.type === 'request' && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-100 text-zinc-400 uppercase text-[10px] font-extrabold">
+                            <th className="pb-3 pr-3">Request ID</th>
+                            <th className="pb-3 px-3">Brand / Model</th>
+                            <th className="pb-3 px-3">Test Type</th>
+                            <th className="pb-3 px-3">Status</th>
+                            <th className="pb-3 px-3">Created By</th>
+                            <th className="pb-3 pl-3">Created Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
+                          {detailModal.data.map((r) => (
+                            <tr key={r.id} className="hover:bg-zinc-50">
+                              <td className="py-3 pr-3 font-black text-indigo-700">
+                                {r.requestId || `REQ-${r.id}`}
+                              </td>
+                              <td className="py-3 px-3 font-bold text-zinc-900">
+                                {r.brandName || '-'} {r.modelNo ? `- ${r.modelNo}` : ''}
+                              </td>
+                              <td className="py-3 px-3">
+                                {displayValue(r.testType || r.type)}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold uppercase text-[10px]">
+                                  {displayValue(r.status)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3">
+                                {displayValue(r.createdBy || r.requester || r.user)}
+                              </td>
+                              <td className="py-3 pl-3">
+                                {displayDate(r.createdAt)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {detailModal.type === 'capa' && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-100 text-zinc-400 uppercase text-[10px] font-extrabold">
+                            <th className="pb-3 pr-3">CAPA ID</th>
+                            <th className="pb-3 px-3">CAPA Title</th>
+                            <th className="pb-3 px-3">Status</th>
+                            <th className="pb-3 px-3">Belongs To</th>
+                            <th className="pb-3 px-3">Request</th>
+                            <th className="pb-3 px-3">Test Type</th>
+                            <th className="pb-3 pl-3">Created Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-50">
+                          {detailModal.data.map((c) => (
+                            <tr key={c.id} className="hover:bg-zinc-50">
+                              <td className="py-3 pr-3 font-black text-indigo-700">
+                                {displayValue(c.capaId || c.id)}
+                              </td>
+
+                              <td className="py-3 px-3 font-bold text-zinc-900">
+                                {displayValue(c.title || c.problem || c.nonConformity)}
+                              </td>
+
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold uppercase text-[10px]">
+                                  {displayValue(c.status)}
+                                </span>
+                              </td>
+
+                              <td className="py-3 px-3">
+                                {displayValue(c.owner || c.submittedBy || c.submittedById)}
+                              </td>
+
+                              <td className="py-3 px-3">
+                                {displayValue(c.relatedRequest)}
+                              </td>
+
+                              <td className="py-3 px-3">
+                                {displayValue(c.productName || c.partProduct || c.improvementType)}
+                              </td>
+
+                              <td className="py-3 pl-3">
+                                {displayDate(c.createdAt)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {detailModal.type === 'equipment' && (
+                    <div className="space-y-4">
+                      {detailModal.data.map((eq) => (
+                        <div key={eq.id} className="border border-zinc-100 rounded-2xl p-4 bg-zinc-50/50">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div>
+                              <h3 className="text-sm font-extrabold text-zinc-900">
+                                {displayValue(eq.name || eq.equipmentName || `Equipment ${eq.id}`)}
+                              </h3>
+                              <p className="text-xs text-zinc-500 font-semibold">
+                                Status: {displayValue(eq.status || (eq.isAvailable ? 'Available' : 'Occupied'))}
+                              </p>
+                            </div>
+
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-extrabold uppercase ${eq.isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                              {eq.isAvailable ? 'Available' : 'Occupied'}
+                            </span>
+                          </div>
+
+                          {detailModal.label === 'Occupied' && (
+                            <div className="mt-4">
+                              <p className="text-[11px] font-extrabold text-zinc-500 mb-2">
+                                Running Request Details
+                              </p>
+
+                              {eq.relatedPlans?.length ? (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-left text-[10px] uppercase text-zinc-400 border-b border-zinc-200">
+                                        <th className="pb-2">Request</th>
+                                        <th className="pb-2">Brand / Model</th>
+                                        <th className="pb-2">Test Type</th>
+                                        <th className="pb-2">Station</th>
+                                        <th className="pb-2">Allocated Days</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {eq.relatedPlans.map((item: any) => (
+                                        <tr key={item.key} className="border-b border-zinc-100">
+                                          <td className="py-2 font-bold text-indigo-700">
+                                            {item.request?.requestId || `REQ-${item.request?.id}`}
+                                          </td>
+                                          <td className="py-2">
+                                            {item.request?.brandName || '-'} {item.request?.modelNo ? `- ${item.request.modelNo}` : ''}
+                                          </td>
+                                          <td className="py-2">
+                                            {displayValue(item.request?.testType || item.plan?.productType)}
+                                          </td>
+                                          <td className="py-2">
+                                            Station {item.plan?.stationNo || '-'}
+                                          </td>
+                                          <td className="py-2">
+                                            {item.plan?.numberOfDays || '-'} Days
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-zinc-400 font-semibold">
+                                  No linked active request found for this equipment.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {detailModal.type === 'station' && (
+                    <div className="space-y-4">
+                      {detailModal.data.map((station) => (
+                        <div key={station.id} className="border border-zinc-100 rounded-2xl p-4 bg-zinc-50/50">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                            <div>
+                              <h3 className="text-sm font-extrabold text-zinc-900">
+                                {displayValue(station.name || `Station ${displayValue(station.stationNo || station.station || station.id)}`)}
+                              </h3>
+                              <p className="text-xs text-zinc-500 font-semibold">
+                                Platform: {displayValue(station.platformNo || station.no || station.id)}
+                              </p>
+                            </div>
+
+                            <span className={`px-2 py-1 rounded-full text-[10px] font-extrabold uppercase ${station.isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                              }`}>
+                              {station.isAvailable ? 'Free' : 'Busy'}
+                            </span>
+                          </div>
+
+                          {detailModal.label === 'Occupied' && (
+                            <div className="mt-4">
+                              <p className="text-[11px] font-extrabold text-zinc-500 mb-2">
+                                Busy Request Details
+                              </p>
+
+                              {station.relatedPlans?.length ? (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="text-left text-[10px] uppercase text-zinc-400 border-b border-zinc-200">
+                                        <th className="pb-2">Request</th>
+                                        <th className="pb-2">Brand / Model</th>
+                                        <th className="pb-2">Test Type</th>
+                                        <th className="pb-2">Station</th>
+                                        <th className="pb-2">Platforms</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {station.relatedPlans.map((item: any) => (
+                                        <tr key={item.key} className="border-b border-zinc-100">
+                                          <td className="py-2 font-bold text-indigo-700">
+                                            {item.request?.requestId || `REQ-${item.request?.id}`}
+                                          </td>
+                                          <td className="py-2">
+                                            {item.request?.brandName || '-'} {item.request?.modelNo ? `- ${item.request.modelNo}` : ''}
+                                          </td>
+                                          <td className="py-2">
+                                            {displayValue(item.request?.testType || item.plan?.productType)}
+                                          </td>
+                                          <td className="py-2">
+                                            Station {item.plan?.stationNo || '-'}
+                                          </td>
+                                          <td className="py-2">
+                                            {item.plan?.platformNos?.map((p: number) => `P${item.plan.stationNo}-S${p}`).join(', ') || '-'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-zinc-400 font-semibold">
+                                  No linked active request found for this station.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
