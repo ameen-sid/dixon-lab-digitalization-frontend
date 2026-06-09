@@ -111,3 +111,8 @@ export const capaEndpoints = {
 	GET_CAPA_BY_ID_API: (id: string | number) => BASE_URL + `/capas/${id}`,
 	UPDATE_CAPA_STATUS_API: (id: string | number) => BASE_URL + `/capas/${id}/status`,
 };
+
+// System Log Endpoints
+export const systemLogEndpoints = {
+	GET_SYSTEM_LOGS_API: BASE_URL + '/system-logs',
+};

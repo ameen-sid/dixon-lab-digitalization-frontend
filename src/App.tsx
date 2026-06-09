@@ -40,6 +40,7 @@ function App() {
 				<Route path="/admin/product-part-names" element={<AdminDashboard />} />
 				<Route path="/admin/suppliers-customers" element={<AdminDashboard />} />
 				<Route path="/admin/rd-equipment" element={<AdminDashboard />} />
+				<Route path="/admin/system-logs" element={<AdminDashboard />} />
 				<Route path="/ceo/dashboard" element={<CeoDashboard />} />
 				<Route path="/head/dashboard" element={<HeadDashboard />} />
 				<Route path="/head/sample-tests" element={<HeadDashboard />} />

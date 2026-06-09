@@ -92,6 +92,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'suppliers-customers';
 		} else if (path.includes('/admin/rd-equipment')) {
 			derivedActiveTab = 'rd-testing-equipments';
+		} else if (path.includes('/admin/system-logs')) {
+			derivedActiveTab = 'system-logs';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -118,6 +120,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'product-part-names') navigate('/admin/product-part-names');
 			else if (itemId === 'suppliers-customers') navigate('/admin/suppliers-customers');
 			else if (itemId === 'rd-testing-equipments') navigate('/admin/rd-equipment');
+			else if (itemId === 'system-logs') navigate('/admin/system-logs');
 		} else if (userRoleLower === 'lab manager') {
 			if (itemId === 'dashboard') navigate('/manager/dashboard');
 			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
@@ -206,6 +209,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'departments-management', label: 'Departments Management', icon: Layers },
 											{ id: 'users-management', label: 'Users Management', icon: Users },
+											{ id: 'system-logs', label: 'System Logs', icon: FileText },
 										]
 									},
 									{

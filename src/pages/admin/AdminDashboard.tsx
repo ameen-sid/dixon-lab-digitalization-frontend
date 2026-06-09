@@ -18,6 +18,7 @@ import TestProtocolManagement from './TestProtocolManagement';
 import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
+import SystemLogsManagement from './SystemLogsManagement';
 import { 
 	Users, ChevronRight, RotateCw, Activity,
 	Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
 	else if (path.includes('/admin/product-part-names')) activeTab = 'product-part-names';
 	else if (path.includes('/admin/suppliers-customers')) activeTab = 'suppliers-customers';
 	else if (path.includes('/admin/rd-equipment')) activeTab = 'rd-testing-equipments';
+	else if (path.includes('/admin/system-logs')) activeTab = 'system-logs';
 
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
@@ -217,6 +219,8 @@ export default function AdminDashboard() {
 				return { title: 'Suppliers / Customers', desc: 'Administrate external vendor verification logs and client listings.' };
 			case 'rd-testing-equipments':
 				return { title: 'R&D Testing Equipments', desc: 'Telemetry status logs of physical stress chambers and oscilloscopes.' };
+			case 'system-logs':
+				return { title: 'System Logs', desc: 'Track and audit administrative modifications to system entities.' };
 			default:
 				return { title: 'Dashboard', desc: '' };
 		}
@@ -628,6 +632,9 @@ export default function AdminDashboard() {
 			case 'rd-testing-equipments':
 				return <TestingEquipmentManagement />;
 
+			case 'system-logs':
+				return <SystemLogsManagement />;
+
 			default:
 				return null;
 		}
@@ -651,6 +658,7 @@ export default function AdminDashboard() {
 				else if (tab === 'product-part-names') navigate('/admin/product-part-names');
 				else if (tab === 'suppliers-customers') navigate('/admin/suppliers-customers');
 				else if (tab === 'rd-testing-equipments') navigate('/admin/rd-equipment');
+				else if (tab === 'system-logs') navigate('/admin/system-logs');
 			}}
 		>
 			{renderContent()}
