@@ -2,7 +2,7 @@ import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
 import { testingEquipmentEndpoints } from '../apis';
 
-const { GET_TESTING_EQUIPMENTS_API, CREATE_TESTING_EQUIPMENT_API, UPDATE_TESTING_EQUIPMENT_API, DELETE_TESTING_EQUIPMENT_API, RESERVE_EQUIPMENT_API, RELEASE_EQUIPMENT_API } = testingEquipmentEndpoints;
+const { GET_TESTING_EQUIPMENTS_API, CREATE_TESTING_EQUIPMENT_API, UPDATE_TESTING_EQUIPMENT_API, DELETE_TESTING_EQUIPMENT_API, RESERVE_EQUIPMENT_API, RELEASE_EQUIPMENT_API, GET_WEEKLY_ANALYTICS_API } = testingEquipmentEndpoints;
 
 interface AxiosServiceError {
 	response?: {
@@ -159,13 +159,32 @@ export const releaseEquipment = (id: number) => {
 	};
 };
 
+export const getWeeklyEquipmentAnalytics = (month: string, equipmentId = '', testTypeId = '') => {
+	return async () => {
+		try {
+			let url = `${GET_WEEKLY_ANALYTICS_API}?month=${month}`;
+			if (equipmentId) url += `&equipmentId=${equipmentId}`;
+			if (testTypeId) url += `&testTypeId=${testTypeId}`;
+			const response = await apiConnector('GET', url);
+			return response.data.data || [];
+		} catch (error) {
+			console.error('GET_WEEKLY_ANALYTICS_API Error: ', error);
+			const err = error as AxiosServiceError;
+			const errMsg = err.response?.data?.message || err.message || 'Failed to load weekly equipment utilization analytics.';
+			toast.error(errMsg);
+			throw new Error(errMsg, { cause: error });
+		}
+	};
+};
+
 const testingEquipmentService = {
 	getTestingEquipments,
 	createTestingEquipment,
 	updateTestingEquipment,
 	deleteTestingEquipment,
 	reserveEquipment,
-	releaseEquipment
+	releaseEquipment,
+	getWeeklyEquipmentAnalytics
 };
 
 export default testingEquipmentService;

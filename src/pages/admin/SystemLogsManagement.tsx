@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Search, Eye, RefreshCw, Loader2, CheckCircle, AlertCircle, Calendar, ShieldAlert } from 'lucide-react';
+import { ClipboardList, Search, Eye, RefreshCw, Loader2, AlertCircle, Calendar, ShieldAlert } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
 import systemLogService from '../../services/operations/systemLogService';
@@ -122,14 +122,6 @@ export default function SystemLogsManagement() {
 		fetchLogs();
 	};
 
-	const formatDetails = (detailsStr: string) => {
-		try {
-			const parsed = JSON.parse(detailsStr);
-			return JSON.stringify(parsed, null, 2);
-		} catch (e) {
-			return detailsStr;
-		}
-	};
 
 	const renderChangeDescription = (log: SystemLog) => {
 		let detailsObj: any = null;

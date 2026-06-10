@@ -1,19 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { apiConnector } from '../../services/apiConnector';
 import { getCapas } from '../../services/operations/capaService';
-import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
-import { getPlatforms } from '../../services/operations/platformAvailabilityService';
-import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
+import { getTestingEquipments, getWeeklyEquipmentAnalytics } from '../../services/operations/testingEquipmentService';
+import { getPlatforms, getWeeklyPlatformAnalytics } from '../../services/operations/platformAvailabilityService';
+import { getPlatforms as getNablPlatforms, getWeeklyPlatformAnalytics as getNablWeeklyPlatformAnalytics } from '../../services/operations/nablStationAvailabilityService';
+import { getTestTypes } from '../../services/operations/testTypeService';
+import CustomSelect from '../../components/CustomSelect';
 import {
-  ClipboardList,
   RotateCw,
-  Calendar,
   Monitor,
   Clock
 } from 'lucide-react';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const platformOptions = [
+  { value: '', label: 'All Platforms' },
+  ...Array.from({ length: 10 }, (_, idx) => ({
+    value: String(idx + 1),
+    label: `Platform ${idx + 1}`
+  }))
+];
 
 const getSafeStatusText = (status: any) => {
   if (!status) return '';
@@ -39,8 +47,6 @@ const isFailed = (s: any) => {
     'fail',
     'inspection_failed',
     'testing_failed',
-    'retest',
-    'restest',
   ].includes(status);
 };
 
@@ -290,6 +296,9 @@ function BarChart({
                       height={segmentHeight}
                       fill={item.color}
                       rx={idx === 0 ? 0 : 2}
+                      style={{
+                        transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
                     />
                   );
                 })
@@ -301,6 +310,9 @@ function BarChart({
                   height={barHeight}
                   fill={color}
                   rx="8"
+                  style={{
+                    transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
                 />
               )}
 
@@ -313,6 +325,9 @@ function BarChart({
                   height={((totalValue - breakdownTotal) / yMax) * chartHeight}
                   fill={color}
                   rx="8"
+                  style={{
+                    transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
                 />
               )}
 
@@ -374,9 +389,12 @@ function BarChart({
 
 // Platform Availability Stacked Bar Chart using calculated data
 function StackedBarChart({ data }: { data: any[] }) {
+  const [hoveredWeek, setHoveredWeek] = useState<any | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const height = 180;
   const width = 450;
-  const padding = { top: 20, right: 20, bottom: 30, left: 40 };
+  const padding = { top: 20, right: 20, bottom: 30, left: 45 };
 
   const yTicks = [0, 45, 90, 135, 180];
   const maxVal = 180;
@@ -385,8 +403,24 @@ function StackedBarChart({ data }: { data: any[] }) {
   const chartWidth = width - padding.left - padding.right;
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[360px]" style={{ maxHeight: 200 }}>
+    <div className="w-full overflow-x-auto relative">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full min-w-[360px] overflow-visible"
+        style={{ maxHeight: 200 }}
+        onMouseMove={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+      >
+        {/* Y-axis label */}
+        <text
+          transform="rotate(-90)"
+          x={-(padding.top + chartHeight / 2)}
+          y={14}
+          textAnchor="middle"
+          className="text-[10px] fill-zinc-400 font-extrabold uppercase tracking-wider"
+        >
+          Hours
+        </text>
+
         {/* Grid lines */}
         {yTicks.map((tick) => {
           const y = padding.top + chartHeight - (tick / maxVal) * chartHeight;
@@ -402,13 +436,11 @@ function StackedBarChart({ data }: { data: any[] }) {
         {data.map((d, i) => {
           const colWidth = chartWidth / data.length;
           const xCenter = padding.left + i * colWidth + colWidth / 2;
-          const barWidth = 20;
+          const barWidth = 24;
+          const isHovered = hoveredWeek?.label === d.label;
 
-          // Normalize values relative to 180 max hours (assuming total capacity scale)
-          // We convert total capacity percentage to the chart scale
-          const ratio = 180 / d.total;
-          const occupiedVal = Math.min(180, d.occupied * ratio);
-          const availableVal = Math.max(0, 180 - occupiedVal);
+          const occupiedVal = Math.min(180, d.occupied);
+          const availableVal = Math.min(180, d.available);
 
           const occupiedH = (occupiedVal / maxVal) * chartHeight;
           const availableH = (availableVal / maxVal) * chartHeight;
@@ -417,26 +449,85 @@ function StackedBarChart({ data }: { data: any[] }) {
           const availableY = occupiedY - availableH;
 
           return (
-            <g key={i}>
+            <g
+              key={i}
+              onMouseEnter={() => setHoveredWeek(d)}
+              onMouseLeave={() => setHoveredWeek(null)}
+              className="cursor-pointer"
+            >
+              {/* Background hover highlight */}
+              {isHovered && (
+                <rect
+                  x={xCenter - colWidth / 2 + 4}
+                  y={padding.top}
+                  width={colWidth - 8}
+                  height={chartHeight}
+                  fill="#f8fafc"
+                  rx="8"
+                />
+              )}
               {/* Occupied time - blue */}
-              <rect x={xCenter - barWidth / 2} y={occupiedY} width={barWidth} height={occupiedH} fill="#3b82f6" rx="2" />
+              <rect
+                x={xCenter - barWidth / 2}
+                y={occupiedY}
+                width={barWidth}
+                height={occupiedH}
+                fill="#3b82f6"
+                rx="2"
+                style={{
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
               {/* Available time - light gray */}
-              <rect x={xCenter - barWidth / 2} y={availableY} width={barWidth} height={availableH} fill="#cbd5e1" rx="2" />
+              <rect
+                x={xCenter - barWidth / 2}
+                y={availableY}
+                width={barWidth}
+                height={availableH}
+                fill="#cbd5e1"
+                rx="2"
+                style={{
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
               {/* X-axis Label */}
               <text x={xCenter} y={padding.top + chartHeight + 18} textAnchor="middle" className="text-[10px] fill-zinc-400 font-bold">{d.label}</text>
             </g>
           );
         })}
       </svg>
+
+      {/* Tooltip */}
+      {hoveredWeek && (
+        <div
+          className="fixed z-[9999] bg-white text-zinc-900 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] text-xs pointer-events-none transition-all duration-75 border border-zinc-100 flex flex-col gap-2 min-w-[155px]"
+          style={{ left: tooltipPos.x + 15, top: tooltipPos.y + 15 }}
+        >
+          <div className="font-extrabold text-[13px] text-zinc-950">{hoveredWeek.label}</div>
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-2 font-bold text-zinc-650">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shrink-0" />
+              Occupied Time: <span className="text-zinc-950 font-black ml-auto">{Math.round(hoveredWeek.occupied)}</span>
+            </div>
+            <div className="flex items-center gap-2 font-bold text-zinc-650">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1] shrink-0" />
+              Available Time: <span className="text-zinc-950 font-black ml-auto">{Math.round(hoveredWeek.available)}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // Machine Utilization Grouped Bar Chart using calculated data
 function MachineUtilizationChart({ data }: { data: any[] }) {
+  const [hoveredWeek, setHoveredWeek] = useState<any | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
   const height = 180;
   const width = 450;
-  const padding = { top: 20, right: 20, bottom: 30, left: 40 };
+  const padding = { top: 20, right: 20, bottom: 30, left: 45 };
 
   const yTicks = [0, 45, 90, 135, 180];
   const maxVal = 180;
@@ -444,12 +535,25 @@ function MachineUtilizationChart({ data }: { data: any[] }) {
   const chartHeight = height - padding.top - padding.bottom;
   const chartWidth = width - padding.left - padding.right;
 
-  // Render up to 4 equipment data points
-  const displayData = data.slice(0, 4);
-
   return (
-    <div className="w-full overflow-x-auto">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[360px]" style={{ maxHeight: 200 }}>
+    <div className="w-full overflow-x-auto relative">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full min-w-[360px] overflow-visible"
+        style={{ maxHeight: 200 }}
+        onMouseMove={(e) => setTooltipPos({ x: e.clientX, y: e.clientY })}
+      >
+        {/* Y-axis label */}
+        <text
+          transform="rotate(-90)"
+          x={-(padding.top + chartHeight / 2)}
+          y={14}
+          textAnchor="middle"
+          className="text-[10px] fill-zinc-400 font-extrabold uppercase tracking-wider"
+        >
+          Hours
+        </text>
+
         {/* Grid lines */}
         {yTicks.map((tick) => {
           const y = padding.top + chartHeight - (tick / maxVal) * chartHeight;
@@ -462,41 +566,89 @@ function MachineUtilizationChart({ data }: { data: any[] }) {
         })}
 
         {/* Grouped bars */}
-        {displayData.map((d, i) => {
-          const colWidth = chartWidth / Math.max(displayData.length, 1);
+        {data.map((d, i) => {
+          const colWidth = chartWidth / data.length;
           const xCenter = padding.left + i * colWidth + colWidth / 2;
-          const barWidth = 14;
+          const barWidth = 16;
           const spacing = 2;
+          const isHovered = hoveredWeek?.label === d.label;
 
-          // Scale days to fit hours-axis (e.g. 1 day = 10 hours for chart visual balance)
-          const scaleFactor = 10;
-          const allocatedVal = Math.min(180, d.allocated * scaleFactor);
-          const actualVal = Math.min(180, d.actual * scaleFactor);
-
-          const allocatedH = (allocatedVal / maxVal) * chartHeight;
-          const actualH = (actualVal / maxVal) * chartHeight;
+          const allocatedH = (Math.min(180, d.allocated) / maxVal) * chartHeight;
+          const actualH = (Math.min(180, d.actual) / maxVal) * chartHeight;
 
           const allocatedY = padding.top + chartHeight - allocatedH;
           const actualY = padding.top + chartHeight - actualH;
 
-          // Truncate name to 8 chars
-          const shortName = d.name.length > 8 ? d.name.substring(0, 8) + '…' : d.name;
-
           return (
-            <g key={i}>
+            <g
+              key={i}
+              onMouseEnter={() => setHoveredWeek(d)}
+              onMouseLeave={() => setHoveredWeek(null)}
+              className="cursor-pointer"
+            >
+              {/* Background hover highlight */}
+              {isHovered && (
+                <rect
+                  x={xCenter - colWidth / 2 + 4}
+                  y={padding.top}
+                  width={colWidth - 8}
+                  height={chartHeight}
+                  fill="#f8fafc"
+                  rx="8"
+                />
+              )}
               {/* Allocated - light gray */}
-              <rect x={xCenter - barWidth - spacing} y={allocatedY} width={barWidth} height={allocatedH} fill="#cbd5e1" rx="3" />
+              <rect
+                x={xCenter - barWidth - spacing}
+                y={allocatedY}
+                width={barWidth}
+                height={allocatedH}
+                fill="#cbd5e1"
+                rx="3"
+                style={{
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
               {/* Actual runtime - purple */}
-              <rect x={xCenter + spacing} y={actualY} width={barWidth} height={actualH} fill="#6366f1" rx="3" />
+              <rect
+                x={xCenter + spacing}
+                y={actualY}
+                width={barWidth}
+                height={actualH}
+                fill="#6366f1"
+                rx="3"
+                style={{
+                  transition: 'height 0.5s cubic-bezier(0.4, 0, 0.2, 1), y 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
               {/* X-axis Label */}
               <text x={xCenter} y={padding.top + chartHeight + 18} textAnchor="middle" className="text-[10px] fill-zinc-400 font-bold">
-                {shortName}
-                <title>{d.name}</title>
+                {d.label}
               </text>
             </g>
           );
         })}
       </svg>
+
+      {/* Tooltip */}
+      {hoveredWeek && (
+        <div
+          className="fixed z-[9999] bg-white text-zinc-900 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] text-xs pointer-events-none transition-all duration-75 border border-zinc-100 flex flex-col gap-2 min-w-[155px]"
+          style={{ left: tooltipPos.x + 15, top: tooltipPos.y + 15 }}
+        >
+          <div className="font-extrabold text-[13px] text-zinc-950">{hoveredWeek.label}</div>
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-2 font-bold text-zinc-650">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1] shrink-0" />
+              Allocated Time: <span className="text-zinc-950 font-black ml-auto">{Math.round(hoveredWeek.allocated)}</span>
+            </div>
+            <div className="flex items-center gap-2 font-bold text-zinc-650">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1] shrink-0" />
+              Actual Runtime: <span className="text-zinc-950 font-black ml-auto">{Math.round(hoveredWeek.actual)}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -548,7 +700,7 @@ export default function CeoDashboard() {
   const [equipment, setEquipment] = useState<any[]>([]);
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [plans, setPlans] = useState<{ [key: string]: any }>({});
-  const [checksheetEntriesMap, setChecksheetEntriesMap] = useState<{ [key: string]: any[] }>({});
+  const [platformAvailData, setPlatformAvailData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [detailModal, setDetailModal] = useState<{
@@ -572,18 +724,43 @@ export default function CeoDashboard() {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     return `${yyyy}-${mm}`;
   });
+  const [selectedStation, setSelectedStation] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
+  const [selectedEquipment, setSelectedEquipment] = useState('');
+  const [machineUtilData, setMachineUtilData] = useState<any[]>([]);
+  const [testTypes, setTestTypes] = useState<any[]>([]);
+  const [selectedTestType, setSelectedTestType] = useState('');
+  const isFirstLoadRef = useRef(true);
 
 
   const load = async () => {
-    setLoading(true);
+    if (isFirstLoadRef.current) {
+      setLoading(true);
+    }
     try {
-      const [reqRes, caps, eqps, plats] = await Promise.all([
+      const [reqRes, caps, eqps, plats, nablPlats, weeklyPlatData, weeklyNablPlatData, weeklyEqData, testTypesData] = await Promise.all([
         apiConnector('GET', '/api/v1/test-requests?limit=1000').catch(() => ({ data: { data: [] } })),
         getCapas()().catch(() => []),
         getTestingEquipments({ limit: 500 })().catch(() => []),
         getPlatforms()().catch(() => []),
+        getNablPlatforms()().catch(() => []),
+        getWeeklyPlatformAnalytics(selectedMonth, selectedStation, selectedPlatform, selectedTestType)().catch(() => []),
+        getNablWeeklyPlatformAnalytics(selectedMonth, selectedStation, selectedPlatform, selectedTestType)().catch(() => []),
+        getWeeklyEquipmentAnalytics(selectedMonth, selectedEquipment, selectedTestType)().catch(() => []),
+        getTestTypes()().catch(() => [])
       ]);
-      const reqs = (reqRes as any)?.data?.data || (reqRes as any)?.data || [];
+      const rawReqs = (reqRes as any)?.data?.data || (reqRes as any)?.data || [];
+      const reqs = selectedTestType
+        ? rawReqs.filter((r: any) => String(r.testTypeId || r.testType?.id || '') === String(selectedTestType))
+        : rawReqs;
+
+      const activeTestTypes = Array.isArray(testTypesData) ? testTypesData : [];
+      const selectedTypeName = activeTestTypes.find((t: any) => String(t.id) === String(selectedTestType))?.name || '';
+      const isNabl = selectedTypeName.toLowerCase().includes('nabl');
+
+      const finalPlatforms = isNabl ? nablPlats : plats;
+      const finalWeeklyPlatData = isNabl ? weeklyNablPlatData : weeklyPlatData;
+
       const parsedPlans: { [key: string]: any } = {};
       if (Array.isArray(reqs)) {
         reqs.forEach((req: any) => {
@@ -606,30 +783,27 @@ export default function CeoDashboard() {
         });
       }
 
-      // Fetch checksheet entries count for plans
-      const entriesMap: { [key: string]: any[] } = {};
-      await Promise.all(
-        Object.keys(parsedPlans).map(async (key) => {
-          try {
-            const entries = await getChecksheetEntries(key)();
-            entriesMap[key] = entries || [];
-          } catch (err) {
-            console.error(`Failed to load entries for ${key}:`, err);
-            entriesMap[key] = [];
-          }
-        })
-      );
-
       setRequests(Array.isArray(reqs) ? reqs : []);
       setCapas(Array.isArray(caps) ? caps : []);
       setEquipment(Array.isArray(eqps) ? eqps : []);
-      setPlatforms(Array.isArray(plats) ? plats : []);
+      setPlatforms(Array.isArray(finalPlatforms) ? finalPlatforms : []);
+      setTestTypes(activeTestTypes);
       setPlans(parsedPlans);
-      setChecksheetEntriesMap(entriesMap);
-    } finally { setLoading(false); }
+      setPlatformAvailData(Array.isArray(finalWeeklyPlatData) ? finalWeeklyPlatData : []);
+      setMachineUtilData(Array.isArray(weeklyEqData) ? weeklyEqData : []);
+    } finally {
+      setLoading(false);
+      isFirstLoadRef.current = false;
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  // Reset filters when test type filter changes to avoid mismatch
+  useEffect(() => {
+    setSelectedStation('');
+    setSelectedPlatform('');
+  }, [selectedTestType]);
+
+  useEffect(() => { load(); }, [selectedMonth, selectedStation, selectedPlatform, selectedEquipment, selectedTestType]);
 
   // Format date exactly: "Saturday, June 6, 2026"
   const formattedDate = new Date().toLocaleDateString('en-US', {
@@ -658,14 +832,52 @@ export default function CeoDashboard() {
     return `${pyyyy}-${pmm}`;
   })();
 
+  const equipmentOptions = [
+    { value: '', label: 'All Equipments' },
+    ...equipment.map((eq: any) => ({
+      value: String(eq.id),
+      label: eq.name
+    }))
+  ];
+
+  const testTypeOptions = [
+    { value: '', label: 'All Test Types' },
+    ...testTypes.map((t: any) => ({
+      value: String(t.id),
+      label: t.name
+    }))
+  ];
+
+  const selectedTypeName = testTypes.find((t: any) => String(t.id) === String(selectedTestType))?.name || '';
+  const isNablSelected = selectedTypeName.toLowerCase().includes('nabl');
+
+  const dynamicStationOptions = isNablSelected
+    ? [
+        { value: '', label: 'All Stations' },
+        { value: '1', label: 'NABL Station 1' }
+      ]
+    : [
+        { value: '', label: 'All Stations' },
+        ...Array.from({ length: 14 }, (_, idx) => ({
+          value: String(idx + 1),
+          label: `Station ${idx + 1}`
+        }))
+      ];
+
   // ── FILTERED DATASETS ──────────────────────────────────────────────────────
   const periodRequests = requests.filter(r => matchesFilter(r.createdAt, selectedMonth));
-  const periodCapas = capas.filter(c => matchesFilter(c.createdAt, selectedMonth));
+  const filteredRequestIds = new Set(requests.map(r => String(r.id)));
+  const filteredRequestNoStrings = new Set(requests.map(r => String(r.requestId)));
+  const periodCapas = capas
+    .filter(c => matchesFilter(c.createdAt, selectedMonth))
+    .filter(c => {
+      if (!selectedTestType) return true;
+      return filteredRequestIds.has(String(c.testRequestId || '')) ||
+             filteredRequestNoStrings.has(String(c.relatedRequest || '')) ||
+             filteredRequestIds.has(String(c.relatedRequest || ''));
+    });
 
   // ── Main Dashboard General Metrics ─────────────────────────────────────────
-  const failed = periodRequests.filter((r) =>
-    ['failed', 'fail', 'inspection_failed', 'testing_failed', 'retest', 'restest'].includes(getSafeStatusText(r.status))
-  ).length;
 
   // Detailed statuses for the Test Request Status Card
   const countPendingApproval = periodRequests.filter(r =>
@@ -737,135 +949,73 @@ export default function CeoDashboard() {
     return Number(((efficientCount / done.length) * 100).toFixed(1));
   };
 
-  const getCompletedForPeriod = (monthVal: string) => {
+  const getCompletedPassedForPeriod = (monthVal: string) => {
     const periodReqs = requests.filter(r => matchesFilter(r.createdAt, monthVal));
-    return periodReqs.filter(r => isCompleted(r.status)).length;
+    return periodReqs.filter(r =>
+      ['completed', 'testing_passed', 'testing_partial', 'pass'].includes(getSafeStatusText(r.status))
+    ).length;
+  };
+
+  const getFailedForPeriod = (monthVal: string) => {
+    const periodReqs = requests.filter(r => matchesFilter(r.createdAt, monthVal));
+    return periodReqs.filter(r => isFailed(r.status)).length;
   };
 
   const getSuccessRateForPeriod = (monthVal: string) => {
     const periodReqs = requests.filter(r => matchesFilter(r.createdAt, monthVal));
-    const done = periodReqs.filter(r => isCompleted(r.status));
-    const typePassed = done.filter(r => ['pass', 'testing_passed'].includes(getSafeStatusText(r.status))).length;
-    const typeFailed = done.filter(r => ['fail', 'testing_failed'].includes(getSafeStatusText(r.status))).length;
-    const totalConcluded = typePassed + typeFailed;
+    const passedCount = periodReqs.filter(r =>
+      ['completed', 'testing_passed', 'testing_partial', 'pass'].includes(getSafeStatusText(r.status))
+    ).length;
+    const failedCount = periodReqs.filter(r =>
+      isFailed(r.status)
+    ).length;
+    const totalConcluded = passedCount + failedCount;
     if (totalConcluded === 0) return 0;
-    return Number(((typePassed / totalConcluded) * 100).toFixed(1));
+    return Number(((passedCount / totalConcluded) * 100).toFixed(1));
   };
 
   const currentEfficiency = getEfficiencyForPeriod(selectedMonth);
   const prevEfficiency = getEfficiencyForPeriod(previousMonthStr);
   const efficiencyTrend = Number((currentEfficiency - prevEfficiency).toFixed(1));
 
-  const currentCompleted = getCompletedForPeriod(selectedMonth);
-  const prevCompleted = getCompletedForPeriod(previousMonthStr);
-  const completedTrend = currentCompleted - prevCompleted;
+  const currentCompletedPassed = getCompletedPassedForPeriod(selectedMonth);
+  const currentFailed = getFailedForPeriod(selectedMonth);
+  const prevCompletedPassed = getCompletedPassedForPeriod(previousMonthStr);
+  const prevFailed = getFailedForPeriod(previousMonthStr);
+
+  const completedPassedTrend = currentCompletedPassed - prevCompletedPassed;
+  const failedTrend = currentFailed - prevFailed;
 
   const currentSuccessRate = getSuccessRateForPeriod(selectedMonth);
   const prevSuccessRate = getSuccessRateForPeriod(previousMonthStr);
   const successRateTrend = Number((currentSuccessRate - prevSuccessRate).toFixed(1));
 
   const currentResourceUtilization = (() => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    const totalDaysInMonth = new Date(y, m, 0).getDate();
+    const monthStart = new Date(y, m - 1, 1, 0, 0, 0);
+    const monthEnd = new Date(y, m - 1, totalDaysInMonth, 23, 59, 59);
+
     const activePlans = Object.values(plans).filter((p: any) => {
-      return !(p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED');
+      const planStart = new Date(p.startDate || Date.now());
+      const planEnd = new Date(p.endDate || Date.now());
+      const overlaps = planStart <= monthEnd && planEnd >= monthStart;
+      return overlaps && !(p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED');
     });
     const occupiedPlatforms = activePlans.reduce((sum: number, p: any) => sum + (p.platformNos?.length || 0), 0);
-    // 14 stations * 10 platforms = 140 slots
-    const platformUtil = (occupiedPlatforms / 140) * 100;
+    // NABL is 1 station * 10 platforms = 10 slots. Standard is 14 stations * 10 platforms = 140 slots.
+    const capacity = isNablSelected ? 10 : 140;
+    const platformUtil = (occupiedPlatforms / capacity) * 100;
     const eqUsed = activePlans.filter((p: any) => p.equipmentId).map((p: any) => String(p.equipmentId));
     const uniqueEqUsed = new Set(eqUsed).size;
     const eqUtil = equipment.length > 0 ? (uniqueEqUsed / equipment.length) * 100 : 0;
-    return Number((((platformUtil + eqUtil) / 2) || 0).toFixed(1));
+    const util = ((platformUtil + eqUtil) / 2) || 0;
+    return Number(Math.min(100, util).toFixed(1));
   })();
 
-  // ── Stacked Bar Data (Platform Availability Overall) ──────────────────────
-  const platformAvailData = (() => {
-    const now = new Date();
-    return Array.from({ length: 4 }, (_, i) => {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (3 - i) * 7);
-      start.setDate(start.getDate() - start.getDay());
-      start.setHours(0, 0, 0, 0);
 
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
 
-      let occupiedDays = 0;
-      const totalCapacity = 980; // 140 platforms * 7 days
 
-      Object.values(plans).forEach((plan: any) => {
-        const planStart = new Date(plan.startDate || Date.now());
-        const planEnd = new Date(plan.endDate || Date.now());
-
-        const overlapStart = new Date(Math.max(start.getTime(), planStart.getTime()));
-        const overlapEnd = new Date(Math.min(end.getTime(), planEnd.getTime()));
-
-        if (overlapStart <= overlapEnd) {
-          const diffTime = Math.abs(overlapEnd.getTime() - overlapStart.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-          const numPlatforms = plan.platformNos?.length || 1;
-          occupiedDays += diffDays * numPlatforms;
-        }
-      });
-
-      if (occupiedDays === 0) {
-        occupiedDays = [740, 810, 780, 840][i];
-      }
-
-      occupiedDays = Math.min(totalCapacity, occupiedDays);
-      const availableDays = totalCapacity - occupiedDays;
-
-      return {
-        label: `Week ${i + 1}`,
-        occupied: occupiedDays,
-        available: availableDays,
-        total: totalCapacity
-      };
-    });
-  })();
-
-  // ── Grouped Bar Data (Machine Utilization Overall) ────────────────────────
-  const machineUtilData = (() => {
-    return equipment.map(eq => {
-      let allocated = 0;
-      let actual = 0;
-
-      Object.entries(plans).forEach(([key, plan]: [string, any]) => {
-        if (String(plan.equipmentId) !== String(eq.id)) return;
-        allocated += Number(plan.numberOfDays) || 0;
-        actual += (checksheetEntriesMap[key] || []).length;
-      });
-
-      if (allocated === 0) {
-        allocated = Math.floor(Math.random() * 6) + 12;
-        actual = Math.floor(allocated * (0.85 + Math.random() * 0.13));
-      }
-
-      return {
-        name: eq.name,
-        allocated,
-        actual
-      };
-    });
-  })();
-
-  // ── Active reliability plans Overall ──────────────────────────────────────
-  const activeReliabilityPlans = (() => {
-    return Object.entries(plans).map(([key, plan]) => {
-      const [reqIdStr] = key.split('-sample-');
-      const request = requests.find(r => String(r.id) === String(reqIdStr));
-      const pType = plan.productType || 'SATL';
-
-      return {
-        key,
-        plan,
-        request,
-        pType
-      };
-    }).filter(item =>
-      item.request &&
-      !(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
-    );
-  })();
 
   const now = new Date();
 
@@ -1206,13 +1356,22 @@ export default function CeoDashboard() {
 
         {/* Dropdown Filters */}
         <div className="flex items-center gap-3">
+          {/* Test Type selector */}
+          <CustomSelect
+            value={selectedTestType}
+            onChange={setSelectedTestType}
+            options={testTypeOptions}
+            placeholder="All Test Types"
+            className="w-40"
+          />
+
           {/* Month selector */}
           <div className="relative">
             <input
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-white border border-zinc-200/80 rounded-xl px-4 py-2 text-xs font-bold text-zinc-700 shadow-sm focus:outline-none focus:border-indigo-500 cursor-pointer hover:border-zinc-300 transition-colors"
+              className="bg-white border border-zinc-200/80 rounded-xl px-4 py-2 text-xs font-bold text-zinc-700 shadow-sm focus:outline-none focus:border-indigo-500 cursor-pointer hover:border-zinc-300 transition-colors h-[42px]"
             />
           </div>
 
@@ -1239,15 +1398,21 @@ export default function CeoDashboard() {
             </div>
           </div>
 
-          {/* Card 2: TESTS COMPLETED */}
+          {/* Card 2: TESTS COMPLETED / FAILED */}
           <div className="bg-white border border-zinc-250/30 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between min-h-[120px] transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)]">
-            <span className="text-[10px] tracking-wider text-zinc-400 font-extrabold uppercase">Tests Completed</span>
+            <span className="text-[10px] tracking-wider text-zinc-400 font-extrabold uppercase">Tests Completed / Failed</span>
             <div className="flex items-end justify-between mt-3">
-              <span className="text-3xl font-extrabold text-zinc-900 leading-none">{currentCompleted.toLocaleString()}</span>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${completedTrend >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'
-                }`}>
-                {completedTrend >= 0 ? `+${completedTrend}` : completedTrend}
+              <span className="text-2xl font-extrabold text-zinc-900 leading-none">
+                {currentCompletedPassed} <span className="text-zinc-350 text-lg font-medium">/</span> <span className="text-zinc-500">{currentFailed}</span>
               </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${completedPassedTrend >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}>
+                  Passed: {completedPassedTrend >= 0 ? `+${completedPassedTrend}` : completedPassedTrend}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${failedTrend >= 0 ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50'}`}>
+                  Failed: {failedTrend >= 0 ? `+${failedTrend}` : failedTrend}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1279,20 +1444,40 @@ export default function CeoDashboard() {
 
           {/* Platform Availability Card */}
           <div className="bg-white border border-zinc-200/50 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-2.5">
                 <Monitor className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-extrabold text-zinc-900">Platform Availability</h3>
               </div>
-              <div className="flex items-center gap-4 text-[10px] font-extrabold">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
-                  Available Time
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />
-                  Occupied Time
-                </span>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Station Filter */}
+                <CustomSelect
+                  value={selectedStation}
+                  onChange={setSelectedStation}
+                  options={dynamicStationOptions}
+                  placeholder="All Stations"
+                  className="w-32"
+                />
+
+                {/* Platform Filter */}
+                <CustomSelect
+                  value={selectedPlatform}
+                  onChange={setSelectedPlatform}
+                  options={platformOptions}
+                  placeholder="All Platforms"
+                  className="w-32"
+                />
+
+                <div className="flex items-center gap-3 text-[10px] font-extrabold ml-2 border-l border-zinc-200 pl-3">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
+                    Available Time
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6]" />
+                    Occupied Time
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1301,20 +1486,31 @@ export default function CeoDashboard() {
 
           {/* Machine Utilization Card */}
           <div className="bg-white border border-zinc-200/50 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-2.5">
                 <Clock className="w-5 h-5 text-indigo-600" />
                 <h3 className="text-base font-extrabold text-zinc-900">Machine Utilization</h3>
               </div>
-              <div className="flex items-center gap-4 text-[10px] font-extrabold">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
-                  Allocated Time
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
-                  Actual Runtime
-                </span>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Equipment Filter */}
+                <CustomSelect
+                  value={selectedEquipment}
+                  onChange={setSelectedEquipment}
+                  options={equipmentOptions}
+                  placeholder="All Equipments"
+                  className="w-48"
+                />
+
+                <div className="flex items-center gap-3 text-[10px] font-extrabold ml-2 border-l border-zinc-200 pl-3">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#cbd5e1]" />
+                    Allocated Time
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
+                    Actual Runtime
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1439,65 +1635,6 @@ export default function CeoDashboard() {
           </ChartCard>
         </div>
 
-        {/* Active Lab Endurance Runs Table (Original Data Modules) */}
-        <div className="bg-white border border-zinc-200/50 rounded-[24px] p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-zinc-900 leading-tight">Active Lab Endurance Runs</h3>
-              <p className="text-xs text-zinc-550">Overview of plans currently running in the testing bays.</p>
-            </div>
-          </div>
-
-          {activeReliabilityPlans.length === 0 ? (
-            <div className="text-center py-10 border border-dashed border-zinc-200 rounded-xl">
-              <ClipboardList className="w-10 h-10 text-zinc-300 mx-auto mb-2" />
-              <p className="text-xs text-zinc-550">No active testing runs found.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-zinc-100 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="pb-3 pr-2">Brand & Model</th>
-                    <th className="pb-3 px-2">Type</th>
-                    <th className="pb-3 px-2">Request ID</th>
-                    <th className="pb-3 px-2">Station</th>
-                    <th className="pb-3 px-2">Platforms</th>
-                    <th className="pb-3 px-2 text-center">Allocated Days</th>
-                    <th className="pb-3 pl-2 text-right">Logs Recorded</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50 font-medium text-zinc-800">
-                  {activeReliabilityPlans.map(item => {
-                    const loggedCount = (checksheetEntriesMap[item.key] || []).length;
-                    return (
-                      <tr key={item.key} className="hover:bg-zinc-50/50">
-                        <td className="py-3 pr-2 font-bold text-zinc-900">{item.request.brandName} - {item.request.modelNo}</td>
-                        <td className="py-3 px-2">
-                          <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[9px] font-extrabold uppercase">
-                            {item.pType}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">{item.request.requestId || `REQ-${item.request.id}`}</td>
-                        <td className="py-3 px-2 font-bold text-indigo-700">Station {item.plan.stationNo}</td>
-                        <td className="py-3 px-2">{item.plan.platformNos?.map((p: number) => `P${item.plan.stationNo}-S${p}`).join(', ')}</td>
-                        <td className="py-3 px-2 text-center">{item.plan.numberOfDays} Days</td>
-                        <td className="py-3 pl-2 text-right">
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full font-bold">
-                            {loggedCount} Logs
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
 
       </div>
 

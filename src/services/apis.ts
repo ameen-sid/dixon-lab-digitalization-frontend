@@ -70,6 +70,7 @@ export const testingEquipmentEndpoints = {
 	DELETE_TESTING_EQUIPMENT_API: (id: string | number) => BASE_URL + `/testing-equipments/${id}`,
 	RESERVE_EQUIPMENT_API: BASE_URL + '/testing-equipments/reserve',
 	RELEASE_EQUIPMENT_API: BASE_URL + '/testing-equipments/release',
+	GET_WEEKLY_ANALYTICS_API: BASE_URL + '/testing-equipments/weekly-analytics',
 };
 
 // Test Request Endpoints
@@ -88,6 +89,7 @@ export const platformAvailabilityEndpoints = {
 	TOGGLE_PLATFORM_API: BASE_URL + '/platform-availability/toggle',
 	RESERVE_PLATFORMS_API: BASE_URL + '/platform-availability/reserve',
 	RELEASE_PLATFORMS_API: BASE_URL + '/platform-availability/release',
+	GET_WEEKLY_ANALYTICS_API: BASE_URL + '/platform-availability/weekly-analytics',
 };
 
 // NABL Station Availability Endpoints
@@ -96,6 +98,7 @@ export const nablStationAvailabilityEndpoints = {
 	TOGGLE_PLATFORM_API: BASE_URL + '/nabl-station-availability/toggle',
 	RESERVE_PLATFORMS_API: BASE_URL + '/nabl-station-availability/reserve',
 	RELEASE_PLATFORMS_API: BASE_URL + '/nabl-station-availability/release',
+	GET_WEEKLY_ANALYTICS_API: BASE_URL + '/nabl-station-availability/weekly-analytics',
 };
 
 // Reliability Checksheet Endpoints

@@ -6,7 +6,8 @@ const {
 	GET_PLATFORMS_API, 
 	TOGGLE_PLATFORM_API, 
 	RESERVE_PLATFORMS_API, 
-	RELEASE_PLATFORMS_API 
+	RELEASE_PLATFORMS_API,
+	GET_WEEKLY_ANALYTICS_API
 } = nablStationAvailabilityEndpoints;
 
 interface AxiosServiceError {
@@ -113,11 +114,31 @@ export const releasePlatforms = (stationNo: number, platformNos: number[]) => {
 	};
 };
 
+export const getWeeklyPlatformAnalytics = (month: string, station = '', platform = '', testTypeId = '') => {
+	return async () => {
+		try {
+			let url = `${GET_WEEKLY_ANALYTICS_API}?month=${month}`;
+			if (station) url += `&station=${station}`;
+			if (platform) url += `&platform=${platform}`;
+			if (testTypeId) url += `&testTypeId=${testTypeId}`;
+			const response = await apiConnector('GET', url);
+			return response.data.data || [];
+		} catch (error) {
+			console.error('GET_WEEKLY_ANALYTICS_API Error: ', error);
+			const err = error as AxiosServiceError;
+			const errMsg = err.response?.data?.message || err.message || 'Failed to load weekly NABL platform availability analytics.';
+			toast.error(errMsg);
+			throw new Error(errMsg, { cause: error });
+		}
+	};
+};
+
 const nablStationAvailabilityService = {
 	getPlatforms,
 	togglePlatform,
 	reservePlatforms,
-	releasePlatforms
+	releasePlatforms,
+	getWeeklyPlatformAnalytics
 };
 
 export default nablStationAvailabilityService;
