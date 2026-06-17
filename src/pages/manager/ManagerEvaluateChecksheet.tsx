@@ -298,7 +298,9 @@ export default function ManagerEvaluateChecksheet() {
 			formData.append('sampleIndex', String(sampleIdx));
 			formData.append('allottedId', planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
 			formData.append('remarks', evaluationRemarks);
-			formData.append('status', status);
+			// Keep the original physical inspection status instead of overwriting it with test plan evaluation status
+			const currentInspectionStatus = planInfo.request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx)?.status || 'PASSED';
+			formData.append('status', currentInspectionStatus);
 			formData.append('checks', JSON.stringify(existingChecks));
 
 			const saveDbOp = saveSampleInspection(requestId, formData);

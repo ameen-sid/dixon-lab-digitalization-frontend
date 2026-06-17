@@ -170,9 +170,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Total Received</span>
 						<h3 className="text-2xl font-bold text-zinc-955 mt-1">{totalRequests}</h3>
-						<p className="text-zinc-650 text-xs mt-1.5 font-semibold">Requests logged in system</p>
+						<p className="text-zinc-655 text-xs mt-1.5 font-semibold">Requests logged in system</p>
 					</div>
-					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 border border-blue-100 text-[#11236a]">
+					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-blue-50 border border-blue-100 text-[#11236a] pointer-events-none">
 						<FolderOpen className="w-5 h-5" />
 					</div>
 				</div>
@@ -186,9 +186,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Pending Approvals</span>
 						<h3 className="text-2xl font-bold text-zinc-955 mt-1">{pendingApprovalsCount}</h3>
-						<p className="text-zinc-650 text-xs mt-1.5 font-semibold">Awaiting initial sign-off</p>
+						<p className="text-zinc-655 text-xs mt-1.5 font-semibold">Awaiting initial sign-off</p>
 					</div>
-					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 border border-amber-100 text-amber-600">
+					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-50 border border-amber-100 text-amber-600 pointer-events-none">
 						<ClipboardList className="w-5 h-5" />
 					</div>
 				</div>
@@ -202,9 +202,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Approved Requests</span>
 						<h3 className="text-2xl font-bold text-zinc-955 mt-1">{approvedRequestsCount}</h3>
-						<p className="text-zinc-650 text-xs mt-1.5 font-semibold">Active or finished cycles</p>
+						<p className="text-zinc-655 text-xs mt-1.5 font-semibold">Active or finished cycles</p>
 					</div>
-					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 border border-emerald-100 text-emerald-600">
+					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-50 border border-emerald-100 text-emerald-600 pointer-events-none">
 						<CheckCircle className="w-5 h-5" />
 					</div>
 				</div>
@@ -218,9 +218,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Rejected Requests</span>
 						<h3 className="text-2xl font-bold text-zinc-955 mt-1">{rejectedRequestsCount}</h3>
-						<p className="text-zinc-650 text-xs mt-1.5 font-semibold">Requests turned down</p>
+						<p className="text-zinc-655 text-xs mt-1.5 font-semibold">Requests turned down</p>
 					</div>
-					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 border border-rose-100 text-rose-600">
+					<div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-50 border border-rose-100 text-rose-600 pointer-events-none">
 						<XCircle className="w-5 h-5" />
 					</div>
 				</div>
@@ -239,11 +239,11 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 							Final Certification Pipeline
 						</span>
 						<h4 className="text-lg font-bold text-zinc-955 mt-3">Completed Tests Pending Sign-Off</h4>
-						<p className="text-zinc-650 text-xs mt-1 font-semibold">Final test results ready for certificate release.</p>
+						<p className="text-zinc-655 text-xs mt-1 font-semibold">Final test results ready for certificate release.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
-						<span className="text-xl xl:text-2xl font-black text-zinc-900 whitespace-nowrap">{completedPendingApprovalCount} pending</span>
-						<span className="text-xs font-bold text-[#11236a] flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2">
+						<span className="text-sm lg:text-base xl:text-lg font-black text-zinc-900 whitespace-nowrap">{completedPendingApprovalCount} pending</span>
+						<span className="text-[10px] lg:text-xs font-bold text-[#11236a] flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Verify <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>
@@ -260,11 +260,11 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 							Adjudication board
 						</span>
 						<h4 className="text-lg font-bold text-zinc-955 mt-3">Failed Tests Pending Decision</h4>
-						<p className="text-zinc-650 text-xs mt-1 font-semibold">Failed plans requiring Retest or CAPA commands.</p>
+						<p className="text-zinc-655 text-xs mt-1 font-semibold">Failed plans requiring Retest or CAPA commands.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
-						<span className="text-xl xl:text-2xl font-black text-rose-700 whitespace-nowrap">{failedTestsPendingDecisionCount} pending</span>
-						<span className="text-xs font-bold text-rose-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2">
+						<span className="text-sm lg:text-base xl:text-lg font-black text-rose-700 whitespace-nowrap">{failedTestsPendingDecisionCount} pending</span>
+						<span className="text-[10px] lg:text-xs font-bold text-rose-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Adjudicate <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>
@@ -281,11 +281,11 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 							Quality Assurance Audits
 						</span>
 						<h4 className="text-lg font-bold text-zinc-955 mt-3">CAPA Reports Pending Review</h4>
-						<p className="text-zinc-650 text-xs mt-1 font-semibold">Corrective reports submitted needing head approval.</p>
+						<p className="text-zinc-655 text-xs mt-1 font-semibold">Corrective reports submitted needing head approval.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
-						<span className="text-xl xl:text-2xl font-black text-indigo-700 whitespace-nowrap">{capasPendingReviewCount} pending</span>
-						<span className="text-xs font-bold text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2">
+						<span className="text-sm lg:text-base xl:text-lg font-black text-indigo-700 whitespace-nowrap">{capasPendingReviewCount} pending</span>
+						<span className="text-[10px] lg:text-xs font-bold text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Review <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>

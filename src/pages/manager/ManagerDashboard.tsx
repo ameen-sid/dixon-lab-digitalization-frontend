@@ -479,7 +479,7 @@ export default function ManagerDashboard() {
 	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', _remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = 'INSPECTION_COMPLETED';
+			const statusTransition = _result === 'FAILED' ? 'INSPECTION_FAILED' : 'INSPECTION_COMPLETED';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,

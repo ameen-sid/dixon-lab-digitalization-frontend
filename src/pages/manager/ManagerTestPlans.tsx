@@ -9,9 +9,9 @@ import CustomSelect from '../../components/CustomSelect';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
-import { getPlatforms as getNormalPlatforms, reservePlatforms as reserveNormalPlatforms } from '../../services/operations/platformAvailabilityService';
-import { getPlatforms as getNablPlatforms, reservePlatforms as reserveNablPlatforms } from '../../services/operations/nablStationAvailabilityService';
-import { getTestingEquipments, reserveEquipment } from '../../services/operations/testingEquipmentService';
+import { getPlatforms as getNormalPlatforms, reservePlatforms as reserveNormalPlatforms, releasePlatforms as releaseNormalPlatforms } from '../../services/operations/platformAvailabilityService';
+import { getPlatforms as getNablPlatforms, reservePlatforms as reserveNablPlatforms, releasePlatforms as releaseNablPlatforms } from '../../services/operations/nablStationAvailabilityService';
+import { getTestingEquipments, reserveEquipment, releaseEquipment } from '../../services/operations/testingEquipmentService';
 
 interface ManagerTestPlansProps {
 	requests: any[];
@@ -105,10 +105,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		for (const req of requests) {
 			if (req.testPlans) {
 				for (const p of req.testPlans) {
-					let platformNosParsed = [];
+					let platformNosParsed: number[] = [];
 					if (p.platformNos) {
 						try {
-							platformNosParsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+							const parsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+							platformNosParsed = (Array.isArray(parsed) ? parsed : [parsed]).map(Number).filter(n => !isNaN(n));
 						} catch (e) {
 							platformNosParsed = [];
 						}
@@ -282,7 +283,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				testCategoryId: existing.testCategoryId || catId,
 				testProtocolId: existing.testProtocolId || protoId,
 				productType: existing.productType || 'FATL',
-				stationNo: isRequestNabl ? 1 : (existing.stationNo || 1)
+				stationNo: isRequestNabl ? 1 : (Number(existing.stationNo) || 1),
+				platformNos: Array.isArray(existing.platformNos) ? existing.platformNos.map(Number) : []
 			});
 		} else {
 			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
@@ -359,6 +361,22 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			const reqIdPrefix = (selectedReq.requestId && String(selectedReq.requestId).startsWith('REQ-'))
 				? selectedReq.requestId
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
+
+			// Release any previously reserved platforms/equipments for this specific sample test plan first
+			const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
+			const existing = savedPlans[key];
+			if (existing) {
+				if (existing.platformNos && existing.platformNos.length > 0) {
+					const releaseOp = isNabl
+						? releaseNablPlatforms(Number(existing.stationNo), existing.platformNos.map(Number))
+						: releaseNormalPlatforms(Number(existing.stationNo), existing.platformNos.map(Number));
+					await releaseOp();
+				}
+				if (existing.equipmentId && !isReliability) {
+					const releaseEqOp = releaseEquipment(Number(existing.equipmentId));
+					await releaseEqOp();
+				}
+			}
 
 			// 1. Reserve platform channels in database for this sample if assigned
 			if (form.platformNos.length > 0) {
@@ -621,39 +639,49 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-750">
 										{paginatedRequests.map((req) => {
 											const qty = req.sampleQty || 1;
-											let passedCount = 0;
-											let failedCount = 0;
-											let plansCreated = 0;
 
 											const testTypeName = (req.testType?.name || '').toLowerCase();
 											const isReliabilityReq = testTypeName.includes('reliability');
 
+											let physicalPassed = 0;
+											let physicalFailed = 0;
+											let testingPassed = 0;
+											let testingFailed = 0;
+											let plansCreated = 0;
+
 											for (let i = 0; i < qty; i++) {
+												const plan = savedPlans[`${req.id}-sample-${i}`];
 												const report = (req.sampleInspections || []).find(
 													(r: any) => Number(r.sampleIndex) === i
 												);
 
 												if (req.status === 'RETEST') {
-													passedCount++;
+													physicalPassed++;
 												} else if (report) {
 													const reportStatus = (report.status || '').toUpperCase();
-
 													if (
 														reportStatus === 'PASSED' ||
 														(!isReliabilityReq && reportStatus === 'UNDER_REVIEW')
 													) {
-														passedCount++;
+														physicalPassed++;
 													} else if (reportStatus === 'FAILED') {
-														failedCount++;
+														physicalFailed++;
 													}
+												} else if (plan) {
+													physicalPassed++;
 												}
 
-												if (savedPlans[`${req.id}-sample-${i}`]) {
+												if (plan) {
 													plansCreated++;
+													if (plan.evaluationStatus === 'PASSED') {
+														testingPassed++;
+													} else if (plan.evaluationStatus === 'FAILED') {
+														testingFailed++;
+													}
 												}
 											}
 
-											const isAllPlanned = plansCreated >= passedCount;
+											const isAllPlanned = plansCreated >= physicalPassed;
 
 											return (
 												<tr
@@ -680,12 +708,24 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																</span>
 															) : (
 																<>
-																	<span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100">
-																		Passed: {passedCount}
-																	</span>
-																	{failedCount > 0 && (
-																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-100">
-																			Failed: {failedCount}
+																	{physicalPassed > 0 && (
+																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100" title="Physical Inspection Passed">
+																			Insp Passed: {physicalPassed}
+																		</span>
+																	)}
+																	{physicalFailed > 0 && (
+																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded border border-rose-100" title="Physical Inspection Failed">
+																			Insp Failed: {physicalFailed}
+																		</span>
+																	)}
+																	{testingPassed > 0 && (
+																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded border border-emerald-200" title="Testing Evaluated Passed">
+																			Test Passed: {testingPassed}
+																		</span>
+																	)}
+																	{testingFailed > 0 && (
+																		<span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded border border-rose-200" title="Testing Evaluated Failed">
+																			Test Failed: {testingFailed}
 																		</span>
 																	)}
 																</>
@@ -695,7 +735,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<td className="py-4 px-6">
 														{req.status === 'INSPECTION_COMPLETED' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
-																Pending Plan Creation ({plansCreated}/{passedCount})
+																Pending Plan Creation ({plansCreated}/{physicalPassed})
 															</span>
 														) : req.status === 'INSPECTION_FAILED' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-200 rounded-full uppercase tracking-wider">
@@ -719,7 +759,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															</span>
 														) : (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
-																Awaiting Plan ({plansCreated}/{passedCount})
+																Awaiting Plan ({plansCreated}/{physicalPassed})
 															</span>
 														)}
 													</td>
@@ -918,11 +958,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															</span>
 														)}
 														{plan ? (
-															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${isTesting
-																? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
-																: 'bg-amber-50 text-amber-700 border border-amber-100'
+															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
+																? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+																: plan.evaluationStatus === 'FAILED'
+																	? 'bg-rose-50 text-rose-700 border border-rose-100'
+																	: isTesting
+																		? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
+																		: 'bg-amber-50 text-amber-700 border border-amber-100'
 																}`}>
-																{isTesting ? 'Testing' : 'Scheduled'}
+																{plan.evaluationStatus === 'PASSED'
+																	? 'Testing Passed'
+																	: plan.evaluationStatus === 'FAILED'
+																		? 'Testing Failed'
+																		: isTesting
+																			? 'Testing'
+																			: 'Scheduled'}
 															</span>
 														) : selectedReq.status === 'RETEST' ? (
 															<span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
@@ -1259,7 +1309,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															const slot = nablPlatforms.find(
 																(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
 															);
-															const isOccupied = slot ? !slot.isAvailable : false;
+															const isOccupied = slot
+																? (!slot.isAvailable &&
+																	(slot.testRequestId === Number(selectedReq.id)
+																		? !slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
+																		: true))
+																: false;
 
 															return (
 																<button
@@ -1329,7 +1384,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															const slot = normalPlatforms.find(
 																(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
 															);
-															const isOccupied = slot ? !slot.isAvailable : false;
+															const isOccupied = slot
+																? (!slot.isAvailable &&
+																	(slot.testRequestId === Number(selectedReq.id)
+																		? !slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
+																		: true))
+																: false;
 
 															return (
 																<button

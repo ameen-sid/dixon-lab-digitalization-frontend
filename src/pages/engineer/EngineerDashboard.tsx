@@ -175,7 +175,7 @@ export default function EngineerDashboard() {
 	) => {
 		try {
 			const numericTaskId = Number(taskId);
-			const statusTransition = 'INSPECTION_COMPLETED';
+			const statusTransition = _result === 'FAILED' ? 'INSPECTION_FAILED' : 'INSPECTION_COMPLETED';
 
 			const updateOp = updateTestRequestStatus(
 				numericTaskId,
