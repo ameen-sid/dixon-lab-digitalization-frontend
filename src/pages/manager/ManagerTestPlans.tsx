@@ -1224,8 +1224,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							{/* Product Type (For Reliability) selectable pills */}
 							<div className="flex flex-col gap-2">
 								<label className="text-[10px] text-zinc-500 font-extrabold">Product Type (For Reliability)</label>
-								<div className="grid grid-cols-4 gap-3">
-									{['SATL', 'FATL', 'FAFL', 'WASH'].map((pType) => {
+								<div className="grid grid-cols-3 gap-3">
+									{['SATL', 'FATL', 'FAFL'].map((pType) => {
 										const isActive = form.productType === pType;
 										return (
 											<button
