@@ -231,19 +231,19 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				{/* Pipeline 1: Completed Tests Pending Approval */}
 				<div 
 					onClick={() => navigate('/head/completed-reports')}
-					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between h-44 group relative"
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
 					<div>
 						<span className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider flex items-center gap-1.5">
 							<CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
 							Final Certification Pipeline
 						</span>
-						<h4 className="text-lg font-bold text-zinc-950 mt-3">Completed Tests Pending Sign-Off</h4>
+						<h4 className="text-lg font-bold text-zinc-955 mt-3">Completed Tests Pending Sign-Off</h4>
 						<p className="text-zinc-650 text-xs mt-1 font-semibold">Final test results ready for certificate release.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100">
-						<span className="text-2xl font-black text-zinc-900">{completedPendingApprovalCount} pending</span>
-						<span className="text-xs font-bold text-[#11236a] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
+						<span className="text-xl xl:text-2xl font-black text-zinc-900 whitespace-nowrap">{completedPendingApprovalCount} pending</span>
+						<span className="text-xs font-bold text-[#11236a] flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Verify <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>
@@ -252,7 +252,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				{/* Pipeline 2: Failed Tests Pending Decision */}
 				<div 
 					onClick={() => navigate('/head/failure-decision')}
-					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between h-44 group relative"
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
 					<div>
 						<span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -262,9 +262,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<h4 className="text-lg font-bold text-zinc-955 mt-3">Failed Tests Pending Decision</h4>
 						<p className="text-zinc-650 text-xs mt-1 font-semibold">Failed plans requiring Retest or CAPA commands.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100">
-						<span className="text-2xl font-black text-rose-700">{failedTestsPendingDecisionCount} pending</span>
-						<span className="text-xs font-bold text-rose-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
+						<span className="text-xl xl:text-2xl font-black text-rose-700 whitespace-nowrap">{failedTestsPendingDecisionCount} pending</span>
+						<span className="text-xs font-bold text-rose-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Adjudicate <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>
@@ -273,7 +273,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				{/* Pipeline 3: CAPA Reports Pending Review */}
 				<div 
 					onClick={() => navigate('/head/capa-reports')}
-					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between h-44 group relative"
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
 					<div>
 						<span className="text-[10px] font-extrabold text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -283,9 +283,9 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<h4 className="text-lg font-bold text-zinc-955 mt-3">CAPA Reports Pending Review</h4>
 						<p className="text-zinc-650 text-xs mt-1 font-semibold">Corrective reports submitted needing head approval.</p>
 					</div>
-					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100">
-						<span className="text-2xl font-black text-indigo-700">{capasPendingReviewCount} pending</span>
-						<span className="text-xs font-bold text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+					<div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-100 gap-2 flex-wrap">
+						<span className="text-xl xl:text-2xl font-black text-indigo-700 whitespace-nowrap">{capasPendingReviewCount} pending</span>
+						<span className="text-xs font-bold text-indigo-700 flex items-center gap-1 group-hover:translate-x-1 transition-transform whitespace-nowrap">
 							Review <ArrowRight className="w-3.5 h-3.5" />
 						</span>
 					</div>
