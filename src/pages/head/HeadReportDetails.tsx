@@ -245,22 +245,7 @@ export default function HeadReportDetails() {
 				{/* Right Column: Actions Panel */}
 				<div className="space-y-6">
 					
-					{/* Overall Report Preview Card */}
-					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
-						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
-							Report Actions
-						</h3>
-						<p className="text-xs text-zinc-500 font-semibold leading-relaxed">
-							Inspect the complete accumulated test outcomes, equipment calibration metrics, and setup photos.
-						</p>
-						<button
-							onClick={() => window.open(`/reports/preview?type=request&id=${request.id}`, '_blank')}
-							className="w-full py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none"
-						>
-							<FileText className="w-4 h-4" />
-							<span>Preview Overall Report</span>
-						</button>
-					</div>
+
 
 					{/* Certification signoff Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">

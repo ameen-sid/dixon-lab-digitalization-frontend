@@ -194,14 +194,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				</button>
 
 				<div className="flex items-center gap-2">
-					{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
-						<button
-							onClick={() => window.open(`/reports/preview?type=request&id=${reqDbIdVal}`, '_blank')}
-							className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm flex items-center justify-center"
-						>
-							<FileText className="w-4 h-4" /> Overall Report
-						</button>
-					)}
 					{['COMPLETED', 'FAILED', 'FAIL', 'REJECTED', 'INSPECTION_FAILED'].includes(selectedRequest.status) && (
 						<button
 							onClick={() => onInitiateCapa(selectedRequest)}

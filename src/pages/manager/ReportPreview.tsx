@@ -298,6 +298,8 @@ export default function ReportPreview() {
 	// Determine if NABL
 	const testTypeName = (request?.testType?.name || targetPlan?.testType?.name || '').toLowerCase();
 	const isNabl = testTypeName.includes('nabl');
+	const isReliability = testTypeName.includes('reliability');
+	const evaluationDate = (targetPlan && targetPlan.evaluatedAt) ? formatDate(targetPlan.evaluatedAt) : formatDate(request.updatedAt || request.createdAt);
 
 	// Collect specimen images
 	const specimenImages: string[] = [];
@@ -347,11 +349,11 @@ export default function ReportPreview() {
 			{/* Bottom Row: Metadata info */}
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
 				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
-				<div className="py-1 px-1">ISSUE DATE: {issueDate}</div>
+				<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
 				<div className="py-1 px-1">REV NO: {revNo}</div>
 				<div className="py-1 px-1">REV DATE: {revDate}</div>
 				<div className="py-1 px-1">DOC NO: {docNo}</div>
-				<div className="py-1 px-1">Page {pageNo} of 3</div>
+				<div className="py-1 px-1">Page {pageNo} of 2</div>
 			</div>
 		</div>
 	);
@@ -1018,7 +1020,7 @@ export default function ReportPreview() {
 												<td className="p-2.5">
 													<div className="flex justify-between">
 														<div><span className="inline-block w-48 text-zinc-650">Test Description:</span> <span className="uppercase text-black">{testDescription}</span></div>
-														<div className="pr-4"><span className="text-zinc-650">ISSUE DATE:</span> <span className="text-black">{issueDate}</span></div>
+														<div className="pr-4"><span className="text-zinc-650">ISSUE DATE:</span> <span className="text-black">{evaluationDate}</span></div>
 													</div>
 												</td>
 											</tr>
@@ -1054,7 +1056,7 @@ export default function ReportPreview() {
 											</tr>
 											<tr className="border-b-2 border-black">
 												<td className="p-2.5">
-													<span className="inline-block w-48 text-zinc-650">Sample Quantity:</span> <span className="text-black">{sampleQuantity}</span>
+													<span className="inline-block w-48 text-zinc-650">Sample Quantity:</span> <span className="text-black">01</span>
 												</td>
 											</tr>
 											<tr className="border-b-2 border-black">
@@ -1106,11 +1108,6 @@ export default function ReportPreview() {
 													<span className="inline-block w-48 text-zinc-650 font-bold">Laboratory Environmental conditions:</span> <span className="text-black font-semibold">{isAllInspectionFailed ? 'NA' : 'NA'}</span>
 												</td>
 											</tr>
-											<tr className="border-b-2 border-black">
-												<td className="p-2.5">
-													<span className="inline-block w-48 text-zinc-650">Other Aspects:</span> <span className="text-black font-semibold">{otherAspects}</span>
-												</td>
-											</tr>
 											<tr>
 												<td className="p-2.5 text-center text-[10.5px] font-semibold text-zinc-555 italic">
 													This test report relates to the test sample submitted
@@ -1124,222 +1121,145 @@ export default function ReportPreview() {
 						</div>
 
 						{/* -------------------- PAGE 2 -------------------- */}
-						<div className="a4-page">
-							<div className="watermark">CONFIDENTIAL</div>
-							<div className="content-container flex flex-col justify-between h-full">
-								<div>
-									{renderHeader(2)}
-									<div className="my-5">
-										<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px]">
-											<thead>
-												<tr className="bg-zinc-100 border-b-2 border-black divide-x-2 divide-black text-[10.5px] font-black uppercase text-center">
-													<th className="p-2 w-14">S. No.</th>
-													<th className="p-2 w-32">Tests Name</th>
-													<th className="p-2 w-32">Test Method</th>
-													<th className="p-2">Specified Requirement</th>
-													<th className="p-2 w-48">Observation / Results</th>
-												</tr>
-											</thead>
-											<tbody className="divide-y-2 divide-black font-semibold">
-												{isAllInspectionFailed ? (
-													type === 'sample' ? (
-														<tr className="divide-x-2 divide-black">
-															<td className="p-2 text-center">1</td>
-															<td className="p-2 uppercase">inspection</td>
-															<td className="p-2 uppercase">inspection specification</td>
-															<td className="p-2">NA</td>
-															<td className="p-2 uppercase text-rose-700 font-bold">
-																{request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.'}
-															</td>
-														</tr>
-													) : (
-														samplesList.map((sample, idx) => (
-															<tr key={idx} className="divide-x-2 divide-black">
-																<td className="p-2 text-center">{idx + 1}</td>
-																<td className="p-2 uppercase">inspection</td>
-																<td className="p-2 uppercase">inspection specification</td>
-																<td className="p-2">NA</td>
-																<td className="p-2 uppercase text-rose-700 font-bold">
-																	{sample.inspectionReport?.remarks || request.remarks || 'Failed inspection.'}
-																</td>
-															</tr>
-														))
-													)
-												) : type === 'sample' ? (
-													<tr className="divide-x-2 divide-black">
-														<td className="p-2 text-center">1</td>
+				<div className="a4-page">
+					<div className="watermark">CONFIDENTIAL</div>
+					<div className="content-container flex flex-col justify-between h-full">
+						<div>
+							{renderHeader(2)}
+							<div className="my-5">
+								<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px]">
+									<thead>
+										<tr className="bg-zinc-100 border-b-2 border-black divide-x-2 divide-black text-[10.5px] font-black uppercase text-center">
+											<th className="p-2 w-10">S. No.</th>
+											<th className="p-2 w-28">Tests Name</th>
+											<th className="p-2 w-28">Test Method</th>
+											<th className="p-2">Specified Requirement</th>
+											<th className="p-2 w-40">Observation / Results</th>
+											<th className="p-2 w-32">Equipment</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y-2 divide-black font-semibold">
+										{isAllInspectionFailed ? (
+											<tr className="divide-x-2 divide-black">
+												<td className="p-2 text-center">1</td>
+												<td className="p-2 uppercase">Inspection</td>
+												<td className="p-2 uppercase">Inspection Specification</td>
+												<td className="p-2">NA</td>
+												<td className="p-2 uppercase text-rose-700 font-bold">
+													{type === 'sample'
+														? (request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.')
+														: (samplesList[0]?.inspectionReport?.remarks || request.remarks || 'Failed inspection.')}
+												</td>
+												<td className="p-2 uppercase text-zinc-600">N/A</td>
+											</tr>
+										) : type === 'sample' ? (
+											<tr className="divide-x-2 divide-black">
+												<td className="p-2 text-center">1</td>
+												<td className="p-2 uppercase">{testDescription}</td>
+												<td className="p-2 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
+												<td className="p-2 font-medium leading-relaxed">
+													{testProtocol?.judgementCriteria ||
+														'The test specimen is considered to have satisfactorily withstood the test if there is no flame and no glowing of the test specimen.'}
+												</td>
+												<td className="p-2 uppercase">
+													{isReliability ? (
+														targetPlan.evaluationStatus === 'PASSED' ? (
+															<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'Complies. Meets specifications.'}</span>
+														) : (
+															<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'Non-compliance. Failed test specs.'}</span>
+														)
+													) : (() => {
+														const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+														const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || targetPlan.evaluationRemarks || 'N/A';
+														return targetPlan.evaluationStatus === 'PASSED' ? (
+															<span className="text-emerald-700 font-bold">{engObs}</span>
+														) : (
+															<span className="text-rose-700 font-bold">{engObs}</span>
+														);
+													})()}
+												</td>
+												<td className="p-2 uppercase font-bold text-zinc-800">
+													{equipmentUsed ? equipmentUsed.name : 'Not Assigned'}
+												</td>
+											</tr>
+										) : (
+											samplesList.map((sample, idx) => {
+												const samplePlanKey = `${request.id}-sample-${idx}`;
+												const planObj = plans[samplePlanKey];
+												const eq = planObj?.equipmentId
+													? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
+													: null;
+												const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === idx);
+												const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || planObj?.evaluationRemarks || 'N/A';
+												return (
+													<tr key={idx} className="divide-x-2 divide-black">
+														<td className="p-2 text-center">{idx + 1}</td>
 														<td className="p-2 uppercase">{testDescription}</td>
 														<td className="p-2 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
-														<td className="p-2 font-medium leading-relaxed">
-															{testProtocol?.judgementCriteria || 
-																'The test specimen is considered to have satisfactorily withstood the test if there is no flame and no glowing of the test specimen.'}
+														<td className="p-2 font-medium leading-relaxed text-[9px]">
+															{testProtocol?.judgementCriteria ||
+																'The test specimen is considered to have satisfactorily withstood the test.'}
 														</td>
-														<td className="p-2 uppercase">
-															{targetPlan.evaluationStatus === 'PASSED' ? (
-																<span className="text-emerald-700 font-bold">Complies. Meets specifications.</span>
-															) : (
-																<span className="text-rose-700 font-bold">
-																	Non-compliance: {targetPlan.evaluationRemarks || 'Failed test specs.'}
-																</span>
-															)}
-														</td>
-													</tr>
-												) : (
-													samplesList.map((sample, idx) => (
-														<tr key={idx} className="divide-x-2 divide-black">
-															<td className="p-2 text-center">{idx + 1}</td>
-															<td className="p-2 uppercase">{testDescription}</td>
-															<td className="p-2 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
-															<td className="p-2 font-medium leading-relaxed text-[9px]">
-																{testProtocol?.judgementCriteria || 
-																	'The test specimen is considered to have satisfactorily withstood the test.'}
-															</td>
-															<td className="p-2 uppercase text-[9px]">
-																{sample.finalOutcome === 'PASSED' ? (
-																	<span className="text-emerald-700 font-bold">Passed: Complied</span>
+														<td className="p-2 uppercase text-[9px]">
+															{isReliability ? (
+																sample.finalOutcome === 'PASSED' ? (
+																	<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'Complies. Meets specifications.'}</span>
 																) : sample.finalOutcome === 'FAILED' ? (
-																	<span className="text-rose-700 font-bold">Failed: {sample.remarks}</span>
+																	<span className="text-rose-700 font-bold">{planObj?.evaluationRemarks || 'Non-compliance.'}</span>
 																) : (
 																	<span className="text-zinc-500 italic">Under Testing</span>
-																)}
-															</td>
-														</tr>
-													))
-												)}
-											</tbody>
-										</table>
-									</div>
-
-									<div className="text-xs font-bold text-black mb-6">
-										{isAllInspectionFailed ? (
-											<span>Conclusion: Tested samples <span className="underline uppercase">does not meet</span> the inspection specification requirement.</span>
-										) : (
-											<>
-												Conclusion: Tested samples{' '}
-												<span className="underline uppercase">
-													{isOverallPartial ? 'partially meets' : (isOverallPassed ? 'meets' : 'does not meet')}
-												</span>{' '}
-												the test specification requirement.
-											</>
+																)
+															) : (
+																sample.finalOutcome === 'PASSED' ? (
+																	<span className="text-emerald-700 font-bold">{engObs}</span>
+																) : sample.finalOutcome === 'FAILED' ? (
+																	<span className="text-rose-700 font-bold">{engObs}</span>
+																) : (
+																	<span className="text-zinc-500 italic">Under Testing</span>
+																)
+															)}
+														</td>
+														<td className="p-2 uppercase font-bold text-zinc-800 text-[9px]">
+															{eq ? eq.name : 'Not Assigned'}
+														</td>
+													</tr>
+												);
+											})
 										)}
-									</div>
+									</tbody>
+								</table>
+							</div>
 
-									<div className="border border-zinc-200 rounded-2xl p-4 bg-zinc-50/50">
-										<h4 className="text-center font-bold text-xs underline mb-3 text-black">Test Specimen Picture:</h4>
-										<div className="grid grid-cols-2 gap-4 justify-center">
-											{specimenImages.length > 0 ? (
-												specimenImages.slice(0, 2).map((img, index) => (
-													<div key={index} className="border border-zinc-300 rounded-xl overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-														<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
-													</div>
-												))
-											) : (
-												<>
-													<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-														<span className="text-[10px] font-bold uppercase">Specimen Front View</span>
-													</div>
-													<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-														<span className="text-[10px] font-bold uppercase">Specimen Rear View</span>
-													</div>
-												</>
-											)}
-										</div>
-									</div>
+							<div className="border border-zinc-200 rounded-2xl p-4 bg-zinc-50/50">
+								<div className="grid grid-cols-2 gap-4 justify-center">
+									{specimenImages.length > 0 ? (
+										specimenImages.slice(0, 2).map((img, index) => (
+											<div key={index} className="border border-zinc-300 rounded-xl overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
+												<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
+											</div>
+										))
+									) : (
+										<>
+											<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
+												<span className="text-[10px] font-bold uppercase">Specimen Front View</span>
+											</div>
+											<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
+												<span className="text-[10px] font-bold uppercase">Specimen Rear View</span>
+											</div>
+										</>
+									)}
 								</div>
-								{renderFooter()}
+							</div>
+
+							<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-6 select-none">
+								***** END OF THE TEST REPORT *****
 							</div>
 						</div>
-
-						{/* -------------------- PAGE 3 -------------------- */}
-						<div className="a4-page">
-							<div className="watermark">CONFIDENTIAL</div>
-							<div className="content-container flex flex-col justify-between h-full">
-								<div>
-									{renderHeader(3)}
-									
-									<div className="my-5">
-										<h4 className="text-[11px] font-black uppercase text-black mb-2.5">Test Equipment Details</h4>
-										<table className="w-full border-2 border-black text-left border-collapse text-black text-[10.5px]">
-											<thead>
-												<tr className="bg-zinc-100 border-b-2 border-black divide-x-2 divide-black font-black uppercase text-center">
-													<th className="p-2">Equipment Name</th>
-													<th className="p-2 w-36">Make</th>
-													<th className="p-2 w-36">Model</th>
-													<th className="p-2 w-44">Calibration status</th>
-												</tr>
-											</thead>
-											<tbody className="divide-y-2 divide-black font-semibold text-center">
-												{type === 'sample' ? (() => {
-													const details = getEquipmentDetails(equipmentUsed);
-													return (
-														<tr className="divide-x-2 divide-black">
-															<td className="p-2.5 font-bold uppercase text-left">
-																{details.name}
-															</td>
-															<td className="p-2.5 uppercase">{details.make}</td>
-															<td className="p-2.5 uppercase">{details.model}</td>
-															<td className="p-2.5 uppercase text-emerald-700 font-extrabold">{details.calibration}</td>
-														</tr>
-													);
-												})() : (
-													samplesList.map((_, idx) => {
-														const samplePlanKey = `${request.id}-sample-${idx}`;
-														const planObj = plans[samplePlanKey];
-														const eq = planObj?.equipmentId 
-															? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
-															: null;
-														const details = getEquipmentDetails(eq);
-														return (
-															<tr key={idx} className="divide-x-2 divide-black">
-																<td className="p-2.5 font-bold uppercase text-left">
-																	Sample #{idx + 1}: {details.name}
-																</td>
-																<td className="p-2.5 uppercase">{details.make}</td>
-																<td className="p-2.5 uppercase">{details.model}</td>
-																<td className="p-2.5 uppercase text-emerald-700 font-extrabold">{details.calibration}</td>
-															</tr>
-														);
-													})
-												)}
-											</tbody>
-										</table>
-									</div>
-
-									<div className="border border-zinc-200 rounded-2xl p-4 bg-zinc-50/50 space-y-4">
-										<div className="flex gap-4">
-											<div className="w-1/2 flex flex-col items-center">
-												<div className="border border-zinc-300 rounded-xl overflow-hidden bg-white w-full aspect-[4/3] flex items-center justify-center">
-													{specimenImages[2] ? (
-														<img src={specimenImages[2]} alt="Test Setup" className="max-w-full max-h-full object-contain" />
-													) : (
-														<div className="w-full h-full bg-zinc-100/50 flex items-center justify-center text-zinc-400 text-[10px] font-bold">SETUP PREVIEW</div>
-													)}
-												</div>
-												<span className="text-[10px] font-black underline mt-2 text-black">Test Setup</span>
-											</div>
-
-											<div className="w-1/2 flex flex-col items-center">
-												<div className="border border-zinc-300 rounded-xl overflow-hidden bg-white w-full aspect-[4/3] flex items-center justify-center">
-													{specimenImages[3] ? (
-														<img src={specimenImages[3]} alt="Equipment Overview" className="max-w-full max-h-full object-contain" />
-													) : (
-														<div className="w-full h-full bg-zinc-100/50 flex items-center justify-center text-zinc-400 text-[10px] font-bold">EQUIPMENT PREVIEW</div>
-													)}
-												</div>
-												<span className="text-[10px] font-black underline mt-2 text-black">Overview of test equipment's</span>
-											</div>
-										</div>
-									</div>
-
-									<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-8 select-none">
-										***** END OF THE TEST REPORT *****
-									</div>
-								</div>
-								{renderFooter()}
-							</div>
-						</div>
-					</>
-				)}
+						{renderFooter()}
+					</div>
+				</div>
+			</>
+		)}
 			</div>
 		</>
 	);

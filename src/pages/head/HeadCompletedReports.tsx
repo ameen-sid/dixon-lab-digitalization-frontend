@@ -272,12 +272,6 @@ export default function HeadCompletedReports() {
 													>
 														<Eye className="w-3.5 h-3.5" /> Details
 													</button>
-													<button 
-														onClick={() => window.open(`/reports/preview?type=request&id=${rep.id}`, '_blank')}
-														className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-750 rounded-lg px-2.5 py-1.5 transition-all outline-none cursor-pointer border-none"
-													>
-														<FileText className="w-3.5 h-3.5" /> Report
-													</button>
 												</div>
 											</td>
 										</tr>
