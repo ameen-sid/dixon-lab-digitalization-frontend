@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
 	CheckCircle, 
 	Search, 
@@ -53,12 +53,24 @@ interface RequestRecord {
 
 export default function HeadSampleTests() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const queryParams = new URLSearchParams(location.search);
+	const initialStatus = queryParams.get('status') || 'ALL';
+
 	const [requests, setRequests] = useState<RequestRecord[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [statusFilter, setStatusFilter] = useState(initialStatus);
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
+
+	useEffect(() => {
+		const queryParams = new URLSearchParams(location.search);
+		const statusParam = queryParams.get('status');
+		if (statusParam) {
+			setStatusFilter(statusParam);
+		}
+	}, [location.search]);
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -89,7 +101,9 @@ export default function HeadSampleTests() {
 			(req.requestId || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
 			(req.customerNameAddress || '').toLowerCase().includes(searchQuery.toLowerCase());
 			
-		const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter;
+		const matchesStatus = statusFilter === 'ALL' || 
+							  (statusFilter === 'APPROVED' && !['PENDING_APPROVAL', 'REJECTED'].includes(req.status)) ||
+							  req.status === statusFilter;
 		
 		let matchesDate = true;
 		const reqDate = req.createdAt.split('T')[0];
@@ -153,6 +167,7 @@ export default function HeadSampleTests() {
 						options={[
 							{ value: 'ALL',              label: 'All Statuses' },
 							{ value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+							{ value: 'APPROVED',         label: 'Approved Requests' },
 							{ value: 'UNDER_INSPECTION', label: 'Under Inspection' },
 							{ value: 'INSPECTION_COMPLETED', label: 'Inspection Completed' },
 							{ value: 'UNDER_TESTING',    label: 'Under Testing' },
@@ -197,14 +212,15 @@ export default function HeadSampleTests() {
 				</div>
 
 				{/* Clear Filters Action */}
-				{(searchQuery || statusFilter !== 'PENDING_APPROVAL' || startDate || endDate) && (
+				{(searchQuery || statusFilter !== 'ALL' || startDate || endDate) && (
 					<button 
 						onClick={() => {
 							setSearchQuery('');
-							setStatusFilter('PENDING_APPROVAL');
+							setStatusFilter('ALL');
 							setStartDate('');
 							setEndDate('');
 							setCurrentPage(1);
+							navigate('/head/sample-tests');
 						}}
 						className="text-xs font-bold text-red-650 hover:text-red-755 hover:underline bg-transparent border-none cursor-pointer text-left"
 					>

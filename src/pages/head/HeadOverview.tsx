@@ -162,7 +162,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 			{/* Primary Metrics Grid (Total, Pending, Approved, Rejected) */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 				{/* Total Requests */}
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+				<div 
+					onClick={() => navigate('/head/sample-tests?status=ALL')}
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
+				>
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-[#11236a]" />
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Total Received</span>
@@ -176,7 +179,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 
 				{/* Pending Approvals */}
 				<div 
-					onClick={() => navigate('/head/sample-tests')}
+					onClick={() => navigate('/head/sample-tests?status=PENDING_APPROVAL')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
 				>
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500" />
@@ -191,7 +194,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				</div>
 
 				{/* Approved Requests */}
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+				<div 
+					onClick={() => navigate('/head/sample-tests?status=APPROVED')}
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
+				>
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Approved Requests</span>
@@ -204,7 +210,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				</div>
 
 				{/* Rejected Requests */}
-				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+				<div 
+					onClick={() => navigate('/head/sample-tests?status=REJECTED')}
+					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
+				>
 					<div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500" />
 					<div>
 						<span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-wider">Rejected Requests</span>
