@@ -53,10 +53,11 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 	const pendingCount = requests.filter(r => ['PENDING', 'PENDING_APPROVAL'].includes(r.status)).length;
 	const underInspectionCount = requests.filter(r => ['UNDER_INSPECTION'].includes(r.status)).length;
 	const inspectionCompletedCount = requests.filter(r => ['INSPECTION_COMPLETED'].includes(r.status)).length;
+	const inspectionFailedCount = requests.filter(r => ['INSPECTION_FAILED'].includes(r.status)).length;
 	const rejectedCount = requests.filter(r => ['REJECTED'].includes(r.status)).length;
 	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING', 'RETEST'].includes(r.status)).length;
 	const completedCount = requests.filter(r => ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(r.status)).length;
-	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED', 'INSPECTION_FAILED'].includes(r.status)).length;
+	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(r.status)).length;
 
 	const totalCapas = capas.length;
 	const openCapas = capas.filter(c => c.status === 'OPEN').length;
@@ -67,7 +68,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 			{/* Requests Status Overview */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-4">Requests Status Overview</h3>
-				<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
 					{/* Total */}
 					<div className="bg-zinc-50 border border-zinc-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
 						<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider">Total</span>
@@ -96,6 +97,12 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					<div className="bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
 						<span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Inspection Completed</span>
 						<span className="text-xl font-black text-emerald-700 mt-1">{inspectionCompletedCount}</span>
+					</div>
+
+					{/* Inspection Failed */}
+					<div className="bg-rose-50/50 border border-rose-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md transition-shadow">
+						<span className="text-[10px] text-rose-650 font-extrabold uppercase tracking-wider">Inspection Failed</span>
+						<span className="text-xl font-black text-rose-700 mt-1">{inspectionFailedCount}</span>
 					</div>
 
 					{/* Under Testing */}
