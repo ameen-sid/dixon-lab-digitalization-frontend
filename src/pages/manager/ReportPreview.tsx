@@ -8,6 +8,18 @@ import { getTestingEquipments } from '../../services/operations/testingEquipment
 import { getUsers } from '../../services/operations/userService';
 
 
+const INSPECTION_CHECKPOINTS = [
+	{ id: 1, text: '1. Model No, Brand Name, Manufacturer Name verify on Carton.' },
+	{ id: 2, text: '2. Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
+	{ id: 3, text: '3. Instruction Manual & Warranty Card verify in Carton.' },
+	{ id: 4, text: '4. Visual check of Sample (Free from dent, scratches, etc.)' },
+	{ id: 5, text: '5. Mechanical check (all parts assemble properly & fitment).' },
+	{ id: 6, text: '6. Check Power Cord length & plug top rating.' },
+	{ id: 7, text: '7. Continuity Check of Earthing (Value < 0.1 ohm).' },
+	{ id: 8, text: '8. High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
+	{ id: 9, text: '9. Earth Leakage Current Test (Value < 0.75 mA).' }
+];
+
 export default function ReportPreview() {
 	const location = useLocation();
 
@@ -182,7 +194,35 @@ export default function ReportPreview() {
 		}
 	}
 
-	if (!request || (type === 'sample' && !targetPlan)) {
+	const inspectionReport = (type === 'sample' && request && sampleIndex !== null)
+		? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex)
+		: null;
+
+	const isSampleFailedInspection = inspectionReport?.status === 'FAILED';
+
+	const inspectionChecks = (() => {
+		if (!inspectionReport) return {};
+		try {
+			return typeof inspectionReport.checks === 'string'
+				? JSON.parse(inspectionReport.checks)
+				: (inspectionReport.checks || {});
+		} catch (e) {
+			return {};
+		}
+	})();
+
+	const inspectionImages = (() => {
+		if (!inspectionReport) return [];
+		try {
+			return typeof inspectionReport.images === 'string'
+				? JSON.parse(inspectionReport.images)
+				: (inspectionReport.images || []);
+		} catch (e) {
+			return [];
+		}
+	})();
+
+	if (!request || (type === 'sample' && !targetPlan && !isSampleFailedInspection)) {
 		return (
 			<div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 text-center">
 				<AlertTriangle className="w-12 h-12 text-rose-500 mb-2" />
@@ -248,6 +288,12 @@ export default function ReportPreview() {
 	// DQL constants & template variables
 	const isAllInspectionFailed = (() => {
 		if (!request) return false;
+		if (type === 'sample' && sampleIndex !== null) {
+			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex);
+			if (inspectionReport && inspectionReport.status === 'FAILED') {
+				return true;
+			}
+		}
 		const qty = request.sampleQty || 1;
 		let failedInspCount = 0;
 		for (let i = 0; i < qty; i++) {
@@ -535,12 +581,14 @@ export default function ReportPreview() {
 						<FileText className="w-5 h-5 text-[#11236a]" />
 						<div>
 							<span className="text-xs font-black uppercase text-zinc-900">
-								{isNabl ? 'NABL Accredited Test Report' : 'Performance & Safety Lab Report'}
+								{isSampleFailedInspection ? 'Physical & Visual Inspection Report' : isNabl ? 'NABL Accredited Test Report' : 'Performance & Safety Lab Report'}
 							</span>
 							<p className="text-[10px] text-zinc-500 font-semibold">
-								{type === 'sample' 
-									? `Sample ID Allotment report for ${key}` 
-									: `Overall Request Report for ${request.requestId || `REQ-${request.id}`}`}
+								{isSampleFailedInspection 
+									? `Inspection report for sample ${key}`
+									: type === 'sample' 
+										? `Sample ID Allotment report for ${key}` 
+										: `Overall Request Report for ${request.requestId || `REQ-${request.id}`}`}
 							</p>
 						</div>
 					</div>
@@ -563,7 +611,157 @@ export default function ReportPreview() {
 					</div>
 				</div>
 
-				{isNabl ? (
+				{isSampleFailedInspection ? (
+					<div className="a4-page" style={{ height: 'auto', minHeight: '297mm', padding: '15mm' }}>
+						<div className="watermark">FAILED</div>
+						<div className="content-container flex flex-col justify-between h-full space-y-6">
+							<div>
+								{/* Header */}
+								<div className="w-full border-2 border-black text-black select-none mb-4">
+									<div className="grid grid-cols-12 border-b-2 border-black divide-x-2 divide-black">
+										<div className="col-span-4 p-2 flex items-center justify-center">
+											<img src="/logo.png" alt="Dixon Logo" className="h-8 object-contain shrink-0" />
+										</div>
+										<div className="col-span-8 p-2 text-center flex flex-col justify-center items-center font-sans">
+											<h2 className="text-[12px] font-black tracking-tight uppercase text-zinc-900 leading-tight">
+												PHYSICAL & VISUAL INSPECTION REPORT
+											</h2>
+											<h2 className="text-[10px] font-bold tracking-tight uppercase text-zinc-650 leading-tight">
+												DIXON PERFORMANCE AND SAFETY LABORATORY
+											</h2>
+										</div>
+									</div>
+									<div className="grid grid-cols-5 divide-x-2 divide-black text-[7.5px] font-bold text-center bg-white">
+										<div className="py-1 px-1">DOC NO: PSL/QSP/07/IR-01</div>
+										<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
+										<div className="py-1 px-1">REV NO: 00</div>
+										<div className="py-1 px-1">REV DATE: 00</div>
+										<div className="py-1 px-1">Page 1 of 1</div>
+									</div>
+								</div>
+
+								{/* General Details Table */}
+								<div className="space-y-4 font-sans">
+									<div>
+										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">1. General Request & Sample Information</h4>
+										<table className="w-full border-2 border-black text-[10px] font-bold border-collapse text-black">
+											<tbody>
+												<tr className="border-b-2 border-black divide-x-2 divide-black">
+													<td className="p-2 w-1/2">
+														<span className="text-zinc-550 mr-2 uppercase">Request ID:</span> {request.requestId || `REQ-${request.id}`}
+													</td>
+													<td className="p-2 w-1/2">
+														<span className="text-zinc-550 mr-2 uppercase">Allotted Sample ID:</span> {inspectionReport?.allottedId || 'N/A'}
+													</td>
+												</tr>
+												<tr className="border-b-2 border-black divide-x-2 divide-black">
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Customer Name & Address:</span> {request.customerNameAddress}
+													</td>
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Manufacturer Name:</span> {request.manufacturerNameAddress || 'N/A'}
+													</td>
+												</tr>
+												<tr className="border-b-2 border-black divide-x-2 divide-black">
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Brand & Model No:</span> {request.brandName} - {request.modelNo}
+													</td>
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Date of Inspection:</span> {inspectionReport?.updatedAt ? formatDate(inspectionReport.updatedAt) : formatDate(request.updatedAt || request.createdAt)}
+													</td>
+												</tr>
+												<tr className="divide-x-2 divide-black">
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Sample Description:</span> {request.sampleDescription}
+													</td>
+													<td className="p-2">
+														<span className="text-zinc-550 mr-2 uppercase">Overall Inspection Status:</span>
+														<span className="text-rose-700 font-extrabold uppercase ml-1">FAILED</span>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+
+									{/* Checklist Parameters Table */}
+									<div>
+										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">2. Visual & Physical Checklist Parameters</h4>
+										<table className="w-full border-2 border-black text-[9.5px] font-bold border-collapse text-black">
+											<thead>
+												<tr className="bg-zinc-100 border-b-2 border-black divide-x-2 divide-black text-center text-[10px] font-black uppercase">
+													<th className="p-1.5 w-12">Sr No.</th>
+													<th className="p-1.5 text-left">Checklist Parameter Description</th>
+													<th className="p-1.5 w-32">Status / Result</th>
+												</tr>
+											</thead>
+											<tbody className="divide-y divide-black">
+												{INSPECTION_CHECKPOINTS.map((cp) => {
+													const val = inspectionChecks[cp.id];
+													return (
+														<tr key={cp.id} className="divide-x divide-black">
+															<td className="p-1.5 text-center">{cp.id}</td>
+															<td className="p-1.5">{cp.text}</td>
+															<td className={`p-1.5 text-center font-extrabold uppercase ${
+																val === 'Yes' ? 'text-emerald-700' :
+																val === 'No' ? 'text-rose-700' : 'text-zinc-500'
+															}`}>
+																{val || 'N/A'}
+															</td>
+														</tr>
+													);
+												})}
+											</tbody>
+										</table>
+									</div>
+
+									{/* Failure Remarks & Observations */}
+									<div>
+										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">3. Remarks & Non-Compliance Observations</h4>
+										<div className="border-2 border-black p-3 text-[10px] text-black font-semibold min-h-[60px] whitespace-pre-wrap leading-relaxed">
+											{inspectionReport?.remarks || 'No remarks provided.'}
+										</div>
+									</div>
+
+									{/* Photos Section */}
+									{inspectionImages.length > 0 && (
+										<div>
+											<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">4. Inspection Photos Reference</h4>
+											<div className="grid grid-cols-3 gap-4 border-2 border-black p-3 bg-zinc-50">
+												{inspectionImages.map((img: string, idx: number) => {
+													const cleanPath = img.replace(/\\/g, '/');
+													const relativePath = cleanPath.includes('uploads')
+														? cleanPath.substring(cleanPath.indexOf('uploads'))
+														: cleanPath;
+													return (
+														<div key={idx} className="border border-zinc-300 rounded bg-white p-1 flex items-center justify-center aspect-[4/3] overflow-hidden">
+															<img
+																src={`http://127.0.0.1:3001/${relativePath}`}
+																alt={`Inspection photo ${idx + 1}`}
+																className="max-w-full max-h-full object-contain"
+															/>
+														</div>
+													);
+												})}
+											</div>
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Footer Signatures */}
+							<div className="grid grid-cols-2 gap-10 text-[10px] font-bold text-zinc-700 mt-6 pt-4 border-t border-zinc-200 font-sans">
+								<div>
+									<p className="text-[8px] uppercase tracking-wider text-zinc-400">Inspected by (Quality Inspector)</p>
+									<p className="text-zinc-900 font-black mt-1">({testedBy})</p>
+								</div>
+								<div className="text-right flex flex-col items-end">
+									<p className="text-[8px] uppercase tracking-wider text-zinc-400">Reviewed & Approved by (Lab Manager)</p>
+									<p className="text-zinc-900 font-black mt-1">({approvedBy})</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				) : isNabl ? (
 					<>
 						{/* -------------------- NABL PAGE 1 -------------------- */}
 						<div className="a4-page nabl-page">

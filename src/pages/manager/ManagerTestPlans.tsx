@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
@@ -35,6 +35,18 @@ interface TestPlanForm {
 	evaluationStatus?: 'PASSED' | 'FAILED';
 	evaluationRemarks?: string;
 }
+
+const INSPECTION_CHECKPOINTS = [
+	{ id: 1, text: '1. Model No, Brand Name, Manufacturer Name verify on Carton.' },
+	{ id: 2, text: '2. Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
+	{ id: 3, text: '3. Instruction Manual & Warranty Card verify in Carton.' },
+	{ id: 4, text: '4. Visual check of Sample (Free from dent, scratches, etc.)' },
+	{ id: 5, text: '5. Mechanical check (all parts assemble properly & fitment).' },
+	{ id: 6, text: '6. Check Power Cord length & plug top rating.' },
+	{ id: 7, text: '7. Continuity Check of Earthing (Value < 0.1 ohm).' },
+	{ id: 8, text: '8. High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
+	{ id: 9, text: '9. Earth Leakage Current Test (Value < 0.75 mA).' }
+];
 
 const getLocalTodayStr = () => {
 	const d = new Date();
@@ -82,6 +94,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	// Component states
 	const [activeSampleIndex, setActiveSampleIndex] = useState<number | null>(null);
+	const [activeInspectionReport, setActiveInspectionReport] = useState<any | null>(null);
+	const [activeInspectionSampleIndex, setActiveInspectionSampleIndex] = useState<number | null>(null);
 
 	// Search & Pagination states
 	const [searchQuery, setSearchQuery] = useState('');
@@ -733,13 +747,23 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														</div>
 													</td>
 													<td className="py-4 px-6">
-														{req.status === 'INSPECTION_COMPLETED' ? (
+														{physicalPassed === 0 ? (
+															(req.status === 'INSPECTION_COMPLETED' || (req.remarks || '').includes('Submitted to Head')) ? (
+																<span className="text-[9px] font-bold px-2.5 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-200 rounded-full uppercase tracking-wider">
+																	Submitted
+																</span>
+															) : (
+																<span className="text-[9px] font-bold px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-150 rounded-full uppercase tracking-wider">
+																	Inspection Failed
+																</span>
+															)
+														) : req.status === 'INSPECTION_COMPLETED' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
 																Pending Plan Creation ({plansCreated}/{physicalPassed})
 															</span>
 														) : req.status === 'INSPECTION_FAILED' ? (
-															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-200 rounded-full uppercase tracking-wider">
-																Submitted
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-150 rounded-full uppercase tracking-wider">
+																Inspection Failed
 															</span>
 														) : req.status === 'RETEST' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded-full uppercase tracking-wider">
@@ -1004,10 +1028,21 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 												{/* Action Buttons */}
 												{isFailed ? (
-													<span className="text-[10px] font-extrabold px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl flex items-center gap-1.5 shrink-0 border border-rose-150">
-														<AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-														Plan Disabled - Sample Failed
-													</span>
+													<div className="flex items-center gap-2">
+														<span className="text-[10px] font-extrabold px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl flex items-center gap-1.5 shrink-0 border border-rose-150">
+															<AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+															Plan Disabled - Sample Failed
+														</span>
+														<button
+															onClick={() => {
+																window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank');
+															}}
+															className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0 animate-fade-in"
+														>
+															<FileText className="w-3.5 h-3.5" />
+															<span>View Details</span>
+														</button>
+													</div>
 												) : showActionButtons ? (
 													<div className="flex flex-wrap items-center gap-2 shrink-0">
 														{!hideEditTestPlanButton && (
@@ -1083,7 +1118,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							{/* Activation Footer */}
 							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
 								{isAllInspectionFailed && ['INSPECTION_COMPLETED', 'INSPECTION_FAILED'].includes(selectedReq.status) && (
-									(selectedReq.status === 'INSPECTION_FAILED' || (selectedReq.remarks || '').includes('Submitted to Head')) ? (
+									(selectedReq.status === 'INSPECTION_COMPLETED' || (selectedReq.remarks || '').includes('Submitted to Head')) ? (
 										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
 											Submitted to Head Panel
 										</span>
@@ -1523,6 +1558,138 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 						</form>
 
+					</div>
+				</div>
+			)}
+
+			{activeInspectionReport && activeInspectionSampleIndex !== null && (
+				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-2xl w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
+						{/* Close button */}
+						<button
+							onClick={() => {
+								setActiveInspectionReport(null);
+								setActiveInspectionSampleIndex(null);
+							}}
+							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-500 hover:text-slate-800 cursor-pointer border-none outline-none"
+						>
+							<X className="w-4 h-4" />
+						</button>
+
+						<div className="space-y-5">
+							{/* Header */}
+							<div>
+								<div className="flex items-center justify-between">
+									<span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${activeInspectionReport.status === 'PASSED'
+										? 'bg-emerald-50 text-emerald-700 border border-emerald-150'
+										: 'bg-rose-50 text-rose-700 border border-rose-150'
+									}`}>
+										Inspection {activeInspectionReport.status}
+									</span>
+									<button
+										onClick={() => window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${activeInspectionSampleIndex}`, '_blank')}
+										className="px-3.5 py-1.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-black rounded-xl text-[10px] flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 transition-all outline-none border-none hover:scale-[1.01] mr-8"
+									>
+										<Printer className="w-3.5 h-3.5 text-white shrink-0" />
+										<span>Print / Download PDF</span>
+									</button>
+								</div>
+								<h3 className="text-lg font-extrabold text-[#11236a] mt-2.5 leading-tight">
+									Physical Inspection Report — Sample #{activeInspectionSampleIndex + 1}
+								</h3>
+								<p className="text-xs font-bold text-zinc-450 uppercase mt-1">
+									Allotted ID: <span className="text-zinc-700 font-extrabold">{activeInspectionReport.allottedId || 'N/A'}</span>
+								</p>
+							</div>
+
+							{/* Checklist */}
+							<div className="border border-zinc-200 rounded-2xl overflow-hidden">
+								<table className="w-full text-left border-collapse text-xs font-semibold text-zinc-700">
+									<thead>
+										<tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-extrabold text-zinc-400 uppercase">
+											<th className="p-3 w-10/12">Checkpoint Parameters</th>
+											<th className="p-3 w-2/12 text-center">Result</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-zinc-150">
+										{(() => {
+											let checksObj = {};
+											try {
+												checksObj = typeof activeInspectionReport.checks === 'string'
+													? JSON.parse(activeInspectionReport.checks)
+													: (activeInspectionReport.checks || {});
+											} catch (e) {
+												checksObj = {};
+											}
+
+											return INSPECTION_CHECKPOINTS.map((cp) => {
+												const val = (checksObj as any)[cp.id];
+												return (
+													<tr key={cp.id} className="hover:bg-zinc-50/50">
+														<td className="p-3 font-medium text-zinc-800 leading-normal">{cp.text}</td>
+														<td className="p-3 text-center">
+															<span className={`inline-block px-2.5 py-1 text-[10px] font-extrabold rounded-lg uppercase tracking-wider text-center min-w-[50px] ${
+																val === 'Yes' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' :
+																val === 'No' ? 'bg-rose-50 text-rose-700 border border-rose-150' :
+																'bg-zinc-100 text-zinc-500 border border-zinc-200'
+															}`}>
+																{val || 'N/A'}
+															</span>
+														</td>
+													</tr>
+												);
+											});
+										})()}
+									</tbody>
+								</table>
+							</div>
+
+							{/* Remarks */}
+							<div className="bg-zinc-50 border border-zinc-200/60 rounded-2xl p-4 space-y-1.5">
+								<span className="text-[9px] text-zinc-450 font-extrabold uppercase tracking-wider block">Inspector Remarks</span>
+								<p className="text-xs text-zinc-800 font-semibold leading-relaxed whitespace-pre-wrap">
+									{activeInspectionReport.remarks || 'No remarks provided.'}
+								</p>
+							</div>
+
+							{/* Images */}
+							{(() => {
+								let imagesArr: string[] = [];
+								try {
+									imagesArr = typeof activeInspectionReport.images === 'string'
+										? JSON.parse(activeInspectionReport.images)
+										: (activeInspectionReport.images || []);
+								} catch (e) {
+									imagesArr = [];
+								}
+
+								if (imagesArr.length === 0) return null;
+
+								return (
+									<div className="space-y-2.5">
+										<span className="text-[9px] text-zinc-450 font-extrabold uppercase tracking-wider block">Inspection Photos ({imagesArr.length})</span>
+										<div className="flex flex-wrap gap-3">
+											{imagesArr.map((img: string, idx: number) => {
+												const cleanPath = img.replace(/\\/g, '/');
+												const relativePath = cleanPath.includes('uploads')
+													? cleanPath.substring(cleanPath.indexOf('uploads'))
+													: cleanPath;
+												return (
+													<div key={idx} className="relative group rounded-xl overflow-hidden border border-zinc-200 shadow-sm hover:shadow-md transition-all">
+														<img
+															src={`http://127.0.0.1:3001/${relativePath}`}
+															alt={`Inspection photo ${idx + 1}`}
+															className="w-24 h-24 object-cover cursor-pointer hover:scale-105 transition-transform"
+															onClick={() => window.open(`http://127.0.0.1:3001/${relativePath}`, '_blank')}
+														/>
+													</div>
+												);
+											})}
+										</div>
+									</div>
+								);
+							})()}
+						</div>
 					</div>
 				</div>
 			)}
