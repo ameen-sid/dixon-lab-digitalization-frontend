@@ -59,8 +59,8 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 
 	// 1. Calculate Metric Summary Stats
 	let totalAssignedSamples = 0;
-	let pendingInspections = 0;
-	let inProgressInspections = 0;
+	let pendingSamples = 0;
+	let inProgressSamples = 0;
 	let passedInspections = 0;
 	let failedInspections = 0;
 	let partialInspections = 0;
@@ -92,11 +92,14 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 		// Check request completion state
 		const isCompleted = [
 			'INSPECTION_COMPLETED',
+			'INSPECTION_FAILED',
 			'UNDER_TESTING',
 			'TESTING_PASSED',
 			'TESTING_FAILED',
 			'TESTING_PARTIAL',
+			'RETEST',
 			'COMPLETED',
+			'FAILED',
 			'REJECTED'
 		].includes(r.status);
 
@@ -119,22 +122,36 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				? `Due in ${daysLeft}d` 
 				: `${daysLeft} days left`;
 
-		if (isCompleted) {
-			const hasFailed = failedCount > 0 || r.status === 'TESTING_FAILED' || r.status === 'REJECTED';
-			const hasPassed = passedCount === qty || r.status === 'TESTING_PASSED' || r.status === 'COMPLETED';
-
-			if (hasFailed) {
-				if (passedCount > 0) {
-					partialInspections++;
-				} else {
-					failedInspections++;
-				}
-			} else if (hasPassed) {
-				passedInspections++;
+		// Compute task status standard classification
+		let taskStatus = 'Pending';
+		if (!isCompleted) {
+			taskStatus = 'Pending';
+		} else if (pendingCount > 0) {
+			if (r.status === 'INSPECTION_FAILED' || r.status === 'FAILED') {
+				taskStatus = 'Failed';
+			} else if (['UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'RETEST', 'COMPLETED'].includes(r.status || '')) {
+				taskStatus = 'Passed';
 			} else {
-				partialInspections++;
+				taskStatus = 'Pending';
 			}
+		} else if (passedCount === qty) {
+			taskStatus = 'Passed';
+		} else if (failedCount === qty) {
+			taskStatus = 'Failed';
+		} else {
+			taskStatus = 'Partial';
+		}
 
+		if (taskStatus === 'Passed') {
+			passedInspections++;
+		} else if (taskStatus === 'Failed') {
+			failedInspections++;
+		} else if (taskStatus === 'Partial') {
+			partialInspections++;
+		}
+
+		if (isCompleted) {
+			const hasFailed = taskStatus === 'Failed';
 			recentSubmissionsList.push({
 				...r,
 				passedCount,
@@ -142,11 +159,10 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				isPassed: !hasFailed
 			});
 		} else {
-			if (pendingCount === qty) {
-				pendingInspections++;
-			} else {
-				inProgressInspections++;
-			}
+			// Sum sample-level counts for active requests
+			pendingSamples += pendingCount;
+			inProgressSamples += (passedCount + failedCount);
+
 			activeTasksList.push({
 				...r,
 				passedCount,
@@ -166,9 +182,12 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 			{/* Metric Cards Row */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 				{/* Total Assigned Samples */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=All', { state: { statusFilter: 'All' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-[#11236a]/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Assigned Samples</span>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Assigned Samples</span>
 						<h3 className="text-2xl font-extrabold text-zinc-955 mt-1">{totalAssignedSamples} Pcs</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">{requests.length} Test Plans</p>
 					</div>
@@ -178,11 +197,14 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				</div>
 
 				{/* Pending Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=Pending', { state: { statusFilter: 'Pending' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-amber-600/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Pending</span>
-						<h3 className="text-2xl font-extrabold text-amber-600 mt-1">{pendingInspections} Tasks</h3>
-						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Awaiting calibration</p>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Pending</span>
+						<h3 className="text-2xl font-extrabold text-amber-600 mt-1">{pendingSamples} Pcs</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Not started yet</p>
 					</div>
 					<div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100">
 						<Clock className="w-5 h-5" />
@@ -190,11 +212,14 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				</div>
 
 				{/* In-Progress Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=Pending', { state: { statusFilter: 'Pending' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-blue-600/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">In Progress</span>
-						<h3 className="text-2xl font-extrabold text-blue-600 mt-1">{inProgressInspections} Tasks</h3>
-						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Draft checklist saved</p>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">In Progress</span>
+						<h3 className="text-2xl font-extrabold text-blue-600 mt-1">{inProgressSamples} Pcs</h3>
+						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Started but not completed</p>
 					</div>
 					<div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">
 						<Activity className="w-5 h-5" />
@@ -202,10 +227,13 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				</div>
 
 				{/* Passed Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=Passed', { state: { statusFilter: 'Passed' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-emerald-600/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Passed</span>
-						<h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{passedInspections} Tasks</h3>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Passed</span>
+						<h3 className="text-2xl font-extrabold text-emerald-600 mt-1">{passedInspections} Requests</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">All samples passed</p>
 					</div>
 					<div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100">
@@ -214,10 +242,13 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				</div>
 
 				{/* Failed Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=Failed', { state: { statusFilter: 'Failed' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-rose-600/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Failed</span>
-						<h3 className="text-2xl font-extrabold text-rose-600 mt-1">{failedInspections} Tasks</h3>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Failed</span>
+						<h3 className="text-2xl font-extrabold text-rose-600 mt-1">{failedInspections} Requests</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium font-semibold">Samples failed checks</p>
 					</div>
 					<div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center border border-rose-100">
@@ -226,10 +257,13 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				</div>
 
 				{/* Partial Inspections */}
-				<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+				<div 
+					onClick={() => navigate('/engineer/assigned-samples?status=Partial', { state: { statusFilter: 'Partial' } })}
+					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-purple-600/40 active:scale-[0.98]"
+				>
 					<div>
-						<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Partial</span>
-						<h3 className="text-2xl font-extrabold text-purple-600 mt-1">{partialInspections} Tasks</h3>
+						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Partial</span>
+						<h3 className="text-2xl font-extrabold text-purple-600 mt-1">{partialInspections} Requests</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Mixed compliance status</p>
 					</div>
 					<div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center border border-purple-100">

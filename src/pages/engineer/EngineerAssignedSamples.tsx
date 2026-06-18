@@ -139,9 +139,32 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 	const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]);
 
 	// Filter state
-	const [statusFilter, setStatusFilter] = useState('All');
+	const [statusFilter, setStatusFilter] = useState(() => {
+		const stateStatus = location.state?.statusFilter;
+		if (stateStatus) return stateStatus;
+		const queryStatus = new URLSearchParams(location.search).get('status');
+		if (queryStatus) {
+			const formatted = queryStatus.charAt(0).toUpperCase() + queryStatus.slice(1).toLowerCase();
+			if (['All', 'Passed', 'Failed', 'Partial', 'Pending'].includes(formatted)) {
+				return formatted;
+			}
+		}
+		return 'All';
+	});
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
+
+	useEffect(() => {
+		const queryStatus = new URLSearchParams(location.search).get('status');
+		const stateStatus = location.state?.statusFilter;
+		const targetStatus = stateStatus || queryStatus;
+		if (targetStatus) {
+			const formatted = targetStatus.charAt(0).toUpperCase() + targetStatus.slice(1).toLowerCase();
+			if (['All', 'Passed', 'Failed', 'Partial', 'Pending'].includes(formatted)) {
+				setStatusFilter(formatted);
+			}
+		}
+	}, [location.search, location.state]);
 
 	// Dictionary/cache of inspections compiled for statistics and list badges
 	// Compute merged reports dynamically from tasks prop database relations and state
