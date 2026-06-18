@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, XCircle } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -244,6 +244,45 @@ export default function ManagerEvaluateChecksheet() {
 	const datesList = planInfo 
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
+
+	// Pre-calculate cumulative totals for FATL and SATL
+	const calculatedTotals = useMemo(() => {
+		const totals: {
+			[dateStr: string]: {
+				totalCycles?: number;
+				totalCyclesWash?: number;
+				totalCyclesSpin?: number;
+			}
+		} = {};
+
+		let runningTotalCycles = 0;
+		let runningTotalWash = 0;
+		let runningTotalSpin = 0;
+
+		datesList.forEach((dateStr) => {
+			const noOfCycleVal = Number(cellData[`${dateStr}_noOfCycle`] || 0);
+			const washCyclesVal = Number(cellData[`${dateStr}_washCycles`] || 0);
+			const spinCyclesVal = Number(cellData[`${dateStr}_spinCycles`] || 0);
+
+			if (!isNaN(noOfCycleVal)) {
+				runningTotalCycles += noOfCycleVal;
+			}
+			if (!isNaN(washCyclesVal)) {
+				runningTotalWash += washCyclesVal;
+			}
+			if (!isNaN(spinCyclesVal)) {
+				runningTotalSpin += spinCyclesVal;
+			}
+
+			totals[dateStr] = {
+				totalCycles: runningTotalCycles,
+				totalCyclesWash: runningTotalWash,
+				totalCyclesSpin: runningTotalSpin
+			};
+		});
+
+		return totals;
+	}, [datesList, cellData]);
 
 	const handleEvaluate = async (status: 'PASSED' | 'FAILED') => {
 		if (!planKey || !planInfo) return;
@@ -509,9 +548,22 @@ export default function ManagerEvaluateChecksheet() {
 													{formattedDate}
 												</td>
 												{columns.map((col) => {
-													const val = cellData[`${dateStr}_${col.id}`] || '';
+													let val = cellData[`${dateStr}_${col.id}`] || '';
+													const isCalculated = (productType === 'FATL' && col.id === 'totalCycles') || 
+																		 (productType === 'SATL' && (col.id === 'totalCyclesWash' || col.id === 'totalCyclesSpin'));
+													if (isCalculated) {
+														if (productType === 'FATL' && col.id === 'totalCycles') {
+															val = calculatedTotals[dateStr]?.totalCycles !== undefined ? String(calculatedTotals[dateStr].totalCycles) : '';
+														} else if (productType === 'SATL') {
+															if (col.id === 'totalCyclesWash') {
+																val = calculatedTotals[dateStr]?.totalCyclesWash !== undefined ? String(calculatedTotals[dateStr].totalCyclesWash) : '';
+															} else if (col.id === 'totalCyclesSpin') {
+																val = calculatedTotals[dateStr]?.totalCyclesSpin !== undefined ? String(calculatedTotals[dateStr].totalCyclesSpin) : '';
+															}
+														}
+													}
 													return (
-														<td key={col.id} className="border-r border-zinc-900 p-2 text-center font-bold">
+														<td key={col.id} className={`border-r border-zinc-900 p-2 text-center font-bold ${isCalculated ? 'text-zinc-500 bg-zinc-50/50 font-black' : ''}`}>
 															{val || <span className="text-zinc-300 italic">-</span>}
 														</td>
 													);

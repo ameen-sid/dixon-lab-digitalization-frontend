@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Printer, Clipboard } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -180,8 +180,59 @@ export default function InspectorChecksheet() {
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
 
+	// Pre-calculate cumulative totals for FATL and SATL
+	const calculatedTotals = useMemo(() => {
+		const totals: {
+			[dateStr: string]: {
+				totalCycles?: number;
+				totalCyclesWash?: number;
+				totalCyclesSpin?: number;
+			}
+		} = {};
+
+		let runningTotalCycles = 0;
+		let runningTotalWash = 0;
+		let runningTotalSpin = 0;
+
+		datesList.forEach((dateStr) => {
+			const noOfCycleVal = Number(tempValues[`${dateStr}_noOfCycle`] !== undefined ? tempValues[`${dateStr}_noOfCycle`] : (cellData[`${dateStr}_noOfCycle`] || 0));
+			const washCyclesVal = Number(tempValues[`${dateStr}_washCycles`] !== undefined ? tempValues[`${dateStr}_washCycles`] : (cellData[`${dateStr}_washCycles`] || 0));
+			const spinCyclesVal = Number(tempValues[`${dateStr}_spinCycles`] !== undefined ? tempValues[`${dateStr}_spinCycles`] : (cellData[`${dateStr}_spinCycles`] || 0));
+
+			if (!isNaN(noOfCycleVal)) {
+				runningTotalCycles += noOfCycleVal;
+			}
+			if (!isNaN(washCyclesVal)) {
+				runningTotalWash += washCyclesVal;
+			}
+			if (!isNaN(spinCyclesVal)) {
+				runningTotalSpin += spinCyclesVal;
+			}
+
+			totals[dateStr] = {
+				totalCycles: runningTotalCycles,
+				totalCyclesWash: runningTotalWash,
+				totalCyclesSpin: runningTotalSpin
+			};
+		});
+
+		return totals;
+	}, [datesList, cellData, tempValues]);
+
 	// Local temporary value synchronize
 	const getCellValue = (dateStr: string, colId: string) => {
+		if (productType === 'FATL' && colId === 'totalCycles') {
+			return calculatedTotals[dateStr]?.totalCycles !== undefined ? String(calculatedTotals[dateStr].totalCycles) : '';
+		}
+		if (productType === 'SATL') {
+			if (colId === 'totalCyclesWash') {
+				return calculatedTotals[dateStr]?.totalCyclesWash !== undefined ? String(calculatedTotals[dateStr].totalCyclesWash) : '';
+			}
+			if (colId === 'totalCyclesSpin') {
+				return calculatedTotals[dateStr]?.totalCyclesSpin !== undefined ? String(calculatedTotals[dateStr].totalCyclesSpin) : '';
+			}
+		}
+
 		const cellKey = `${dateStr}_${colId}`;
 		if (tempValues[cellKey] !== undefined) {
 			return tempValues[cellKey];
@@ -201,13 +252,31 @@ export default function InspectorChecksheet() {
 		
 		// Update cache state locally
 		const updatedCellData = { ...cellData, [cellKey]: val };
+
+		// Auto-calculate and update totals before saving
+		if (productType === 'FATL') {
+			const totalVal = calculatedTotals[dateStr]?.totalCycles;
+			if (totalVal !== undefined) {
+				updatedCellData[`${dateStr}_totalCycles`] = String(totalVal);
+			}
+		} else {
+			const washVal = calculatedTotals[dateStr]?.totalCyclesWash;
+			const spinVal = calculatedTotals[dateStr]?.totalCyclesSpin;
+			if (washVal !== undefined) {
+				updatedCellData[`${dateStr}_totalCyclesWash`] = String(washVal);
+			}
+			if (spinVal !== undefined) {
+				updatedCellData[`${dateStr}_totalCyclesSpin`] = String(spinVal);
+			}
+		}
+
 		setCellData(updatedCellData);
 
 		// Aggregate all entries for this specific date
 		const dateData: { [key: string]: string } = {};
 		columns.forEach(col => {
 			const k = `${dateStr}_${col.id}`;
-			const cellVal = k === cellKey ? val : (updatedCellData[k] || '');
+			const cellVal = updatedCellData[k] || '';
 			if (cellVal) {
 				dateData[col.id] = cellVal;
 			}
@@ -442,14 +511,21 @@ export default function InspectorChecksheet() {
 											</td>
 											{columns.map((col) => {
 												const val = getCellValue(dateStr, col.id);
+												const isCalculated = (productType === 'FATL' && col.id === 'totalCycles') || 
+																	 (productType === 'SATL' && (col.id === 'totalCyclesWash' || col.id === 'totalCyclesSpin'));
 												return (
-													<td key={col.id} className="border-r border-zinc-900 p-1.5">
+													<td key={col.id} className={`border-r border-zinc-900 p-1.5 ${isCalculated ? 'bg-zinc-50' : ''}`}>
 														<input
 															type="text"
 															value={val}
 															onChange={(e) => handleCellChange(dateStr, col.id, e.target.value)}
 															onBlur={(e) => handleCellBlur(dateStr, col.id, e.target.value)}
-															className="w-full bg-transparent text-center font-bold text-xs text-zinc-900 border-none outline-none hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500 rounded p-1 transition-all"
+															disabled={isCalculated}
+															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${
+																isCalculated 
+																	? 'text-zinc-500 font-extrabold cursor-not-allowed' 
+																	: 'text-zinc-900 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500'
+															}`}
 														/>
 													</td>
 												);
