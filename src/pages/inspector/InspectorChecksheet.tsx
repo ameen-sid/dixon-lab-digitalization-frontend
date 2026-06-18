@@ -290,6 +290,54 @@ export default function InspectorChecksheet() {
 		}
 	};
 
+	// Keyboard arrow navigation helper
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, dateIndex: number, colIndex: number) => {
+		let targetDateIndex = dateIndex;
+		let targetColIndex = colIndex;
+
+		if (e.key === 'ArrowLeft') {
+			targetColIndex = colIndex - 1;
+		} else if (e.key === 'ArrowRight') {
+			targetColIndex = colIndex + 1;
+		} else if (e.key === 'ArrowUp') {
+			targetDateIndex = dateIndex - 1;
+		} else if (e.key === 'ArrowDown') {
+			targetDateIndex = dateIndex + 1;
+		} else {
+			return; // Not an arrow key
+		}
+
+		// Prevent browser scroll or standard cursor movements on arrow keys
+		e.preventDefault();
+
+		let safety = 0;
+		while (safety < 20) {
+			safety++;
+			if (targetDateIndex < 0 || targetDateIndex >= datesList.length || targetColIndex < 0 || targetColIndex >= columns.length) {
+				break; // Out of bounds
+			}
+
+			const targetId = `cell-${targetDateIndex}-${targetColIndex}`;
+			const el = document.getElementById(targetId) as HTMLInputElement | null;
+			if (el && !el.disabled) {
+				el.focus();
+				el.select();
+				break;
+			}
+
+			// If disabled/unavailable, keep walking in that direction
+			if (e.key === 'ArrowLeft') {
+				targetColIndex--;
+			} else if (e.key === 'ArrowRight') {
+				targetColIndex++;
+			} else if (e.key === 'ArrowUp') {
+				targetDateIndex--;
+			} else if (e.key === 'ArrowDown') {
+				targetDateIndex++;
+			}
+		}
+	};
+
 	// Format platforms list text
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
@@ -499,7 +547,7 @@ export default function InspectorChecksheet() {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-zinc-900">
-								{datesList.map((dateStr) => {
+								{datesList.map((dateStr, dateIndex) => {
 									// Format date to show like 14-04-2026
 									const [y, m, d] = dateStr.split('-');
 									const formattedDate = `${d}-${m}-${y}`;
@@ -509,17 +557,19 @@ export default function InspectorChecksheet() {
 											<td className="border-r border-zinc-900 p-2.5 text-center font-extrabold bg-zinc-50/60 select-none">
 												{formattedDate}
 											</td>
-											{columns.map((col) => {
+											{columns.map((col, colIndex) => {
 												const val = getCellValue(dateStr, col.id);
 												const isCalculated = (productType === 'FATL' && col.id === 'totalCycles') || 
 																	 (productType === 'SATL' && (col.id === 'totalCyclesWash' || col.id === 'totalCyclesSpin'));
 												return (
 													<td key={col.id} className={`border-r border-zinc-900 p-1.5 ${isCalculated ? 'bg-zinc-50' : ''}`}>
 														<input
+															id={`cell-${dateIndex}-${colIndex}`}
 															type="text"
 															value={val}
 															onChange={(e) => handleCellChange(dateStr, col.id, e.target.value)}
 															onBlur={(e) => handleCellBlur(dateStr, col.id, e.target.value)}
+															onKeyDown={(e) => handleKeyDown(e, dateIndex, colIndex)}
 															disabled={isCalculated}
 															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${
 																isCalculated 
