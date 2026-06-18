@@ -183,12 +183,12 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
 				{/* Total Assigned Samples */}
 				<div 
-					onClick={() => navigate('/engineer/assigned-samples?status=All', { state: { statusFilter: 'All' } })}
+					onClick={() => navigate('/engineer/assigned-samples?status=All', { state: { stateFilter: 'All' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-[#11236a]/40 active:scale-[0.98]"
 				>
 					<div>
 						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Assigned Samples</span>
-						<h3 className="text-2xl font-extrabold text-zinc-955 mt-1">{totalAssignedSamples} Pcs</h3>
+						<h3 className="text-2xl font-extrabold text-zinc-955 mt-1">{totalAssignedSamples} Samples</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">{requests.length} Test Plans</p>
 					</div>
 					<div className="w-10 h-10 bg-indigo-50 text-[#11236a] rounded-xl flex items-center justify-center border border-indigo-100">
@@ -203,7 +203,7 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				>
 					<div>
 						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">Pending</span>
-						<h3 className="text-2xl font-extrabold text-amber-600 mt-1">{pendingSamples} Pcs</h3>
+						<h3 className="text-2xl font-extrabold text-amber-600 mt-1">{pendingSamples} Samples</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Not started yet</p>
 					</div>
 					<div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center border border-amber-100">
@@ -218,7 +218,7 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				>
 					<div>
 						<span className="text-zinc-555 text-[10px] font-extrabold uppercase tracking-wider block">In Progress</span>
-						<h3 className="text-2xl font-extrabold text-blue-600 mt-1">{inProgressSamples} Pcs</h3>
+						<h3 className="text-2xl font-extrabold text-blue-600 mt-1">{inProgressSamples} Samples</h3>
 						<p className="text-zinc-500 text-[10px] mt-1 font-medium">Started but not completed</p>
 					</div>
 					<div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-100">

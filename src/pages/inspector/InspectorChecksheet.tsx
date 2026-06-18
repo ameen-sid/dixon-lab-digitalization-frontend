@@ -364,7 +364,7 @@ export default function InspectorChecksheet() {
 					{/* Table Header Dixon style */}
 					<div className="border border-zinc-900 grid grid-cols-4 text-zinc-900">
 						<div className="col-span-1 border-r border-zinc-900 p-3.5 flex items-center justify-center text-[10px] font-bold tracking-widest uppercase">
-							QC Laboratory
+							R&D Test Lab
 						</div>
 						<div className="col-span-2 border-r border-zinc-900 p-3.5 flex flex-col items-center justify-center text-center">
 							<h2 className="text-sm font-black tracking-wider uppercase leading-snug">
