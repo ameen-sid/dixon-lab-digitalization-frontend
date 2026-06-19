@@ -9,15 +9,24 @@ interface DashboardLayoutProps {
 	description?: string;
 	activeTab?: string;
 	onTabChange?: (tab: string) => void;
+	bare?: boolean;
 }
 
-export default function DashboardLayout({ children, title, activeTab, onTabChange }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, title, activeTab, onTabChange, bare }: DashboardLayoutProps) {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	
 	const userStr = localStorage.getItem('user');
 	const user = userStr ? JSON.parse(userStr) : { name: 'System User', role: 'Requester', username: 'user' };
+
+	if (bare) {
+		return (
+			<div className="w-full h-full">
+				{children}
+			</div>
+		);
+	}
 
 	const handleLogout = async () => {
 		const action = logout();

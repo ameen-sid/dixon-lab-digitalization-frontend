@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Compass, ClipboardList, CheckCircle, XCircle, AlertTriangle, LogOut, User } from 'lucide-react';
+import { Compass, ClipboardList, CheckCircle, XCircle, AlertTriangle, LogOut, User, BarChart3 } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 import HeadOverview from './HeadOverview';
 import HeadSampleTests from './HeadSampleTests';
@@ -10,9 +10,11 @@ import HeadCapaReports from './HeadCapaReports';
 import HeadRequestDetails from './HeadRequestDetails';
 import HeadReportDetails from './HeadReportDetails';
 import HeadFailureDetails from './HeadFailureDetails';
+import CeoDashboard from '../ceo/CeoDashboard';
 
 const navItems = [
 	{ id: 'dashboard',          label: 'Dashboard',           icon: Compass,       path: '/head/dashboard' },
+	{ id: 'ceo-dashboard',      label: 'CEO Dashboard',       icon: BarChart3,     path: '/head/ceo-dashboard' },
 	{ id: 'sample-tests',       label: 'Sample Tests',        icon: ClipboardList,  path: '/head/sample-tests' },
 	{ id: 'completed-reports',  label: 'Completed Reports',   icon: CheckCircle,   path: '/head/completed-reports' },
 	{ id: 'failure-decision',   label: 'Failure Decision',    icon: XCircle,       path: '/head/failure-decision' },
@@ -21,6 +23,7 @@ const navItems = [
 
 const titleMap: Record<string, { title: string; desc: string }> = {
 	'dashboard':         { title: 'Directorate Command Console',    desc: 'Overview of pending approvals, completed reports, and failure decisions.' },
+	'ceo-dashboard':     { title: 'Executive Dashboard',            desc: 'Executive analytics and operations summary.' },
 	'sample-tests':      { title: 'Sample Tests — Approval Queue',  desc: 'Review all submitted test requests and approve or reject them.' },
 	'completed-reports': { title: 'Completed Test Reports',         desc: 'All successfully passed test plans with downloadable reports.' },
 	'failure-decision':  { title: 'Failure Decision Board',         desc: 'Review failed test plans and decide on CAPA or re-test authorization.' },
@@ -79,6 +82,7 @@ export default function HeadDashboard() {
 		if (pathSegment === 'completed-reports') return <HeadCompletedReports />;
 		if (pathSegment === 'failure-decision')  return <HeadFailureDecision />;
 		if (pathSegment === 'capa-reports')      return <HeadCapaReports />;
+		if (pathSegment === 'ceo-dashboard')     return <CeoDashboard bare={true} />;
 		return <HeadOverview navigate={navigate} />;
 	};
 
@@ -149,12 +153,14 @@ export default function HeadDashboard() {
 
 			{/* Main content */}
 			<main className="flex-1 h-full overflow-y-auto flex flex-col gap-6 p-8 pr-6">
-				<div className="flex flex-col gap-1 pb-2">
-					<h1 className="text-2xl font-bold tracking-tight text-zinc-900" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
-						{title}
-					</h1>
-					<p className="text-xs text-zinc-500 font-medium">{desc}</p>
-				</div>
+				{activeId !== 'ceo-dashboard' && (
+					<div className="flex flex-col gap-1 pb-2">
+						<h1 className="text-2xl font-bold tracking-tight text-zinc-900" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+							{title}
+						</h1>
+						<p className="text-xs text-zinc-500 font-medium">{desc}</p>
+					</div>
+				)}
 				{renderPage()}
 			</main>
 		</div>

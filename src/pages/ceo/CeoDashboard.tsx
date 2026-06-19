@@ -694,7 +694,7 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN CEO DASHBOARD COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
-export default function CeoDashboard() {
+export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
   const [requests, setRequests] = useState<any[]>([]);
   const [capas, setCapas] = useState<any[]>([]);
   const [equipment, setEquipment] = useState<any[]>([]);
@@ -1334,7 +1334,7 @@ export default function CeoDashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Executive Dashboard" description="Loading Dashboard Stats...">
+      <DashboardLayout title="Executive Dashboard" description="Loading Dashboard Stats..." bare={bare}>
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="w-12 h-12 border-4 border-indigo-700 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-zinc-550 text-xs font-semibold">Synchronizing Executive LIMS Analytics...</p>
@@ -1344,7 +1344,7 @@ export default function CeoDashboard() {
   }
 
   return (
-    <DashboardLayout title="" description="">
+    <DashboardLayout title="" description="" bare={bare}>
       {/* Custom Header Section exactly matching the screenshot style */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
