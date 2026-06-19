@@ -37,15 +37,15 @@ interface TestPlanForm {
 }
 
 const INSPECTION_CHECKPOINTS = [
-	{ id: 1, text: '1. Model No, Brand Name, Manufacturer Name verify on Carton.' },
-	{ id: 2, text: '2. Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
-	{ id: 3, text: '3. Instruction Manual & Warranty Card verify in Carton.' },
-	{ id: 4, text: '4. Visual check of Sample (Free from dent, scratches, etc.)' },
-	{ id: 5, text: '5. Mechanical check (all parts assemble properly & fitment).' },
-	{ id: 6, text: '6. Check Power Cord length & plug top rating.' },
-	{ id: 7, text: '7. Continuity Check of Earthing (Value < 0.1 ohm).' },
-	{ id: 8, text: '8. High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
-	{ id: 9, text: '9. Earth Leakage Current Test (Value < 0.75 mA).' }
+	{ id: 1, text: 'Model No, Brand Name, Manufacturer Name verify on Carton.' },
+	{ id: 2, text: 'Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
+	{ id: 3, text: 'Instruction Manual & Warranty Card verify in Carton.' },
+	{ id: 4, text: 'Visual check of Sample (Free from dent, scratches, etc.)' },
+	{ id: 5, text: 'Mechanical check (all parts assemble properly & fitment).' },
+	{ id: 6, text: 'Check Power Cord length & plug top rating.' },
+	{ id: 7, text: 'Continuity Check of Earthing (Value < 0.1 ohm).' },
+	{ id: 8, text: 'High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
+	{ id: 9, text: 'Earth Leakage Current Test (Value < 0.75 mA).' }
 ];
 
 const getLocalTodayStr = () => {

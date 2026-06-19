@@ -11,6 +11,7 @@ import AssignedSamples from './AssignedSamples';
 import ManagerCapaManagement from './ManagerCapaManagement';
 import ManagerCapaDetails from './ManagerCapaDetails';
 import ManagerTestPlans from './ManagerTestPlans';
+import ManagerCompletedRequests from './ManagerCompletedRequests';
 
 // Import backend API services
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
@@ -508,6 +509,7 @@ export default function ManagerDashboard() {
 	else if (pathSegment.startsWith('capa-management/')) activeTab = 'capa-details';
 	else if (pathSegment === 'test-plans') activeTab = 'test-plans';
 	else if (pathSegment.startsWith('test-plans/')) activeTab = 'test-plan-details';
+	else if (pathSegment === 'completed-requests' || pathSegment.startsWith('completed-requests/')) activeTab = 'completed-requests';
 
 	// ==========================================
 	// UI NAVIGATION AND TITLE HEADERS
@@ -530,6 +532,8 @@ export default function ManagerDashboard() {
 				return { title: 'Test Plan Configurations', desc: 'Create, schedule, and allocate physical station testing parameters for successfully inspected samples.' };
 			case 'test-plan-details':
 				return { title: 'Configure Test Plan Specifications', desc: 'Define physical testing parameters, platforms grid, NABL cycles, and begin physical testing.' };
+			case 'completed-requests':
+				return { title: 'Completed & Failed Requests Registry', desc: 'Centralized view of finalized test reports, failed inspects, and evaluation details.' };
 			default:
 				return { title: 'Lab Operations Console', desc: 'NABL calibration and structural stress testing hub.' };
 		}
@@ -675,6 +679,13 @@ export default function ManagerDashboard() {
 								throw e;
 							}
 						}}
+					/>
+				);
+			case 'completed-requests':
+				return (
+					<ManagerCompletedRequests
+						requests={approvedRequests}
+						selectedRequestId={id}
 					/>
 				);
 

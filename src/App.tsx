@@ -60,6 +60,8 @@ function App() {
 				<Route path="/manager/capa-management/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans/:id" element={<ManagerDashboard />} />
+				<Route path="/manager/completed-requests" element={<ManagerDashboard />} />
+				<Route path="/manager/completed-requests/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/evaluate-checksheet/:planKey" element={<ManagerEvaluateChecksheet />} />
 				<Route path="/reports/preview" element={<ReportPreview />} />
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />

@@ -48,6 +48,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'assigned-samples';
 		} else if (path.includes('/manager/capa-management')) {
 			derivedActiveTab = 'capa-management';
+		} else if (path.includes('/manager/completed-requests')) {
+			derivedActiveTab = 'completed-requests';
 		} else if (path.includes('/manager/test-plans')) {
 			derivedActiveTab = 'test-plans';
 		} else {
@@ -130,6 +132,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
 			else if (itemId === 'capa-management') navigate('/manager/capa-management');
 			else if (itemId === 'test-plans') navigate('/manager/test-plans');
+			else if (itemId === 'completed-requests') navigate('/manager/completed-requests');
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
@@ -276,6 +279,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
 											{ id: 'test-plans', label: 'Test Plans', icon: Settings },
 											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
+											{ id: 'completed-requests', label: 'Completed/Failed Registry', icon: FolderOpen },
 										]
 									}
 								].map((cat, groupIdx) => (

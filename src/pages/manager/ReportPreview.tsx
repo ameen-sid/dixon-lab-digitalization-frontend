@@ -9,15 +9,15 @@ import { getUsers } from '../../services/operations/userService';
 
 
 const INSPECTION_CHECKPOINTS = [
-	{ id: 1, text: '1. Model No, Brand Name, Manufacturer Name verify on Carton.' },
-	{ id: 2, text: '2. Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
-	{ id: 3, text: '3. Instruction Manual & Warranty Card verify in Carton.' },
-	{ id: 4, text: '4. Visual check of Sample (Free from dent, scratches, etc.)' },
-	{ id: 5, text: '5. Mechanical check (all parts assemble properly & fitment).' },
-	{ id: 6, text: '6. Check Power Cord length & plug top rating.' },
-	{ id: 7, text: '7. Continuity Check of Earthing (Value < 0.1 ohm).' },
-	{ id: 8, text: '8. High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
-	{ id: 9, text: '9. Earth Leakage Current Test (Value < 0.75 mA).' }
+	{ id: 1, text: 'Model No, Brand Name, Manufacturer Name verify on Carton.' },
+	{ id: 2, text: 'Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
+	{ id: 3, text: 'Instruction Manual & Warranty Card verify in Carton.' },
+	{ id: 4, text: 'Visual check of Sample (Free from dent, scratches, etc.)' },
+	{ id: 5, text: 'Mechanical check (all parts assemble properly & fitment).' },
+	{ id: 6, text: 'Check Power Cord length & plug top rating.' },
+	{ id: 7, text: 'Continuity Check of Earthing (Value < 0.1 ohm).' },
+	{ id: 8, text: 'High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
+	{ id: 9, text: 'Earth Leakage Current Test (Value < 0.75 mA).' }
 ];
 
 export default function ReportPreview() {
@@ -322,7 +322,7 @@ export default function ReportPreview() {
 	const endOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt));
 
 	// Signatures
-	const testedBy = request?.engineerName || 'Quality Inspector';
+	const testedBy = request?.engineerName || request?.assignedTo?.name || 'Quality Inspector';
 	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
 	let managerWhoEvaluated = '';
 	if (type === 'request' && samplesList.length > 0) {
@@ -333,17 +333,24 @@ export default function ReportPreview() {
 			}
 		}
 	}
-	const dbManager = users.find(u => u.role === 'Lab Manager' || u.role === 'Head')?.name;
+	// Determine if NABL
+	const testTypeName = (request?.testType?.name || targetPlan?.testType?.name || '').toLowerCase();
+	const isNabl = testTypeName.includes('nabl');
+	const isReliability = testTypeName.includes('reliability');
+
+	const nablManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() === 'nabl');
+	const normalManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() !== 'nabl');
+	const dbManager = isNabl 
+		? (nablManager?.name || normalManager?.name || users.find(u => u.role === 'Head')?.name)
+		: (normalManager?.name || nablManager?.name || users.find(u => u.role === 'Head')?.name);
+
 	const userStr = localStorage.getItem('user');
 	const currentUser = userStr ? JSON.parse(userStr) : null;
 	const localManager = (currentUser?.role === 'Lab Manager' || currentUser?.role === 'Head') ? currentUser.name : null;
 	const fallbackManager = dbManager || localManager || 'Lab Manager';
 	const approvedBy = managerWhoEvaluated || targetPlan?.evaluatedBy || fallbackManager;
-
-	// Determine if NABL
-	const testTypeName = (request?.testType?.name || targetPlan?.testType?.name || '').toLowerCase();
-	const isNabl = testTypeName.includes('nabl');
-	const isReliability = testTypeName.includes('reliability');
+	const headUser = users.find(u => (u.role || '').toLowerCase() === 'head');
+	const headUserName = headUser?.name || (currentUser?.role?.toLowerCase() === 'head' ? currentUser.name : null) || 'Head of Laboratory';
 	const evaluationDate = (targetPlan && targetPlan.evaluatedAt) ? formatDate(targetPlan.evaluatedAt) : formatDate(request.updatedAt || request.createdAt);
 
 	// Collect specimen images
@@ -407,7 +414,7 @@ export default function ReportPreview() {
 		<div className="grid grid-cols-2 gap-10 text-[10px] font-bold text-zinc-700 mt-6 pt-4 border-t border-zinc-200">
 			<div>
 				<p className="text-[8px] uppercase tracking-wider text-zinc-400">Tested by</p>
-				<p className="text-zinc-900 font-black mt-1">({testedBy})</p>
+				<p className="text-zinc-900 font-black mt-1">({isReliability ? approvedBy : testedBy})</p>
 			</div>
 			<div className="text-right flex flex-col items-end">
 				<p className="text-[8px] uppercase tracking-wider text-zinc-400">Review & Approved by</p>
@@ -439,18 +446,8 @@ export default function ReportPreview() {
 						DIXON TECHNOLOGIES (INDIA) LIMITED
 					</h2>
 				</div>
-				<div className="col-span-3 p-1 flex items-center justify-center bg-white">
-					<div className="flex flex-col items-center justify-center">
-						<svg viewBox="0 0 100 100" className="w-10 h-10">
-							<circle cx="50" cy="50" r="46" fill="none" stroke="#000000" strokeWidth="2.5" />
-							<circle cx="50" cy="50" r="42" fill="none" stroke="#0284c7" strokeWidth="1.5" />
-							<circle cx="50" cy="50" r="34" fill="#f0f9ff" />
-							<text x="50" y="44" fontSize="10" fontWeight="900" textAnchor="middle" fill="#0369a1" fontFamily="sans-serif">NABL</text>
-							<text x="50" y="58" fontSize="6.5" fontWeight="900" textAnchor="middle" fill="#15803d" fontFamily="sans-serif">MEMBER</text>
-							<path d="M38,68 Q50,63 62,68" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" />
-						</svg>
-						<span className="text-[8px] font-black text-black tracking-tight mt-0.5 leading-none">TC-14279</span>
-					</div>
+				<div className="col-span-3 p-1.5 flex items-center justify-center bg-white">
+					<img src="/nabl-logo.png" alt="NABL Logo" className="h-16 object-contain" />
 				</div>
 			</div>
 			{/* Bottom Row: Metadata info */}
@@ -479,7 +476,7 @@ export default function ReportPreview() {
 			</div>
 			<div className="text-right flex flex-col items-end">
 				<p className="text-[8px] uppercase tracking-wider text-zinc-400 leading-none">Authorized Signatory</p>
-				<p className="text-zinc-900 font-black mt-1">({approvedBy})</p>
+				<p className="text-zinc-900 font-black mt-1">({headUserName})</p>
 				<p className="text-[8px] text-zinc-500 font-medium leading-none mt-0.5">Head of Laboratory</p>
 			</div>
 		</div>
@@ -1361,13 +1358,13 @@ export default function ReportPreview() {
 												<td className="p-2 uppercase">
 													{isReliability ? (
 														targetPlan.evaluationStatus === 'PASSED' ? (
-															<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'Complies. Meets specifications.'}</span>
+															<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
 														) : (
-															<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'Non-compliance. Failed test specs.'}</span>
+															<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
 														)
 													) : (() => {
 														const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
-														const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || targetPlan.evaluationRemarks || 'N/A';
+														const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || 'N/A';
 														return targetPlan.evaluationStatus === 'PASSED' ? (
 															<span className="text-emerald-700 font-bold">{engObs}</span>
 														) : (
@@ -1387,7 +1384,6 @@ export default function ReportPreview() {
 													? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
 													: null;
 												const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === idx);
-												const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || planObj?.evaluationRemarks || 'N/A';
 												return (
 													<tr key={idx} className="divide-x-2 divide-black">
 														<td className="p-2 text-center">{idx + 1}</td>
@@ -1400,21 +1396,22 @@ export default function ReportPreview() {
 														<td className="p-2 uppercase text-[9px]">
 															{isReliability ? (
 																sample.finalOutcome === 'PASSED' ? (
-																	<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'Complies. Meets specifications.'}</span>
+																	<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
 																) : sample.finalOutcome === 'FAILED' ? (
-																	<span className="text-rose-700 font-bold">{planObj?.evaluationRemarks || 'Non-compliance.'}</span>
+																	<span className="text-rose-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
 																) : (
 																	<span className="text-zinc-500 italic">Under Testing</span>
 																)
-															) : (
-																sample.finalOutcome === 'PASSED' ? (
+															) : (() => {
+																const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || 'N/A';
+																return sample.finalOutcome === 'PASSED' ? (
 																	<span className="text-emerald-700 font-bold">{engObs}</span>
 																) : sample.finalOutcome === 'FAILED' ? (
 																	<span className="text-rose-700 font-bold">{engObs}</span>
 																) : (
 																	<span className="text-zinc-500 italic">Under Testing</span>
-																)
-															)}
+																);
+															})()}
 														</td>
 														<td className="p-2 uppercase font-bold text-zinc-800 text-[9px]">
 															{eq ? eq.name : 'Not Assigned'}
