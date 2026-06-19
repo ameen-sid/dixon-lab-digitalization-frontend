@@ -320,7 +320,6 @@ export default function ReportPreview() {
 	const sampleQuantity = String(request.sampleQty || 1).padStart(2, '0');
 	const startOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt));
 	const endOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt));
-	const otherAspects = isAllInspectionFailed ? 'Nil' : (targetPlan?.remarks || 'Nil');
 
 	// Signatures
 	const testedBy = request?.engineerName || 'Quality Inspector';

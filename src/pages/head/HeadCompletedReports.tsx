@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Search, RefreshCw, Eye, FileText, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Search, RefreshCw, Eye, AlertTriangle } from 'lucide-react';
 import { getTestRequests } from '../../services/operations/testRequestService';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
