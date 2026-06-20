@@ -59,17 +59,21 @@ export default function HeadFailureDetails() {
 	const qty = request.sampleQty || 1;
 
 	// Check if already certified/completed, failed, or returned to testing
-	const isActioned = ['completed', 'failed', 'fail', 'retest', 'inspection_failed'].includes((request.status || '').toLowerCase());
+	const isActioned = ['completed', 'failed', 'fail', 'retest'].includes((request.status || '').toLowerCase()) ||
+		(((request.status || '').toLowerCase() === 'inspection_failed' || (request.status || '').toLowerCase() === 'inspection_completed') && 
+		 !(request.remarks || '').includes('Submitted to Head'));
 
 	const handleReturnToTesting = async () => {
 		if (processing) return;
 		setProcessing(true);
 		try {
 			// Update status in backend
+			const remarksText = request.remarks ? `${request.remarks}` : '';
+			const newRemarks = remarksText.replace('Submitted to Head', 'Returned for Retest');
 			const op = updateTestRequestStatus(
 				request.id,
 				'RETEST',
-				undefined
+				newRemarks
 			);
 			await op();
 
@@ -127,14 +131,14 @@ export default function HeadFailureDetails() {
 					? 'INSPECTION_FAILED'
 					: 'FAILED';
 
-			if (request.status !== 'INSPECTION_FAILED') {
-				const op = updateTestRequestStatus(
-					request.id,
-					targetStatus,
-					undefined
-				);
-				await op();
-			}
+			const remarksText = request.remarks ? `${request.remarks}` : '';
+			const newRemarks = remarksText.replace('Submitted to Head', 'Approved by Head');
+			const op = updateTestRequestStatus(
+				request.id,
+				targetStatus,
+				newRemarks
+			);
+			await op();
 			toast.success('Test request failure approved & returned to requester!');
 			navigate('/head/failure-decision');
 		} catch (e) {
@@ -338,12 +342,12 @@ export default function HeadFailureDetails() {
 						) : (
 							<div className="space-y-3.5">
 								<p className="text-xs text-zinc-655 font-semibold leading-relaxed">
-									{request.status === 'INSPECTION_COMPLETED'
+									{request.status === 'INSPECTION_COMPLETED' || request.status === 'INSPECTION_FAILED'
 										? 'All samples in this request have failed the inspection phase. Please review the results and return the request to the requester.'
 										: 'All samples in this request have failed testing. Please choose one of the options below to adjudicate this failure.'}
 								</p>
 
-								{request.status !== 'INSPECTION_COMPLETED' && (
+								{request.status !== 'INSPECTION_COMPLETED' && request.status !== 'INSPECTION_FAILED' && (
 									<button
 										onClick={handleReturnToTesting}
 										disabled={processing}

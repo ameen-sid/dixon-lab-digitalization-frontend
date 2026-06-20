@@ -1154,7 +1154,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							{/* Activation Footer */}
 							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
 								{isAllInspectionFailed && ['INSPECTION_COMPLETED', 'INSPECTION_FAILED'].includes(selectedReq.status) && (
-									(selectedReq.status === 'INSPECTION_COMPLETED' || (selectedReq.remarks || '').includes('Submitted to Head')) ? (
+									(selectedReq.status === 'INSPECTION_COMPLETED' || 
+									 (selectedReq.remarks || '').includes('Submitted to Head') || 
+									 (selectedReq.remarks || '').includes('Approved by Head') ||
+									 (selectedReq.remarks || '').includes('Returned for Retest')) ? (
 										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
 											Submitted to Head Panel
 										</span>
@@ -1165,7 +1168,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													try {
 														const remarksText = selectedReq.remarks ? `${selectedReq.remarks}` : '';
 														const newRemarks = remarksText.includes('Submitted to Head') ? remarksText : `Submitted to Head. ${remarksText}`;
-														await onUpdateStatus(selectedReq.id, 'INSPECTION_COMPLETED', newRemarks);
+														await onUpdateStatus(selectedReq.id, 'INSPECTION_FAILED', newRemarks);
 														toast.success('Failed request successfully submitted to Head Panel.');
 														navigate('/manager/test-plans');
 													} catch (e) {

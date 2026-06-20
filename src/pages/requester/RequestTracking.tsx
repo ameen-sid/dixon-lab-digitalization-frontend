@@ -670,6 +670,15 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 															</button>
 														</div>
 													)}
+													{report.status === 'FAILED' && selectedRequest.status === 'INSPECTION_FAILED' && !(selectedRequest.remarks || '').includes('Submitted to Head') && (
+														<button
+															type="button"
+															onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
+															className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5 active:scale-95"
+														>
+															<FileText className="w-2.5 h-2.5" /> View Report
+														</button>
+													)}
 												</div>
 											</div>
 										);

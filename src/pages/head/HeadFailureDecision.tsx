@@ -74,8 +74,11 @@ export default function HeadFailureDecision() {
 
 		const statusLower = (r.status || '').toLowerCase();
 		const isRetest = statusLower === 'retest';
-		const isCompleted = ['completed', 'failed', 'inspection_failed'].includes(statusLower);
-		const hasDecisionBeenTaken = isRetest || isCompleted;
+		const isCompleted = ['completed', 'failed'].includes(statusLower);
+		const isPendingHead = (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') &&
+							  (r.remarks || '').includes('Submitted to Head') &&
+							  !(r.remarks || '').includes('Approved by Head');
+		const hasDecisionBeenTaken = isRetest || isCompleted || ((statusLower === 'inspection_failed' || statusLower === 'inspection_completed') && !isPendingHead);
 
 		let matchesStatus = true;
 		if (statusFilter === 'PENDING_DECISION') {

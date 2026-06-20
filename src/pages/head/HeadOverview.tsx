@@ -91,8 +91,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 	const failedTestsPendingDecisionCount = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
 		
-		// If already finalized (completed, failed) or retest, it is no longer pending decision
-		if (['completed', 'failed', 'retest', 'inspection_failed'].includes(statusLower)) {
+		const isPendingHead = (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') &&
+							  (req.remarks || '').includes('Submitted to Head') &&
+							  !(req.remarks || '').includes('Approved by Head');
+		if (['completed', 'failed', 'retest'].includes(statusLower) || (statusLower === 'inspection_failed' && !isPendingHead)) {
 			return false;
 		}
 

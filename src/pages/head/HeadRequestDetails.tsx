@@ -816,6 +816,15 @@ export default function HeadRequestDetails() {
 															View More
 														</button>
 													)}
+													{report.status === 'FAILED' && request.status === 'INSPECTION_FAILED' && !(request.remarks || '').includes('Submitted to Head') && (
+														<button
+															type="button"
+															onClick={() => window.open(`/reports/preview?type=sample&key=${request.id}-sample-${index}`, '_blank')}
+															className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+														>
+															View Report
+														</button>
+													)}
 												</div>
 											</div>
 										);
