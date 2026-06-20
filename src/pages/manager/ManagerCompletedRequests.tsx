@@ -25,19 +25,21 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
 
-	// Filter requests to show only completed evaluations:
-	// status in ['COMPLETED', 'FAILED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'INSPECTION_FAILED']
-	const evaluatedRequests = requests.filter((r: any) =>
-		[
-			'COMPLETED',
-			'FAILED',
-			'TESTING_PASSED',
-			'TESTING_FAILED',
-			'TESTING_PARTIAL',
-			'TESTING_COMPLETED',
-			'INSPECTION_FAILED'
-		].includes((r.status || '').toUpperCase())
-	);
+	const evaluatedRequests = requests.filter((r: any) => {
+		const statusUpper = (r.status || '').toUpperCase();
+		const remarks = r.remarks || '';
+		
+		if (statusUpper === 'COMPLETED') {
+			return true;
+		}
+		if (statusUpper === 'FAILED' && remarks.includes('Approved by Head')) {
+			return true;
+		}
+		if (statusUpper === 'INSPECTION_FAILED' && remarks.includes('Approved by Head')) {
+			return true;
+		}
+		return false;
+	});
 
 	// Apply search and filter criteria
 	const filteredRequests = evaluatedRequests.filter((r: any) => {
