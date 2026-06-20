@@ -623,7 +623,7 @@ export default function ReportPreview() {
 												PHYSICAL & VISUAL INSPECTION REPORT
 											</h2>
 											<h2 className="text-[10px] font-bold tracking-tight uppercase text-zinc-650 leading-tight">
-												DIXON PERFORMANCE AND SAFETY LABORATORY
+												DIXON R&D TEST LAB
 											</h2>
 										</div>
 									</div>
@@ -810,7 +810,7 @@ export default function ReportPreview() {
 														<td colSpan={2} className="p-1.5 leading-normal">
 															<span className="text-zinc-550 block text-[9.5px]">Testing Laboratory Name & Address:</span>
 															<span className="text-black font-black uppercase text-[10px]">
-																PERFORMANCE AND SAFETY LAB, DIXON TECHNOLOGIES (INDIA) LIMITED
+																DIXON R&D TEST LAB, DIXON TECHNOLOGIES (INDIA) LIMITED
 																<br />
 																PLOT NO.: C-2/1, SELAQUI INDUSTRIAL AREA, DEHRADUN, UTTARAKHAND, INDIA, 248197
 															</span>
@@ -834,8 +834,7 @@ export default function ReportPreview() {
 														{ label: 'Trademark / Brand:', value: request.brandName },
 														{ label: 'Sample Quantity:', value: sampleQuantity },
 														{ label: 'Condition of the sample:', value: request.status === 'INSPECTION_FAILED' ? 'FAILED VISUAL INSPECTION' : 'GOOD / BRAND NEW' },
-														{ label: 'Reference test specification(s):', value: testSpecification },
-														{ label: 'Laboratory environmental conditions:', value: 'Temp: 25 ± 5 °C, Humidity: 50 ± 10 % RH' }
+														{ label: 'Reference test specification(s):', value: testSpecification }
 													].map(({ label, value }) => (
 														<tr key={label} className="divide-x-2 divide-black">
 															<td className="p-1.5 w-5/12 text-zinc-550 font-bold">{label}</td>
@@ -912,7 +911,12 @@ export default function ReportPreview() {
 													<tr className="divide-x-2 divide-black">
 														<td className="p-1.5 text-center">1</td>
 														<td className="p-1.5 uppercase">{testDescription}</td>
-														<td className="p-1.5 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
+														<td className="p-1.5 font-medium leading-normal">
+															{(() => {
+																const proto = testProtocols.find(p => String(p.id) === String(targetPlan?.testProtocolId));
+																return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
+															})()}
+														</td>
 														<td className="p-1.5 font-medium leading-normal">
 															{testProtocol?.judgementCriteria || 
 																'The test specimen is considered to have satisfactorily withstood the test.'}
@@ -932,7 +936,13 @@ export default function ReportPreview() {
 														<tr key={idx} className="divide-x-2 divide-black">
 															<td className="p-1.5 text-center">{idx + 1}</td>
 															<td className="p-1.5 uppercase">Sample #{idx + 1}: {testDescription}</td>
-															<td className="p-1.5 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
+															<td className="p-1.5 font-medium leading-normal text-[9px]">
+																{(() => {
+																	const planObj = plans[`${request.id}-sample-${idx}`];
+																	const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
+																	return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
+																})()}
+															</td>
 															<td className="p-1.5 font-medium leading-normal text-[9px]">
 																{testProtocol?.judgementCriteria || 
 																	'The test specimen is considered to have satisfactorily withstood the test.'}
@@ -1010,7 +1020,7 @@ export default function ReportPreview() {
 												<tbody className="divide-y-2 divide-black">
 													<tr className="divide-x-2 divide-black">
 														<td className="p-1.5 w-1/3 text-zinc-550">Accredited Laboratory Name</td>
-														<td className="p-1.5 w-2/3 text-black font-black uppercase">PERFORMANCE AND SAFETY LAB, DIXON TECHNOLOGIES (INDIA) LIMITED</td>
+														<td className="p-1.5 w-2/3 text-black font-black uppercase">DIXON R&D TEST LAB, DIXON TECHNOLOGIES (INDIA) LIMITED</td>
 													</tr>
 													<tr className="divide-x-2 divide-black">
 														<td className="p-1.5 text-zinc-550">Address</td>
@@ -1237,7 +1247,7 @@ export default function ReportPreview() {
 												<td className="p-2.5 leading-normal">
 													<span className="inline-block w-48 text-zinc-650 align-top">Testing laboratory and its address:</span>
 													<span className="text-black inline-block w-[calc(100%-12.5rem)] align-top font-semibold uppercase">
-														PERFORMANCE AND SAFETY LAB, DIXON TECHNOLOGIES (INDIA) LIMITED
+														DIXON R&D TEST LAB, DIXON TECHNOLOGIES (INDIA) LIMITED
 														<br />
 														C-2/1, SELAQUI INDUSTRIAL AREA DEHRADUN, UTTARAKHAND - 248197
 													</span>
@@ -1264,42 +1274,17 @@ export default function ReportPreview() {
 											<tr className="border-b-2 border-black">
 												<td className="p-2.5">
 													<span className="inline-block w-48 text-zinc-650">Test Result:</span> 
-													<span className="text-black font-semibold">
+													<span className="text-black font-extrabold uppercase">
 														{isAllInspectionFailed ? (
-															<span className="font-extrabold uppercase text-[#dc2626]">
-																The test item Failed as per the inspection specification(s).
-															</span>
+															<span className="text-[#dc2626]">FAILED</span>
+														) : isOverallPartial ? (
+															<span className="text-amber-600">PARTIAL</span>
+														) : isOverallPassed ? (
+															<span className="text-[#059669]">PASSED</span>
 														) : (
-															<>
-																The test item{' '}
-																{isOverallPartial ? (
-																	<>
-																		<span className="font-extrabold uppercase text-[#059669]">Passed</span>
-																		{' / '}
-																		<span className="font-extrabold uppercase text-[#dc2626]">Failed</span>
-																		<span className="text-amber-600 font-extrabold ml-1.5 uppercase tracking-wide text-[10px]">(Partial)</span>
-																	</>
-																) : (
-																	<>
-																		<span className="font-extrabold uppercase" style={{ textDecoration: isOverallPassed ? 'none' : 'line-through', color: isOverallPassed ? '#059669' : '#000' }}>Passed</span>
-																		{' / '}
-																		<span className="font-extrabold uppercase" style={{ textDecoration: !isOverallPassed ? 'none' : 'line-through', color: !isOverallPassed ? '#dc2626' : '#000' }}>Failed</span>
-																	</>
-																)}
-																{' as per the test specification(s).'}
-															</>
+															<span className="text-[#dc2626]">FAILED</span>
 														)}
 													</span>
-												</td>
-											</tr>
-											<tr className="border-b-2 border-black">
-												<td className="p-2.5">
-													<span className="inline-block w-48 text-zinc-650">Abbreviations:</span> <span className="text-black font-semibold">P(Pass) = Passed, F(Fail) = Failed, N/A = Not applicable</span>
-												</td>
-											</tr>
-											<tr className="border-b-2 border-black">
-												<td className="p-2.5">
-													<span className="inline-block w-48 text-zinc-650 font-bold">Laboratory Environmental conditions:</span> <span className="text-black font-semibold">{isAllInspectionFailed ? 'NA' : 'NA'}</span>
 												</td>
 											</tr>
 											<tr>
@@ -1350,7 +1335,12 @@ export default function ReportPreview() {
 											<tr className="divide-x-2 divide-black">
 												<td className="p-2 text-center">1</td>
 												<td className="p-2 uppercase">{testDescription}</td>
-												<td className="p-2 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
+												<td className="p-2 font-medium leading-relaxed">
+													{(() => {
+														const proto = testProtocols.find(p => String(p.id) === String(targetPlan?.testProtocolId));
+														return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
+													})()}
+												</td>
 												<td className="p-2 font-medium leading-relaxed">
 													{testProtocol?.judgementCriteria ||
 														'The test specimen is considered to have satisfactorily withstood the test if there is no flame and no glowing of the test specimen.'}
@@ -1388,7 +1378,12 @@ export default function ReportPreview() {
 													<tr key={idx} className="divide-x-2 divide-black">
 														<td className="p-2 text-center">{idx + 1}</td>
 														<td className="p-2 uppercase">{testDescription}</td>
-														<td className="p-2 uppercase">{request.testMethodRef || 'IEC 60695-11-5'}</td>
+														<td className="p-2 font-medium leading-relaxed text-[9px]">
+															{(() => {
+																const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
+																return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
+															})()}
+														</td>
 														<td className="p-2 font-medium leading-relaxed text-[9px]">
 															{testProtocol?.judgementCriteria ||
 																'The test specimen is considered to have satisfactorily withstood the test.'}
