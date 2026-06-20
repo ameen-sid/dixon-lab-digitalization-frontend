@@ -879,6 +879,42 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Quantity</p>
 										<p className="font-bold text-zinc-800 mt-1">{selectedReq.sampleQty || 1} Units</p>
 									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Family Model</p>
+										<p className="font-bold text-zinc-800 mt-1">{selectedReq.familyModel || 'None'}</p>
+									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Serial Number</p>
+										<p className="font-bold text-zinc-800 mt-1">{selectedReq.serialNumber || 'None'}</p>
+									</div>
+									<div>
+										<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Product Rating</p>
+										<p className="font-bold text-zinc-800 mt-1">{selectedReq.productRating || 'Not Specified'}</p>
+									</div>
+									{selectedReq.attachments && selectedReq.attachments.length > 0 && (
+										<div className="space-y-2 mt-2 pt-2 border-t border-zinc-100">
+											<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Attachments ({selectedReq.attachments.length})</p>
+											<div className="space-y-1.5">
+												{selectedReq.attachments.map((file: any) => (
+													<a
+														key={file.id}
+														href={`http://127.0.0.1:3001/${(() => {
+															const idx = file.filePath.toLowerCase().indexOf('uploads');
+															return idx !== -1 ? file.filePath.substring(idx).replace(/\\/g, '/') : file.filePath.replace(/\\/g, '/');
+														})()}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="flex items-center justify-between p-2 bg-zinc-50 hover:bg-zinc-100/70 border border-zinc-200 rounded-lg transition-all group cursor-pointer no-underline"
+													>
+														<div className="flex items-center gap-2 min-w-0">
+															<FileText className="w-4 h-4 text-indigo-650 shrink-0" />
+															<span className="text-[10px] font-bold text-zinc-800 truncate leading-snug">{file.fileName}</span>
+														</div>
+													</a>
+												))}
+											</div>
+										</div>
+									)}
 								</div>
 							</div>
 							<div className="border-t border-zinc-100 mt-4 pt-3 space-y-2">

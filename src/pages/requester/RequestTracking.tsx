@@ -359,7 +359,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 								<div className="border-t border-zinc-200 pt-2.5">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Statement of Conformity</p>
-									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.conformityStatement}</p>
+									<p className="font-bold text-zinc-900 mt-0.5">
+										{selectedRequest.conformityStatement === 'not Required' ? 'Not Required' : selectedRequest.conformityStatement}
+									</p>
 									{selectedRequest.conformityStatement === 'Required' && selectedRequest.decisionRule && (
 										<p className="text-[10px] text-zinc-655 font-semibold mt-1 bg-white p-2 border border-zinc-150 rounded-lg">
 											Decision Rule: <span className="font-bold text-zinc-800">

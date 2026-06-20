@@ -341,7 +341,11 @@ export default function ApprovedRequestDetails({
 							</div>
 							<div className="border-t border-zinc-100 pt-3">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Statement of Conformity</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.conformityStatement || 'Not Requested'}</p>
+								<p className="font-bold text-zinc-800 mt-1">
+									{request.conformityStatement === 'not Required'
+										? 'Not Required'
+										: request.conformityStatement || 'Not Requested'}
+								</p>
 								{request.conformityStatement === 'Required' && request.decisionRule && (
 									<div className="mt-1.5 p-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] text-zinc-700 font-bold">
 										Decision Rule: {request.decisionRule}

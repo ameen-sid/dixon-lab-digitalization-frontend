@@ -42,6 +42,15 @@ interface ApprovedRequest {
 	sampleInspections?: any[];
 	testType?: { id: number; name: string } | null;
 	testPlans?: any[];
+	familyModel?: string | null;
+	serialNumber?: string | null;
+	productRating?: string;
+	attachments?: any[];
+	witnessRequired?: string;
+	witnessPersonDetails?: string | null;
+	collectBack?: string;
+	conformityStatement?: string;
+	decisionRule?: string | null;
 }
 
 interface InspectionTask {
@@ -134,7 +143,18 @@ export default function ManagerDashboard() {
 				remarks: req.remarks,
 				sampleInspections: req.sampleInspections,
 				testType: req.testType,
-				testPlans: req.testPlans
+				testPlans: req.testPlans,
+				familyModel: req.familyModel,
+				serialNumber: req.serialNumber,
+				productRating: req.productRating,
+				attachments: req.attachments,
+				witnessRequired: req.witnessRequired,
+				witnessPersonDetails: req.witnessPersonDetails,
+				collectBack: req.collectBack,
+				conformityStatement: req.conformityStatement,
+				decisionRule: req.decisionRule,
+				customerContactDetails: req.customerContactDetails,
+				manufacturerNameAddress: req.manufacturerNameAddress
 			}));
 
 			// Perform an automatic check for completed requests that are still UNDER_TEST
@@ -296,7 +316,16 @@ export default function ManagerDashboard() {
 					manufacturerNameAddress: req.manufacturerNameAddress,
 					testType: req.testType,
 					testPlans: req.testPlans,
-					sampleInspections: req.sampleInspections
+					sampleInspections: req.sampleInspections,
+					familyModel: req.familyModel,
+					serialNumber: req.serialNumber,
+					productRating: req.productRating,
+					attachments: req.attachments,
+					witnessRequired: req.witnessRequired,
+					witnessPersonDetails: req.witnessPersonDetails,
+					collectBack: req.collectBack,
+					conformityStatement: req.conformityStatement,
+					decisionRule: req.decisionRule
 				};
 
 				const currentUser = userStr ? JSON.parse(userStr) : null;
