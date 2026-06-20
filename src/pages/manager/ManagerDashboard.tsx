@@ -51,6 +51,7 @@ interface ApprovedRequest {
 	collectBack?: string;
 	conformityStatement?: string;
 	decisionRule?: string | null;
+	assignedDate?: string | null;
 }
 
 interface InspectionTask {
@@ -154,7 +155,8 @@ export default function ManagerDashboard() {
 				conformityStatement: req.conformityStatement,
 				decisionRule: req.decisionRule,
 				customerContactDetails: req.customerContactDetails,
-				manufacturerNameAddress: req.manufacturerNameAddress
+				manufacturerNameAddress: req.manufacturerNameAddress,
+				assignedDate: req.assignedDate ? req.assignedDate.split('T')[0] : null
 			}));
 
 			// Perform an automatic check for completed requests that are still UNDER_TEST
@@ -325,7 +327,8 @@ export default function ManagerDashboard() {
 					witnessPersonDetails: req.witnessPersonDetails,
 					collectBack: req.collectBack,
 					conformityStatement: req.conformityStatement,
-					decisionRule: req.decisionRule
+					decisionRule: req.decisionRule,
+					assignedDate: req.assignedDate ? req.assignedDate.split('T')[0] : null
 				};
 
 				const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -636,7 +639,7 @@ export default function ManagerDashboard() {
 						sampleDescription: r.sampleDescription,
 						sampleQty: r.sampleQty || 1,
 						status: r.status,
-						assignedDate: r.approvedDate,
+						assignedDate: r.assignedDate || r.approvedDate,
 						engineerId: r.engineerId,
 						engineerName: r.engineerName,
 						testType: r.testType,

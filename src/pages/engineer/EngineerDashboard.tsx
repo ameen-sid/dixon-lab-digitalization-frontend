@@ -19,6 +19,7 @@ interface ApprovedRequest {
 	sampleQty: number;
 	status: string;
 	approvedDate: string;
+	assignedDate?: string | null;
 	engineerId?: string;
 	engineerName?: string;
 	inspectionResult?: string;
@@ -110,6 +111,7 @@ export default function EngineerDashboard() {
 				sampleQty: req.sampleQty || 1,
 				status: req.status,
 				approvedDate: req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0],
+				assignedDate: req.assignedDate ? req.assignedDate.split('T')[0] : null,
 
 				engineerId: req.assignedTo
 					? String(req.assignedTo.id)
@@ -217,7 +219,7 @@ export default function EngineerDashboard() {
 		sampleDescription: r.sampleDescription,
 		sampleQty: r.sampleQty,
 		status: r.status,
-		assignedDate: r.approvedDate,
+		assignedDate: r.assignedDate || r.approvedDate,
 		engineerId: r.engineerId,
 		engineerName: r.engineerName,
 		testType: r.testType,
