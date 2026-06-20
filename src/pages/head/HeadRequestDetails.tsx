@@ -154,7 +154,7 @@ export default function HeadRequestDetails() {
 			},
 			{
 				step: 'Testing execution',
-				date: request.status === 'COMPLETED'
+				date: (request.status === 'COMPLETED' || (testPlan && testPlan.evaluationStatus))
 					? 'Testing completed successfully'
 					: testPlan
 						? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
@@ -163,7 +163,10 @@ export default function HeadRequestDetails() {
 								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
 								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
 						: 'Awaiting start',
-				completed: request.status === 'COMPLETED' || !!(testPlan && new Date() > new Date(testPlan.endDate))
+				completed: request.status === 'COMPLETED' || 
+						   ['TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'COMPLETED', 'FAILED', 'FAIL'].includes(request.status) ||
+						   !!(testPlan && testPlan.evaluationStatus) ||
+						   !!(testPlan && new Date() > new Date(testPlan.endDate))
 			},
 			{
 				step: 'Reliability Evaluation',
@@ -666,14 +669,14 @@ export default function HeadRequestDetails() {
 												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
 													? formatCompletionDate(request.updatedAt || request.createdAt)
 													: 'Awaiting plan',
-												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!testPlan
 											},
 											{
 												step: 'Testing',
-												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+												date: (["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || (testPlan && testPlan.evaluationStatus))
 													? formatCompletionDate(request.updatedAt || request.createdAt)
 													: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
+												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(testPlan && testPlan.evaluationStatus)
 											},
 											{
 												step: request.status === 'TESTING_COMPLETED'

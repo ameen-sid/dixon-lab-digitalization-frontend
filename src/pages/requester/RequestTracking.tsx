@@ -138,7 +138,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 			...(!isSampleFailed ? [
 				{
 					step: 'Testing execution',
-					date: selectedRequest.status === 'COMPLETED'
+					date: (selectedRequest.status === 'COMPLETED' || (testPlan && testPlan.evaluationStatus))
 						? 'Testing completed successfully'
 						: testPlan
 							? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
@@ -147,7 +147,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
 									: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
 							: 'Awaiting start',
-					completed: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status) || !!(testPlan && new Date() > new Date(testPlan.endDate))
+					completed: ['COMPLETED', 'FAILED', 'FAIL', 'TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(selectedRequest.status) || 
+							   !!(testPlan && testPlan.evaluationStatus) ||
+							   !!(testPlan && new Date() > new Date(testPlan.endDate))
 				},
 				{
 					step: 'Reliability Evaluation',
