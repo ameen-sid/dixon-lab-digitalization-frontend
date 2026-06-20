@@ -132,7 +132,13 @@ export default function HeadFailureDetails() {
 					: 'FAILED';
 
 			const remarksText = request.remarks ? `${request.remarks}` : '';
-			const newRemarks = remarksText.replace('Submitted to Head', 'Approved by Head');
+			let newRemarks = remarksText;
+			if (remarksText.includes('Submitted to Head')) {
+				newRemarks = remarksText.replace('Submitted to Head', 'Approved by Head');
+			} else if (!remarksText.includes('Approved by Head')) {
+				newRemarks = remarksText ? `Approved by Head. ${remarksText}` : 'Approved by Head';
+			}
+
 			const op = updateTestRequestStatus(
 				request.id,
 				targetStatus,

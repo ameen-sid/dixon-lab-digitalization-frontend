@@ -32,7 +32,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		if (statusUpper === 'COMPLETED') {
 			return true;
 		}
-		if (statusUpper === 'FAILED' && remarks.includes('Approved by Head')) {
+		if (statusUpper === 'FAILED') {
 			return true;
 		}
 		if (statusUpper === 'INSPECTION_FAILED' && remarks.includes('Approved by Head')) {
