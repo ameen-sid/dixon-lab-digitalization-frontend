@@ -391,12 +391,17 @@ export default function EngineerTestReports({
 			formData.append('remarks', reportForm.observationResults);
 			formData.append('status', 'UNDER_REVIEW');
 
+			const userStr = localStorage.getItem('user');
+			const user = userStr ? JSON.parse(userStr) : null;
+
 			const checksPayload = {
 				specifiedRequirement: reportForm.specifiedRequirement,
 				eqName: reportForm.eqName,
 				eqMake: reportForm.eqMake,
 				eqModel: reportForm.eqModel,
-				eqCalibration: reportForm.eqCalibration
+				eqCalibration: reportForm.eqCalibration,
+				submittedById: user ? Number(user.id) : undefined,
+				submittedByName: user ? user.name : undefined
 			};
 
 			formData.append('checks', JSON.stringify(checksPayload));

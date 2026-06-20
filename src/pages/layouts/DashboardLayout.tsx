@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare } from 'lucide-react';
+import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
 interface DashboardLayoutProps {
@@ -69,6 +69,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'assigned-samples';
 		} else if (path.includes('/engineer/test-report')) {
 			derivedActiveTab = 'test-report';
+		} else if (path.includes('/engineer/filled-reports')) {
+			derivedActiveTab = 'filled-reports';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -146,6 +148,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
 			else if (itemId === 'assigned-samples') navigate('/engineer/assigned-samples');
 			else if (itemId === 'test-report') navigate('/engineer/test-report');
+			else if (itemId === 'filled-reports') navigate('/engineer/filled-reports');
 		} else if (userRoleLower === 'ceo') {
 			if (itemId === 'dashboard') navigate('/ceo/dashboard');
 		} else if (userRoleLower === 'inspector') {
@@ -332,6 +335,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
 											{ id: 'test-report', label: 'Test Reports', icon: FileText },
+											{ id: 'filled-reports', label: 'Filled Reports', icon: CheckCircle },
 										]
 									}
 								].map((cat, groupIdx) => (

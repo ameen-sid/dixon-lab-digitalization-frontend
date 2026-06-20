@@ -332,14 +332,31 @@ export default function ManagerEvaluateChecksheet() {
 			}
 
 			// 2. Save evaluation status and remarks to the backend database
-			const existingChecks = {};
+			const existingInspection = planInfo.request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx);
+			const existingChecks = (() => {
+				if (!existingInspection) return {};
+				try {
+					return typeof existingInspection.checks === 'string'
+						? JSON.parse(existingInspection.checks)
+						: (existingInspection.checks || {});
+				} catch (e) {
+					return {};
+				}
+			})();
+			
 			const formData = new FormData();
 			formData.append('sampleIndex', String(sampleIdx));
 			formData.append('allottedId', planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
-			formData.append('remarks', evaluationRemarks);
-			// Keep the original physical inspection status instead of overwriting it with test plan evaluation status
-			const currentInspectionStatus = planInfo.request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx)?.status || 'PASSED';
-			formData.append('status', currentInspectionStatus);
+			
+			// For reliability, we don't have engineer reports, so keep evaluationRemarks as comments
+			// For performance/NABL, we must preserve the engineer's submitted remarks/observations
+			const finalRemarks = isReliability ? evaluationRemarks : (existingInspection?.remarks || 'N/A');
+			formData.append('remarks', finalRemarks);
+			
+			// Keep the status as PASSED/FAILED based on physical inspection status, but set it back to PASSED if it was UNDER_REVIEW
+			const currentInspectionStatus = existingInspection?.status || 'PASSED';
+			const finalInspectionStatus = currentInspectionStatus === 'UNDER_REVIEW' ? 'PASSED' : currentInspectionStatus;
+			formData.append('status', finalInspectionStatus);
 			formData.append('checks', JSON.stringify(existingChecks));
 
 			const saveDbOp = saveSampleInspection(requestId, formData);

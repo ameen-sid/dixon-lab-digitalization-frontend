@@ -71,6 +71,7 @@ function App() {
 				<Route path="/engineer/assigned-samples/:planId/sample/:sampleIndex" element={<EngineerDashboard />} />
 				<Route path="/engineer/test-report" element={<EngineerDashboard />} />
 				<Route path="/engineer/test-report/:planKey" element={<EngineerDashboard />} />
+				<Route path="/engineer/filled-reports" element={<EngineerDashboard />} />
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
 				<Route path="/inspector/daily-checksheet" element={<InspectorDailyChecksheet />} />
 				<Route path="/inspector/checksheet/:planKey" element={<InspectorChecksheet />} />

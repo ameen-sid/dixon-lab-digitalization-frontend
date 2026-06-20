@@ -7,6 +7,7 @@ import { getTestRequests, updateTestRequestStatus } from '../../services/operati
 import EngineerDashboardOverview from './EngineerDashboardOverview';
 import EngineerAssignedSamples from './EngineerAssignedSamples';
 import EngineerTestReports from './EngineerTestReports';
+import EngineerFilledReports from './EngineerFilledReports';
 
 interface ApprovedRequest {
 	id: string;
@@ -199,6 +200,8 @@ export default function EngineerDashboard() {
 		activeTab = 'assigned-samples';
 	} else if (pathSegment === 'test-report' || pathSegment.startsWith('test-report/')) {
 		activeTab = 'test-report';
+	} else if (pathSegment === 'filled-reports' || pathSegment.startsWith('filled-reports/')) {
+		activeTab = 'filled-reports';
 	}
 
 	const myAssignedRequests = approvedRequests.filter(
@@ -259,6 +262,16 @@ export default function EngineerDashboard() {
 			);
 		}
 
+		if (activeTab === 'filled-reports') {
+			return (
+				<EngineerFilledReports
+					requests={allRequests}
+					currentEngineerId={currentEngineerId}
+					currentEngineerIsNabl={currentEngineerIsNabl}
+				/>
+			);
+		}
+
 		return (
 			<EngineerDashboardOverview
 				requests={myAssignedRequests}
@@ -269,6 +282,7 @@ export default function EngineerDashboard() {
 	const getLayoutTitle = () => {
 		if (activeTab === 'assigned-samples') return 'Assigned Stress Checklists';
 		if (activeTab === 'test-report') return 'Quality Test Reports';
+		if (activeTab === 'filled-reports') return 'My Filled Reports';
 		return 'Engineering Workspace';
 	};
 
@@ -279,6 +293,7 @@ export default function EngineerDashboard() {
 				? 'Log NABL test report observations.'
 				: 'Log safety and performance stress observations.';
 		}
+		if (activeTab === 'filled-reports') return 'View all the test plan reports you have submitted.';
 		return 'Log sensor logs, run physical sequences, and check status parameters.';
 	};
 
