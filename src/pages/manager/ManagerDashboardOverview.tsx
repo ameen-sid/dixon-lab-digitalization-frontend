@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
 	ClipboardList, 
 	AlertTriangle, 
@@ -42,6 +42,39 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 
 	// 6. Pending CAPA Reports
 	const pendingCapas = capas.filter(c => (c.status || '').toUpperCase() !== 'COMPLETED');
+
+	// 7. Pending Reports to Evaluate (submitted by engineer but not yet evaluated)
+	const pendingEvaluations = useMemo(() => {
+		const list: any[] = [];
+		requests.forEach(req => {
+			const testTypeName = String(req.testType?.name || '').toLowerCase();
+			const isReliability = testTypeName.includes('reliability');
+			if (isReliability) return; // Only non-reliability has reports submitted by engineer
+
+			const requestPlans = Array.isArray(req.testPlans) ? req.testPlans : [];
+			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
+
+			requestPlans.forEach((plan: any) => {
+				const isPlanEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+				if (isPlanEvaluated) return;
+
+				const sampleIdx = plan.sampleIndex;
+				const insp = inspections.find((si: any) => Number(si.sampleIndex) === Number(sampleIdx));
+				if (!insp) return;
+
+				const isSubmitted = (insp.status || '').toUpperCase() === 'UNDER_REVIEW';
+				if (isSubmitted) {
+					list.push({
+						req,
+						plan,
+						sampleIndex: sampleIdx,
+						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`
+					});
+				}
+			});
+		});
+		return list;
+	}, [requests]);
 
 	return (
 		<div className="space-y-8">
@@ -167,6 +200,70 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 										<tr>
 											<td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold">
 												All approved sample requests have been successfully allocated.
+											</td>
+										</tr>
+									)}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					{/* Test Reports Pending Evaluation */}
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
+						<div className="flex items-center justify-between">
+							<div>
+								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Reports Pending Evaluation</h3>
+								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Test reports submitted by engineers awaiting manager sign-off.</p>
+							</div>
+							<span className="text-[10px] font-extrabold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full">
+								{pendingEvaluations.length} Pending Evaluation
+							</span>
+						</div>
+
+						<div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
+							<table className="w-full text-xs">
+								<thead>
+									<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
+										<th className="py-2.5 px-4 text-left">Allotted ID</th>
+										<th className="py-2.5 px-4 text-left">Brand & Model</th>
+										<th className="py-2.5 px-4 text-left">Submitted By</th>
+										<th className="py-2.5 px-4 text-right">Action</th>
+									</tr>
+								</thead>
+								<tbody>
+									{pendingEvaluations.slice(0, 3).map((item, i) => {
+										const sampleInsp = item.req.sampleInspections?.find((si: any) => Number(si.sampleIndex) === Number(item.sampleIndex));
+										let checksObj: any = {};
+										try {
+											checksObj = typeof sampleInsp?.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp?.checks || {});
+										} catch (e) {
+											checksObj = {};
+										}
+										const engineerName = checksObj.submittedByName || item.req.engineerName || 'Engineer';
+										
+										return (
+											<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all">
+												<td className="py-3 px-4 font-bold text-indigo-700">{item.allottedId}</td>
+												<td className="py-3 px-4">
+													<p className="font-bold text-zinc-800">{item.req.brandName}</p>
+													<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{item.req.modelNo}</p>
+												</td>
+												<td className="py-3 px-4 font-semibold text-zinc-655">{engineerName}</td>
+												<td className="py-3 px-4 text-right">
+													<button 
+														onClick={() => navigate(`/manager/evaluate-checksheet/${item.req.id}-sample-${item.sampleIndex}`)}
+														className="text-[10px] font-bold text-amber-700 hover:text-white bg-amber-50 hover:bg-amber-600 border border-amber-250 px-2.5 py-1 rounded-lg cursor-pointer transition-all"
+													>
+														Evaluate
+													</button>
+												</td>
+											</tr>
+										);
+									})}
+									{pendingEvaluations.length === 0 && (
+										<tr>
+											<td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold">
+												No test reports pending evaluation.
 											</td>
 										</tr>
 									)}
@@ -319,6 +416,18 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Approved requests awaiting engineer allocation</p>
 								</div>
 								<span className="text-base font-extrabold text-[#11236a]">{approvedRequests.length}</span>
+							</div>
+
+							{/* Reports Pending Evaluation */}
+							<div 
+								onClick={() => navigate('/manager/test-plans')}
+								className="p-3 bg-amber-50/30 border border-amber-100 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-50/50 transition-all"
+							>
+								<div>
+									<h4 className="text-xs font-bold text-amber-700">Pending Evaluation</h4>
+									<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Submitted reports awaiting manager check</p>
+								</div>
+								<span className="text-base font-extrabold text-amber-700">{pendingEvaluations.length}</span>
 							</div>
 
 							{/* Inspected by Lab Manager */}
