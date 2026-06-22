@@ -90,6 +90,9 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 
 				if (!isSubmittedByMe) return;
 
+				const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+				if (!isReportSubmitted) return;
+
 				if (isReportStatus && hasReportData) {
 					list.push({
 						key: `${req.id}-sample-${sampleIdx}`,

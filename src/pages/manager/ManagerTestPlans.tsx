@@ -1010,7 +1010,13 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																	? 'bg-amber-50 text-amber-700 border border-amber-100'
 																	: 'bg-rose-50 text-rose-700 border border-rose-100'
 																}`}>
-																{report.status}
+																{report.status === 'PASSED'
+																	? 'Inspection Passed'
+																	: report.status === 'FAILED'
+																		? 'Inspection Failed'
+																		: report.status === 'UNDER_REVIEW'
+																			? 'Report Submitted'
+																			: report.status}
 															</span>
 														) : (
 															<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-zinc-100 text-zinc-450 rounded uppercase tracking-wider">

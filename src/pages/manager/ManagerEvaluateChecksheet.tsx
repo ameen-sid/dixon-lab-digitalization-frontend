@@ -208,10 +208,20 @@ export default function ManagerEvaluateChecksheet() {
 		// Specified requirements always comes from the test protocol's judgement criteria
 		const protocolJudgement = planInfo?.protocol?.judgementCriteria || 'N/A';
 
+		const checksObj = (() => {
+			if (!dbReport) return {};
+			try {
+				return typeof dbReport.checks === 'string' ? JSON.parse(dbReport.checks) : (dbReport.checks || {});
+			} catch (e) {
+				return {};
+			}
+		})();
+		const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+
 		return {
 			specifiedRequirement: protocolJudgement,
-			observationResults: dbReport?.remarks || 'N/A',
-			imagePaths: dbImages || [],
+			observationResults: isReportSubmitted ? (dbReport?.remarks || 'N/A') : 'Pending Submission',
+			imagePaths: isReportSubmitted ? (dbImages || []) : [],
 			eqName: getEqField('name', 'N/A'),
 			eqMake: getEqField('make', 'N/A'),
 			eqModel: getEqField('model', 'N/A'),
@@ -617,7 +627,11 @@ export default function ManagerEvaluateChecksheet() {
 									</div>
 									<div>
 										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Observation / Results</span>
-										<p className="text-zinc-900 mt-1.5 p-3.5 bg-[#f8fafc] rounded-xl whitespace-pre-wrap font-extrabold border border-zinc-150 leading-relaxed">
+										<p className={`mt-1.5 p-3.5 rounded-xl whitespace-pre-wrap border leading-relaxed ${
+											reportData?.observationResults === 'Pending Submission'
+												? 'text-zinc-400 bg-zinc-50 italic font-semibold border-zinc-100'
+												: 'text-zinc-900 bg-[#f8fafc] font-extrabold border-zinc-150'
+										}`}>
 											{reportData?.observationResults || 'N/A'}
 										</p>
 									</div>

@@ -124,6 +124,7 @@ export default function ReportPreview() {
 	let samplesList: any[] = [];
 	let isOverallPassed = true;
 	let isOverallPartial = false;
+	let isEvaluated = false;
 
 	if (type === 'sample' && key) {
 		const [reqIdStr, sampleIdxStr] = key.split('-sample-');
@@ -132,6 +133,7 @@ export default function ReportPreview() {
 		targetPlan = plans[key];
 		if (targetPlan) {
 			isOverallPassed = targetPlan.evaluationStatus === 'PASSED';
+			isEvaluated = ['PASSED', 'FAILED'].includes((targetPlan.evaluationStatus || '').toUpperCase());
 		}
 	} else if (type === 'request' && id) {
 		request = requests.find(r => String(r.id) === String(id));
@@ -140,6 +142,7 @@ export default function ReportPreview() {
 			let hasFailure = false;
 			let passedCount = 0;
 			let failedCount = 0;
+			let evaluatedCount = 0;
 			for (let i = 0; i < qty; i++) {
 				const cacheKey = `${request.id}-sample-${i}`;
 				const plan = plans[cacheKey];
@@ -153,17 +156,20 @@ export default function ReportPreview() {
 						remarks = inspectionReport.remarks || 'Failed visual verification check.';
 						hasFailure = true;
 						failedCount++;
+						evaluatedCount++;
 					} else if (inspectionReport.status === 'PASSED') {
 						if (plan) {
 							if (plan.evaluationStatus === 'PASSED') {
 								finalOutcome = 'PASSED';
 								remarks = plan.evaluationRemarks || 'Endurance specifications complied.';
 								passedCount++;
+								evaluatedCount++;
 							} else if (plan.evaluationStatus === 'FAILED') {
 								finalOutcome = 'FAILED';
 								remarks = plan.evaluationRemarks || 'Physical parameter out of tolerance.';
 								hasFailure = true;
 								failedCount++;
+								evaluatedCount++;
 							}
 						}
 					}
@@ -177,8 +183,9 @@ export default function ReportPreview() {
 					remarks
 				});
 			}
-			isOverallPassed = !hasFailure;
+			isOverallPassed = !hasFailure && (evaluatedCount === qty);
 			isOverallPartial = passedCount > 0 && failedCount > 0;
+			isEvaluated = evaluatedCount === qty;
 			
 			// Use first non-null sample's plan for metadata template fields
 			let foundPlan = null;
@@ -924,10 +931,12 @@ export default function ReportPreview() {
 														<td className="p-1.5 uppercase">
 															{targetPlan.evaluationStatus === 'PASSED' ? (
 																<span className="text-emerald-700 font-extrabold">Complies. Meets specifications.</span>
-															) : (
+															) : targetPlan.evaluationStatus === 'FAILED' ? (
 																<span className="text-rose-700 font-extrabold">
 																	Non-compliance: {targetPlan.evaluationRemarks || 'Failed test specs.'}
 																</span>
+															) : (
+																<span className="text-zinc-500 italic">Under Testing</span>
 															)}
 														</td>
 													</tr>
@@ -966,6 +975,8 @@ export default function ReportPreview() {
 									<div className="text-xs font-black text-black my-4">
 										{isAllInspectionFailed ? (
 											<span>Conclusion: Tested samples <span className="underline uppercase text-rose-700">does not meet</span> the inspection specification requirement.</span>
+										) : !isEvaluated ? (
+											<span>Conclusion: Tested samples evaluation is <span className="text-amber-600 font-black uppercase">PENDING / UNDER TESTING</span>.</span>
 										) : (
 											<>
 												Conclusion: Tested samples{' '}
@@ -1277,6 +1288,8 @@ export default function ReportPreview() {
 													<span className="text-black font-extrabold uppercase">
 														{isAllInspectionFailed ? (
 															<span className="text-[#dc2626]">FAILED</span>
+														) : !isEvaluated ? (
+															<span className="text-amber-600 font-bold">PENDING EVALUATION</span>
 														) : isOverallPartial ? (
 															<span className="text-amber-600">PARTIAL</span>
 														) : isOverallPassed ? (
@@ -1349,17 +1362,31 @@ export default function ReportPreview() {
 													{isReliability ? (
 														targetPlan.evaluationStatus === 'PASSED' ? (
 															<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
-														) : (
+														) : targetPlan.evaluationStatus === 'FAILED' ? (
 															<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
+														) : (
+															<span className="text-zinc-550 italic">Under Testing</span>
 														)
 													) : (() => {
 														const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
-														const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || 'N/A';
-														return targetPlan.evaluationStatus === 'PASSED' ? (
-															<span className="text-emerald-700 font-bold">{engObs}</span>
-														) : (
-															<span className="text-rose-700 font-bold">{engObs}</span>
-														);
+														const checksObj = (() => {
+															if (!sampleInsp) return {};
+															try {
+																return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
+															} catch (e) {
+																return {};
+															}
+														})();
+														const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+														const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
+
+														if (targetPlan.evaluationStatus === 'PASSED') {
+															return <span className="text-emerald-700 font-bold">{engObs}</span>;
+														} else if (targetPlan.evaluationStatus === 'FAILED') {
+															return <span className="text-rose-700 font-bold">{engObs}</span>;
+														} else {
+															return <span className="text-zinc-550 italic">Under Testing</span>;
+														}
 													})()}
 												</td>
 												<td className="p-2 uppercase font-bold text-zinc-800">
@@ -1398,7 +1425,16 @@ export default function ReportPreview() {
 																	<span className="text-zinc-500 italic">Under Testing</span>
 																)
 															) : (() => {
-																const engObs = sampleInsp?.testReport?.remarks || sampleInsp?.remarks || 'N/A';
+																const checksObj = (() => {
+																	if (!sampleInsp) return {};
+																	try {
+																		return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
+																	} catch (e) {
+																		return {};
+																	}
+																})();
+																const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+																const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 																return sample.finalOutcome === 'PASSED' ? (
 																	<span className="text-emerald-700 font-bold">{engObs}</span>
 																) : sample.finalOutcome === 'FAILED' ? (
