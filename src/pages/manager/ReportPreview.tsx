@@ -20,6 +20,22 @@ const INSPECTION_CHECKPOINTS = [
 	{ id: 9, text: 'Earth Leakage Current Test (Value < 0.75 mA).' }
 ];
 
+const parseChecksObj = (checksVal: any) => {
+	try {
+		return typeof checksVal === 'string' ? JSON.parse(checksVal) : (checksVal || {});
+	} catch {
+		return {};
+	}
+};
+
+const parseImagePaths = (imagesVal: any) => {
+	try {
+		return typeof imagesVal === 'string' ? JSON.parse(imagesVal) : imagesVal;
+	} catch {
+		return [];
+	}
+};
+
 export default function ReportPreview() {
 	const location = useLocation();
 
@@ -328,8 +344,32 @@ export default function ReportPreview() {
 	const startOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt));
 	const endOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt));
 
+	// Determine the engineer who submitted the report (from checks JSON metadata)
+	let engineerWhoSubmitted = '';
+	if (type === 'sample' && sampleIndex !== null) {
+		const insp = request?.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+		if (insp) {
+			const checksObj = parseChecksObj(insp.checks);
+			if (checksObj.submittedByName) {
+				engineerWhoSubmitted = checksObj.submittedByName;
+			}
+		}
+	} else if (request?.sampleInspections && request.sampleInspections.length > 0) {
+		// For request reports, find all unique engineers who submitted any of the inspections
+		const submittedNames = new Set<string>();
+		for (const insp of request.sampleInspections) {
+			const checksObj = parseChecksObj(insp.checks);
+			if (checksObj.submittedByName) {
+				submittedNames.add(checksObj.submittedByName);
+			}
+		}
+		if (submittedNames.size > 0) {
+			engineerWhoSubmitted = Array.from(submittedNames).join(' / ');
+		}
+	}
+
 	// Signatures
-	const testedBy = request?.engineerName || request?.assignedTo?.name || 'Quality Inspector';
+	const testedBy = engineerWhoSubmitted || request?.engineerName || request?.assignedTo?.name || 'Quality Inspector';
 	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
 	let managerWhoEvaluated = '';
 	if (type === 'request' && samplesList.length > 0) {
@@ -364,22 +404,6 @@ export default function ReportPreview() {
 	const beforeImages: string[] = [];
 	const afterImages: string[] = [];
 	const specimenImages: string[] = [];
-
-	const parseImagePaths = (imagesVal: any) => {
-		try {
-			return typeof imagesVal === 'string' ? JSON.parse(imagesVal) : imagesVal;
-		} catch {
-			return [];
-		}
-	};
-
-	const parseChecksObj = (checksVal: any) => {
-		try {
-			return typeof checksVal === 'string' ? JSON.parse(checksVal) : (checksVal || {});
-		} catch {
-			return {};
-		}
-	};
 
 	if (type === 'sample' && sampleIndex !== null) {
 		const insp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
