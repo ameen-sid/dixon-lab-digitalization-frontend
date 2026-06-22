@@ -330,7 +330,6 @@ export default function ReportPreview() {
 
 	const testDescription = isAllInspectionFailed ? 'NA' : (testCategory?.name || 'NEEDLE FLAME TEST');
 	const issueNo = '01';
-	const issueDate = formatDate(request.updatedAt || request.createdAt);
 	const revNo = '00';
 	const revDate = '00';
 	const docNo = 'PSL/QSP/07/TR-02';
@@ -590,7 +589,7 @@ export default function ReportPreview() {
 			{/* Bottom Row: Metadata info */}
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
 				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
-				<div className="py-1 px-1">ISSUE DATE: {issueDate}</div>
+				<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
 				<div className="py-1 px-1">REV NO: {revNo}</div>
 				<div className="py-1 px-1">REV DATE: {revDate}</div>
 				<div className="py-1 px-1">DOC NO: PSL/QSP/07/TR-01</div>
@@ -1060,15 +1059,27 @@ export default function ReportPreview() {
 																'The test specimen is considered to have satisfactorily withstood the test.'}
 														</td>
 														<td className="p-1.5 uppercase">
-															{targetPlan.evaluationStatus === 'PASSED' ? (
-																<span className="text-emerald-700 font-extrabold">Complies. Meets specifications.</span>
-															) : targetPlan.evaluationStatus === 'FAILED' ? (
-																<span className="text-rose-700 font-extrabold">
-																	Non-compliance: {targetPlan.evaluationRemarks || 'Failed test specs.'}
-																</span>
-															) : (
-																<span className="text-zinc-500 italic">Under Testing</span>
-															)}
+															{(() => {
+																const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+																const checksObj = (() => {
+																	if (!sampleInsp) return {};
+																	try {
+																		return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
+																	} catch (e) {
+																		return {};
+																	}
+																})();
+																const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+																const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
+
+																if (targetPlan.evaluationStatus === 'PASSED') {
+																	return <span className="text-emerald-700 font-extrabold">{engObs}</span>;
+																} else if (targetPlan.evaluationStatus === 'FAILED') {
+																	return <span className="text-rose-700 font-extrabold">{engObs}</span>;
+																} else {
+																	return <span className="text-zinc-500 italic">Under Testing</span>;
+																}
+															})()}
 														</td>
 													</tr>
 												) : (
@@ -1088,13 +1099,27 @@ export default function ReportPreview() {
 																	'The test specimen is considered to have satisfactorily withstood the test.'}
 															</td>
 															<td className="p-1.5 uppercase text-[9px]">
-																{sample.finalOutcome === 'PASSED' ? (
-																	<span className="text-emerald-700 font-extrabold">Complies. Passed</span>
-																) : sample.finalOutcome === 'FAILED' ? (
-																	<span className="text-rose-700 font-extrabold">Non-compliance: {sample.remarks}</span>
-																) : (
-																	<span className="text-zinc-500 italic">Under Testing</span>
-																)}
+																{(() => {
+																	const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === idx);
+																	const checksObj = (() => {
+																		if (!sampleInsp) return {};
+																		try {
+																			return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
+																		} catch (e) {
+																			return {};
+																		}
+																	})();
+																	const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+																	const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
+
+																	if (sample.finalOutcome === 'PASSED') {
+																		return <span className="text-emerald-700 font-extrabold">{engObs}</span>;
+																	} else if (sample.finalOutcome === 'FAILED') {
+																		return <span className="text-rose-700 font-extrabold">{engObs}</span>;
+																	} else {
+																		return <span className="text-zinc-500 italic">Under Testing</span>;
+																	}
+																})()}
 															</td>
 														</tr>
 													))
