@@ -15,7 +15,11 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 	const filledPlans = useMemo(() => {
 		const list: any[] = [];
 		requests.forEach(req => {
-			const isNabl = String(req.testType?.name || '').toLowerCase().includes('nabl');
+			const testTypeName = String(req.testType?.name || '').toLowerCase();
+			const isReliability = testTypeName.includes('reliability');
+			if (isReliability) return;
+
+			const isNabl = testTypeName.includes('nabl');
 			const departmentAllowed = currentEngineerIsNabl ? isNabl : !isNabl;
 			if (!departmentAllowed) return;
 
