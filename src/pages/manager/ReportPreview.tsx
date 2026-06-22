@@ -360,26 +360,132 @@ export default function ReportPreview() {
 	const headUserName = headUser?.name || (currentUser?.role?.toLowerCase() === 'head' ? currentUser.name : null) || 'Head of Laboratory';
 	const evaluationDate = (targetPlan && targetPlan.evaluatedAt) ? formatDate(targetPlan.evaluatedAt) : formatDate(request.updatedAt || request.createdAt);
 
-	// Collect specimen images
+	// Collect before and after images
+	const beforeImages: string[] = [];
+	const afterImages: string[] = [];
 	const specimenImages: string[] = [];
+
+	const parseImagePaths = (imagesVal: any) => {
+		try {
+			return typeof imagesVal === 'string' ? JSON.parse(imagesVal) : imagesVal;
+		} catch {
+			return [];
+		}
+	};
+
+	const parseChecksObj = (checksVal: any) => {
+		try {
+			return typeof checksVal === 'string' ? JSON.parse(checksVal) : (checksVal || {});
+		} catch {
+			return {};
+		}
+	};
+
 	if (type === 'sample' && sampleIndex !== null) {
 		const insp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
-		if (insp?.images) {
-			try {
-				const paths = typeof insp.images === 'string' ? JSON.parse(insp.images) : insp.images;
-				if (Array.isArray(paths)) specimenImages.push(...paths);
-			} catch (e) {}
+		if (insp) {
+			const checksObj = parseChecksObj(insp.checks);
+			const beforeList = Array.isArray(checksObj.beforeImages) ? checksObj.beforeImages : [];
+			const afterList = Array.isArray(checksObj.afterImages) ? checksObj.afterImages : [];
+			beforeImages.push(...beforeList);
+			afterImages.push(...afterList);
+
+			const paths = parseImagePaths(insp.images);
+			if (Array.isArray(paths)) {
+				specimenImages.push(...paths);
+			}
 		}
 	} else {
-		request.sampleInspections?.forEach((si: any) => {
-			if (si.images) {
-				try {
-					const paths = typeof si.images === 'string' ? JSON.parse(si.images) : si.images;
-					if (Array.isArray(paths)) specimenImages.push(...paths);
-				} catch (e) {}
+		request.sampleInspections?.forEach((insp: any) => {
+			const checksObj = parseChecksObj(insp.checks);
+			const beforeList = Array.isArray(checksObj.beforeImages) ? checksObj.beforeImages : [];
+			const afterList = Array.isArray(checksObj.afterImages) ? checksObj.afterImages : [];
+			beforeImages.push(...beforeList);
+			afterImages.push(...afterList);
+
+			const paths = parseImagePaths(insp.images);
+			if (Array.isArray(paths)) {
+				specimenImages.push(...paths);
 			}
 		});
 	}
+
+	const renderTestPicturesSection = (titleLabel: string = "Test Pictures:") => {
+		const hasBefore = beforeImages.length > 0;
+		const hasAfter = afterImages.length > 0;
+		const hasLegacy = specimenImages.length > 0;
+
+		if (!hasBefore && !hasAfter && !hasLegacy) {
+			return (
+				<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
+					<h4 className="text-center font-black text-[10px] underline mb-3 text-black uppercase">{titleLabel}</h4>
+					<div className="grid grid-cols-2 gap-4 justify-center">
+						<div className="border-2 border-dashed border-zinc-300 rounded-xl p-4 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
+							<span className="text-[9px] font-bold uppercase">Before Test Picture</span>
+						</div>
+						<div className="border-2 border-dashed border-zinc-300 rounded-xl p-4 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
+							<span className="text-[9px] font-bold uppercase">After Test Picture</span>
+						</div>
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50 space-y-4">
+				<h4 className="text-center font-black text-[10px] underline text-black uppercase">{titleLabel}</h4>
+				
+				{(hasBefore || hasAfter) ? (
+					<div className="grid grid-cols-2 gap-4">
+						{/* Before Test column */}
+						<div className="space-y-1.5 text-center">
+							<span className="text-[8px] font-extrabold text-zinc-500 uppercase tracking-wider block">Before Test</span>
+							<div className="grid grid-cols-1 gap-2">
+								{hasBefore ? (
+									beforeImages.slice(0, 1).map((img, index) => (
+										<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
+											<img src={img} alt={`Before Test ${index + 1}`} className="max-w-full max-h-full object-contain" />
+										</div>
+									))
+								) : (
+									<div className="border border-dashed border-zinc-300 rounded-lg bg-white aspect-[4/3] flex items-center justify-center text-zinc-400 text-[8px] font-bold uppercase">
+										No Before Picture
+									</div>
+								)}
+							</div>
+						</div>
+
+						{/* After Test column */}
+						<div className="space-y-1.5 text-center">
+							<span className="text-[8px] font-extrabold text-zinc-500 uppercase tracking-wider block">After Test</span>
+							<div className="grid grid-cols-1 gap-2">
+								{hasAfter ? (
+									afterImages.slice(0, 1).map((img, index) => (
+										<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
+											<img src={img} alt={`After Test ${index + 1}`} className="max-w-full max-h-full object-contain" />
+										</div>
+									))
+								) : (
+									<div className="border border-dashed border-zinc-300 rounded-lg bg-white aspect-[4/3] flex items-center justify-center text-zinc-400 text-[8px] font-bold uppercase">
+										No After Picture
+									</div>
+								)}
+							</div>
+						</div>
+					</div>
+				) : (
+					/* Legacy flat layout fallback */
+					<div className="grid grid-cols-2 gap-4 justify-center">
+						{specimenImages.slice(0, 2).map((img, index) => (
+							<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
+								<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
+							</div>
+						))}
+					</div>
+				)}
+			</div>
+		);
+	};
 
 	// Render custom page components (Non-NABL)
 	const renderHeader = (pageNo: number) => (
@@ -988,27 +1094,7 @@ export default function ReportPreview() {
 										)}
 									</div>
 
-									<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
-										<h4 className="text-center font-black text-[10px] underline mb-3 text-black uppercase">Test Specimen Picture:</h4>
-										<div className="grid grid-cols-2 gap-4 justify-center">
-											{specimenImages.length > 0 ? (
-												specimenImages.slice(0, 2).map((img, index) => (
-													<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-														<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
-													</div>
-												))
-											) : (
-												<>
-													<div className="border border-zinc-300 rounded-lg p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-														<span className="text-[9px] font-bold uppercase">Specimen Front View</span>
-													</div>
-													<div className="border border-zinc-300 rounded-lg p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-														<span className="text-[9px] font-bold uppercase">Specimen Rear View</span>
-													</div>
-												</>
-											)}
-										</div>
-									</div>
+									{renderTestPicturesSection("Test Pictures:")}
 								</div>
 								{renderNablFooter()}
 							</div>
@@ -1455,26 +1541,7 @@ export default function ReportPreview() {
 								</table>
 							</div>
 
-							<div className="border border-zinc-200 rounded-2xl p-4 bg-zinc-50/50">
-								<div className="grid grid-cols-2 gap-4 justify-center">
-									{specimenImages.length > 0 ? (
-										specimenImages.slice(0, 2).map((img, index) => (
-											<div key={index} className="border border-zinc-300 rounded-xl overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-												<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
-											</div>
-										))
-									) : (
-										<>
-											<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-												<span className="text-[10px] font-bold uppercase">Specimen Front View</span>
-											</div>
-											<div className="border-2 border-dashed border-zinc-300 rounded-xl p-6 bg-white aspect-[4/3] flex flex-col items-center justify-center text-zinc-400">
-												<span className="text-[10px] font-bold uppercase">Specimen Rear View</span>
-											</div>
-										</>
-									)}
-								</div>
-							</div>
+							{renderTestPicturesSection("Test Pictures:")}
 
 							<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-6 select-none">
 								***** END OF THE TEST REPORT *****

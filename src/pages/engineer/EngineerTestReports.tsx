@@ -21,6 +21,8 @@ interface TestReportForm {
 	specifiedRequirement: string;
 	observationResults: string;
 	specimenImages: string[];
+	beforeImages: string[];
+	afterImages: string[];
 	eqName: string;
 	eqMake: string;
 	eqModel: string;
@@ -37,7 +39,7 @@ export default function EngineerTestReports({
 	const { planKey } = useParams<{ planKey: string }>();
 
 	const normalizeSavedReport = (
-		report: Partial<TestReportForm> & { imagePaths?: string[]; specimenImages?: string[] } | any
+		report: Partial<TestReportForm> & { imagePaths?: string[]; specimenImages?: string[]; beforeImages?: string[]; afterImages?: string[] } | any
 	): TestReportForm => {
 		const storedImages = Array.isArray(report?.imagePaths)
 			? report.imagePaths
@@ -45,10 +47,15 @@ export default function EngineerTestReports({
 				? report.specimenImages.filter((item: string) => typeof item === 'string' && !item.startsWith('data:'))
 				: [];
 
+		const beforeImages = Array.isArray(report?.beforeImages) ? report.beforeImages : [];
+		const afterImages = Array.isArray(report?.afterImages) ? report.afterImages : [];
+
 		return {
 			specifiedRequirement: report?.specifiedRequirement || '',
 			observationResults: report?.observationResults || '',
 			specimenImages: storedImages,
+			beforeImages,
+			afterImages,
 			eqName: report?.eqName || '',
 			eqMake: report?.eqMake || '',
 			eqModel: report?.eqModel || '',
@@ -69,6 +76,8 @@ export default function EngineerTestReports({
 		specifiedRequirement: '',
 		observationResults: '',
 		specimenImages: [],
+		beforeImages: [],
+		afterImages: [],
 		eqName: '',
 		eqMake: '',
 		eqModel: '',
@@ -156,6 +165,8 @@ export default function EngineerTestReports({
 						specifiedRequirement: checksObj.specifiedRequirement || '',
 						observationResults: insp.remarks || '',
 						specimenImages: imagesArr,
+						beforeImages: checksObj.beforeImages || [],
+						afterImages: checksObj.afterImages || [],
 						eqName: checksObj.eqName || '',
 						eqMake: checksObj.eqMake || '',
 						eqModel: checksObj.eqModel || '',
@@ -257,6 +268,8 @@ export default function EngineerTestReports({
 				specifiedRequirement: testProtocol?.judgementCriteria || '',
 				observationResults: '',
 				specimenImages: [],
+				beforeImages: [],
+				afterImages: [],
 				eqName: eqDet.name,
 				eqMake: eqDet.make,
 				eqModel: eqDet.model,
@@ -265,31 +278,51 @@ export default function EngineerTestReports({
 		}
 	}, [planKey, loading, plans, requests, testProtocols, equipments, savedReports]);
 
-	const handleSpecimenImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+
+	const handleBeforeImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(e.target.files || []);
-
 		if (!files.length) return;
-
 		files.forEach(file => {
 			const reader = new FileReader();
-
 			reader.onloadend = () => {
 				setReportForm(prev => ({
 					...prev,
-					specimenImages: [...(prev.specimenImages || []), reader.result as string]
+					beforeImages: [...(prev.beforeImages || []), reader.result as string]
 				}));
 			};
-
 			reader.readAsDataURL(file);
 		});
-
 		e.target.value = '';
 	};
 
-	const removeSpecimenImage = (idx: number) => {
+	const removeBeforeImage = (idx: number) => {
 		setReportForm(prev => ({
 			...prev,
-			specimenImages: prev.specimenImages.filter((_, i) => i !== idx)
+			beforeImages: prev.beforeImages.filter((_, i) => i !== idx)
+		}));
+	};
+
+	const handleAfterImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(e.target.files || []);
+		if (!files.length) return;
+		files.forEach(file => {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				setReportForm(prev => ({
+					...prev,
+					afterImages: [...(prev.afterImages || []), reader.result as string]
+				}));
+			};
+			reader.readAsDataURL(file);
+		});
+		e.target.value = '';
+	};
+
+	const removeAfterImage = (idx: number) => {
+		setReportForm(prev => ({
+			...prev,
+			afterImages: prev.afterImages.filter((_, i) => i !== idx)
 		}));
 	};
 
@@ -401,15 +434,16 @@ export default function EngineerTestReports({
 				eqModel: reportForm.eqModel,
 				eqCalibration: reportForm.eqCalibration,
 				submittedById: user ? Number(user.id) : undefined,
-				submittedByName: user ? user.name : undefined
+				submittedByName: user ? user.name : undefined,
+				beforeImages: reportForm.beforeImages.filter(img => !img.startsWith('data:')),
+				afterImages: reportForm.afterImages.filter(img => !img.startsWith('data:'))
 			};
 
 			formData.append('checks', JSON.stringify(checksPayload));
 
-			reportForm.specimenImages.forEach((img, index) => {
+			reportForm.beforeImages.forEach((img, index) => {
 				if (typeof img === 'string' && img.startsWith('data:')) {
 					const match = img.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-
 					if (!match) return;
 
 					const mimeType = match[1];
@@ -422,10 +456,31 @@ export default function EngineerTestReports({
 					}
 
 					const ext = mimeType.split('/')[1] || 'png';
-
 					formData.append(
-						'images',
-						new File([bytes], `report-image-${index + 1}.${ext}`, { type: mimeType })
+						'beforeImages',
+						new File([bytes], `before-image-${index + 1}.${ext}`, { type: mimeType })
+					);
+				}
+			});
+
+			reportForm.afterImages.forEach((img, index) => {
+				if (typeof img === 'string' && img.startsWith('data:')) {
+					const match = img.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+					if (!match) return;
+
+					const mimeType = match[1];
+					const base64Data = match[2];
+					const byteString = atob(base64Data);
+					const bytes = new Uint8Array(byteString.length);
+
+					for (let i = 0; i < byteString.length; i++) {
+						bytes[i] = byteString.charCodeAt(i);
+					}
+
+					const ext = mimeType.split('/')[1] || 'png';
+					formData.append(
+						'afterImages',
+						new File([bytes], `after-image-${index + 1}.${ext}`, { type: mimeType })
 					);
 				}
 			});
@@ -550,40 +605,98 @@ export default function EngineerTestReports({
 								/>
 							</div>
 
-							<div className="flex flex-col gap-2">
-								<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Test Specimen Pictures</label>
+							<div className="space-y-6 pt-2">
+								<h5 className="text-[11px] font-black text-zinc-800 uppercase tracking-wider">Test Pictures</h5>
 
-								{!isSubmitted && (
-									<label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-xl p-5 cursor-pointer hover:bg-zinc-50 transition-all bg-zinc-50/50">
-										<Upload className="w-5 h-5 text-zinc-400" />
-										<span className="text-[11px] text-zinc-500 font-semibold">Click to upload multiple images</span>
-										<input
-											type="file"
-											multiple
-											accept="image/*"
-											onChange={handleSpecimenImagesChange}
-											className="hidden"
-										/>
-									</label>
-								)}
+								{/* Before Test Pictures */}
+								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
+									<label className="text-[10px] text-[#11236a] font-extrabold uppercase">Before Test Pictures</label>
+									{!isSubmitted && (
+										<label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-xl p-4 cursor-pointer hover:bg-zinc-50 transition-all bg-white">
+											<Upload className="w-4 h-4 text-zinc-400" />
+											<span className="text-[10px] text-zinc-500 font-semibold">Upload before pictures</span>
+											<input
+												type="file"
+												multiple
+												accept="image/*"
+												onChange={handleBeforeImagesChange}
+												className="hidden"
+											/>
+										</label>
+									)}
 
-								{reportForm.specimenImages.length > 0 && (
-									<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
-										{reportForm.specimenImages.map((src, idx) => (
-											<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group">
-												<img src={src} alt={`specimen-${idx}`} className="w-full h-full object-cover" />
+									{reportForm.beforeImages.length > 0 ? (
+										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+											{reportForm.beforeImages.map((src, idx) => (
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+													<img src={src} alt={`before-${idx}`} className="w-full h-full object-cover" />
+													{!isSubmitted && (
+														<button
+															type="button"
+															onClick={() => removeBeforeImage(idx)}
+															className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
+														>
+															<Trash2 className="w-4 h-4" />
+														</button>
+													)}
+												</div>
+											))}
+										</div>
+									) : (
+										<span className="text-[10px] text-zinc-400 italic">No before pictures uploaded.</span>
+									)}
+								</div>
 
-												{!isSubmitted && (
-													<button
-														type="button"
-														onClick={() => removeSpecimenImage(idx)}
-														className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
-													>
-														<Trash2 className="w-4 h-4" />
-													</button>
-												)}
-											</div>
-										))}
+								{/* After Test Pictures */}
+								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
+									<label className="text-[10px] text-[#11236a] font-extrabold uppercase">After Test Pictures</label>
+									{!isSubmitted && (
+										<label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-xl p-4 cursor-pointer hover:bg-zinc-50 transition-all bg-white">
+											<Upload className="w-4 h-4 text-zinc-400" />
+											<span className="text-[10px] text-zinc-500 font-semibold">Upload after pictures</span>
+											<input
+												type="file"
+												multiple
+												accept="image/*"
+												onChange={handleAfterImagesChange}
+												className="hidden"
+											/>
+										</label>
+									)}
+
+									{reportForm.afterImages.length > 0 ? (
+										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+											{reportForm.afterImages.map((src, idx) => (
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+													<img src={src} alt={`after-${idx}`} className="w-full h-full object-cover" />
+													{!isSubmitted && (
+														<button
+															type="button"
+															onClick={() => removeAfterImage(idx)}
+															className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
+														>
+															<Trash2 className="w-4 h-4" />
+														</button>
+													)}
+												</div>
+											))}
+										</div>
+									) : (
+										<span className="text-[10px] text-zinc-400 italic">No after pictures uploaded.</span>
+									)}
+								</div>
+
+								{/* Legacy Test Pictures */}
+								{reportForm.specimenImages.length > 0 && reportForm.beforeImages.length === 0 && reportForm.afterImages.length === 0 && (
+									<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
+										<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Legacy Test Pictures</label>
+										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+											{reportForm.specimenImages.map((src, idx) => (
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+													<img src={src} alt={`specimen-${idx}`} className="w-full h-full object-cover" />
+												</div>
+											))}
+										</div>
 									</div>
 								)}
 							</div>
@@ -630,8 +743,6 @@ export default function EngineerTestReports({
 
 							{[
 								{ label: 'Equipment Name', value: reportForm.eqName },
-								{ label: 'Make', value: reportForm.eqMake },
-								{ label: 'Model', value: reportForm.eqModel },
 								{ label: 'Calibration Due', value: reportForm.eqCalibration },
 							].map(({ label, value }) => (
 								<div key={label}>

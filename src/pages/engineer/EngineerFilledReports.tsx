@@ -65,14 +65,6 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 				].includes((insp.status || '').toUpperCase());
 
 				const getReportStatus = () => {
-					const reqStatus = (req.status || '').toUpperCase();
-					if (reqStatus === 'COMPLETED' || reqStatus === 'TESTING_PASSED') {
-						return 'PASSED';
-					}
-					if (reqStatus === 'FAILED' || reqStatus === 'TESTING_FAILED') {
-						return 'FAILED';
-					}
-
 					const evalStatus = (plan.evaluationStatus || '').toUpperCase();
 					if (evalStatus === 'PASSED') {
 						return 'PASSED';
@@ -80,8 +72,7 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 					if (evalStatus === 'FAILED') {
 						return 'FAILED';
 					}
-
-					return insp.status || 'UNDER_REVIEW';
+					return 'UNDER_REVIEW';
 				};
 
 				const isSubmittedByMe = checksObj.submittedById
@@ -93,6 +84,8 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 				const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 				if (!isReportSubmitted) return;
 
+				const isEvaluated = ['PASSED', 'FAILED'].includes((plan.evaluationStatus || '').toUpperCase());
+
 				if (isReportStatus && hasReportData) {
 					list.push({
 						key: `${req.id}-sample-${sampleIdx}`,
@@ -101,6 +94,7 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 						sampleIndex: sampleIdx,
 						remarks: insp.remarks || 'No remarks recorded.',
 						status: getReportStatus(),
+						isEvaluated,
 						createdAt: insp.updatedAt || insp.createdAt,
 						testType: req.testType,
 						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`,
@@ -256,8 +250,9 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 										</td>
 										<td className="py-4 px-6 text-right">
 											<button
+												disabled={!item.isEvaluated}
 												onClick={() => window.open('/reports/preview?type=sample&key=' + item.key, '_blank')}
-												className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
+												className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] disabled:bg-zinc-50 disabled:text-zinc-400 disabled:border-zinc-200 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-zinc-400 transition-all cursor-pointer outline-none"
 											>
 												<Eye className="w-3.5 h-3.5" /> View Report
 											</button>

@@ -222,6 +222,8 @@ export default function ManagerEvaluateChecksheet() {
 			specifiedRequirement: protocolJudgement,
 			observationResults: isReportSubmitted ? (dbReport?.remarks || 'N/A') : 'Pending Submission',
 			imagePaths: isReportSubmitted ? (dbImages || []) : [],
+			beforeImages: isReportSubmitted ? (checksObj.beforeImages || []) : [],
+			afterImages: isReportSubmitted ? (checksObj.afterImages || []) : [],
 			eqName: getEqField('name', 'N/A'),
 			eqMake: getEqField('make', 'N/A'),
 			eqModel: getEqField('model', 'N/A'),
@@ -648,14 +650,6 @@ export default function ManagerEvaluateChecksheet() {
 										<span className="text-zinc-800 mt-1 block font-black">{reportData?.eqName || 'N/A'}</span>
 									</div>
 									<div>
-										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Make / Brand</span>
-										<span className="text-zinc-800 mt-1 block">{reportData?.eqMake || 'N/A'}</span>
-									</div>
-									<div>
-										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Model / No.</span>
-										<span className="text-zinc-800 mt-1 block">{reportData?.eqModel || 'N/A'}</span>
-									</div>
-									<div>
 										<span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider block">Calibration Status</span>
 										<span className="text-indigo-700 mt-1 block font-extrabold">{reportData?.eqCalibration || 'N/A'}</span>
 									</div>
@@ -663,37 +657,106 @@ export default function ManagerEvaluateChecksheet() {
 							</div>
 						</div>
 
-						{/* Right: Test Specimen Pictures */}
-						<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-4 flex flex-col">
+						{/* Right: Test Pictures */}
+						<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-6 flex flex-col max-h-[700px] overflow-y-auto">
 							<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
-								Test Specimen Pictures ({reportData?.imagePaths?.length || 0})
+								Test Pictures
 							</h3>
-							{reportData?.imagePaths && reportData.imagePaths.length > 0 ? (
-								<div className="grid grid-cols-2 gap-4 overflow-y-auto max-h-[500px] pr-2">
-									{reportData.imagePaths.map((path: string, i: number) => (
-										<div key={i} className="group relative border border-zinc-200 rounded-2xl overflow-hidden aspect-video bg-zinc-50 shadow-sm hover:shadow transition-all duration-300">
-											<img 
-												src={path} 
-												alt={`Specimen ${i + 1}`} 
-												className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-											/>
-											<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-												<a 
-													href={path} 
-													target="_blank" 
-													rel="noopener noreferrer" 
-													className="px-3 py-1.5 bg-white text-zinc-800 text-[10px] font-extrabold rounded-lg shadow hover:bg-zinc-100 transition-colors"
-												>
-													View Full Image
-												</a>
+							
+							{((reportData?.beforeImages && reportData.beforeImages.length > 0) || 
+							  (reportData?.afterImages && reportData.afterImages.length > 0) || 
+							  (reportData?.imagePaths && reportData.imagePaths.length > 0)) ? (
+								<div className="space-y-6">
+									{/* Before Test Pictures */}
+									{reportData?.beforeImages && reportData.beforeImages.length > 0 && (
+										<div className="space-y-2.5">
+											<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">Before Test Pictures ({reportData.beforeImages.length})</span>
+											<div className="grid grid-cols-2 gap-3">
+												{reportData.beforeImages.map((path: string, i: number) => (
+													<div key={i} className="group relative border border-zinc-200 rounded-xl overflow-hidden aspect-video bg-zinc-50 shadow-sm hover:shadow transition-all duration-300">
+														<img 
+															src={path} 
+															alt={`Before Test ${i + 1}`} 
+															className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+														/>
+														<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+															<a 
+																href={path} 
+																target="_blank" 
+																rel="noopener noreferrer" 
+																className="px-3 py-1.5 bg-white text-zinc-800 text-[10px] font-extrabold rounded-lg shadow hover:bg-zinc-100 transition-colors"
+															>
+																View Full Image
+															</a>
+														</div>
+													</div>
+												))}
 											</div>
 										</div>
-									))}
+									)}
+
+									{/* After Test Pictures */}
+									{reportData?.afterImages && reportData.afterImages.length > 0 && (
+										<div className="space-y-2.5">
+											<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">After Test Pictures ({reportData.afterImages.length})</span>
+											<div className="grid grid-cols-2 gap-3">
+												{reportData.afterImages.map((path: string, i: number) => (
+													<div key={i} className="group relative border border-zinc-200 rounded-xl overflow-hidden aspect-video bg-zinc-50 shadow-sm hover:shadow transition-all duration-300">
+														<img 
+															src={path} 
+															alt={`After Test ${i + 1}`} 
+															className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+														/>
+														<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+															<a 
+																href={path} 
+																target="_blank" 
+																rel="noopener noreferrer" 
+																className="px-3 py-1.5 bg-white text-zinc-800 text-[10px] font-extrabold rounded-lg shadow hover:bg-zinc-100 transition-colors"
+															>
+																View Full Image
+															</a>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
+
+									{/* Legacy Test Pictures fallback */}
+									{reportData?.imagePaths && reportData.imagePaths.length > 0 && 
+									 (!reportData?.beforeImages || reportData.beforeImages.length === 0) && 
+									 (!reportData?.afterImages || reportData.afterImages.length === 0) && (
+										<div className="space-y-2.5">
+											<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">Legacy Test Pictures ({reportData.imagePaths.length})</span>
+											<div className="grid grid-cols-2 gap-3">
+												{reportData.imagePaths.map((path: string, i: number) => (
+													<div key={i} className="group relative border border-zinc-200 rounded-xl overflow-hidden aspect-video bg-zinc-50 shadow-sm hover:shadow transition-all duration-300">
+														<img 
+															src={path} 
+															alt={`Legacy Specimen ${i + 1}`} 
+															className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+														/>
+														<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+															<a 
+																href={path} 
+																target="_blank" 
+																rel="noopener noreferrer" 
+																className="px-3 py-1.5 bg-white text-zinc-800 text-[10px] font-extrabold rounded-lg shadow hover:bg-zinc-100 transition-colors"
+															>
+																View Full Image
+															</a>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
 								</div>
 							) : (
 								<div className="flex-1 border-2 border-dashed border-zinc-200 rounded-2xl flex flex-col items-center justify-center py-20 text-zinc-400">
 									<Clipboard className="w-10 h-10 mb-2 opacity-55" />
-									<p className="text-xs font-semibold">No specimen images uploaded for this report.</p>
+									<p className="text-xs font-semibold">No pictures uploaded for this report.</p>
 								</div>
 							)}
 						</div>
