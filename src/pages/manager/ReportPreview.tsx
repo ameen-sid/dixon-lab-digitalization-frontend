@@ -617,7 +617,8 @@ export default function ReportPreview() {
 				}
 				.a4-page {
 					width: 210mm;
-					height: 297mm;
+					min-height: 297mm;
+					height: auto;
 					padding: 15mm;
 					background: white;
 					box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -627,7 +628,6 @@ export default function ReportPreview() {
 					flex-direction: column;
 					justify-content: space-between;
 					position: relative;
-					overflow: hidden;
 				}
 				.a4-page.nabl-page {
 					padding: 10mm 12mm !important;
@@ -669,7 +669,8 @@ export default function ReportPreview() {
 						border: none !important;
 						box-shadow: none !important;
 						width: 210mm !important;
-						height: 297mm !important;
+						min-height: 297mm !important;
+						height: auto !important;
 						page-break-after: always !important;
 						padding: 15mm !important;
 						box-sizing: border-box !important;
