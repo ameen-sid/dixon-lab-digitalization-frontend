@@ -251,7 +251,7 @@ export default function HeadFailureDetails() {
 
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
-								const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
+								const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === idx);
 								const inspection = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === idx);
 
 								let statusColor = 'bg-zinc-50 text-zinc-500 border-zinc-200';
@@ -264,20 +264,10 @@ export default function HeadFailureDetails() {
 										statusText = 'FAILED INSPECTION';
 										resultText = inspection.remarks || 'Visual verification failed';
 									} else if (inspection.status === 'PASSED') {
-										if (planObj) {
-											if (planObj.evaluationStatus === 'PASSED') {
-												statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-												statusText = 'PASSED';
-												resultText = planObj.evaluationRemarks || 'Physical test specs complied';
-											} else if (planObj.evaluationStatus === 'FAILED') {
-												statusColor = 'bg-rose-50 text-rose-700 border-rose-100';
-												statusText = 'FAILED';
-												resultText = planObj.evaluationRemarks || 'Physical test failed';
-											} else {
-												statusColor = 'bg-blue-50 text-blue-700 border-blue-100';
-												statusText = 'UNDER TESTING';
-												resultText = 'Checksheet filled, awaiting manager approval';
-											}
+										if (samplePlansList.length > 0) {
+											statusColor = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+											statusText = 'INSPECTION PASSED';
+											resultText = 'Visual check complied';
 										} else {
 											statusColor = 'bg-indigo-50 text-indigo-700 border-indigo-100';
 											statusText = 'INSPECTION COMPLETED';
@@ -287,29 +277,72 @@ export default function HeadFailureDetails() {
 								}
 
 								return (
-									<div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 first:pt-0">
-										<div className="space-y-1">
-											<div className="flex items-center gap-2">
-												<span className="text-xs font-bold text-zinc-900">Sample #{idx + 1}</span>
-												<span className="text-[10px] text-zinc-400 font-bold">({inspection?.allottedId || `S-${idx + 1}`})</span>
-												<span className={`text-[8px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${statusColor}`}>
-													{statusText}
-												</span>
+									<div key={idx} className="flex flex-col gap-2.5 pt-4 border-b border-zinc-150/60 pb-4 last:border-0 last:pb-0">
+										<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+											<div className="space-y-1">
+												<div className="flex items-center gap-2">
+													<span className="text-xs font-bold text-zinc-900">Sample #{idx + 1}</span>
+													<span className="text-[10px] text-zinc-400 font-bold">({inspection?.allottedId || `S-${idx + 1}`})</span>
+													<span className={`text-[8px] font-black px-2 py-0.5 rounded border uppercase tracking-wider ${statusColor}`}>
+														{statusText}
+													</span>
+												</div>
+												{resultText && (
+													<p className="text-[10px] text-zinc-555 font-bold">
+														Result remarks: <span className="text-zinc-700 font-semibold">{resultText}</span>
+													</p>
+												)}
 											</div>
-											{resultText && (
-												<p className="text-[10px] text-zinc-555 font-bold">
-													Result remarks: <span className="text-zinc-700 font-semibold">{resultText}</span>
-												</p>
+
+											{inspection?.status === 'FAILED' && (
+												<button
+													onClick={() => window.open(`/reports/preview?type=sample&key=${request.id}-sample-${idx}`, '_blank')}
+													className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+												>
+													<FileText className="w-3.5 h-3.5" />
+													<span>Inspection Report</span>
+												</button>
 											)}
 										</div>
 
-										<button
-											onClick={() => window.open(`/reports/preview?type=sample&key=${request.id}-sample-${idx}`, '_blank')}
-											className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
-										>
-											<FileText className="w-3.5 h-3.5" />
-											<span>Individual Report</span>
-										</button>
+										{inspection?.status === 'PASSED' && samplePlansList.length > 0 && (
+											<div className="pl-4 border-l-2 border-zinc-150 space-y-2 mt-1">
+												{samplePlansList.map((p: any) => {
+													const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+													const planStatusColor = p.evaluationStatus === 'PASSED'
+														? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+														: p.evaluationStatus === 'FAILED'
+															? 'bg-rose-50 text-rose-700 border-rose-100'
+															: 'bg-blue-50 text-blue-700 border-blue-100';
+													return (
+														<div key={p.id} className="flex items-center justify-between gap-4 py-1 text-xs">
+															<div className="flex items-center gap-2">
+																<span className="font-bold text-zinc-500">
+																	{p.testType?.name || 'General'}:
+																</span>
+																<span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${planStatusColor}`}>
+																	{p.evaluationStatus || 'TESTING'}
+																</span>
+																{p.evaluationRemarks && (
+																	<span className="text-[10px] text-zinc-500 font-medium italic">
+																		({p.evaluationRemarks})
+																	</span>
+																)}
+															</div>
+															{isPlanEvaluated && (
+																<button
+																	onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
+																	className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+																>
+																	<FileText className="w-2.5 h-2.5" />
+																	<span>Report</span>
+																</button>
+															)}
+														</div>
+													);
+												})}
+											</div>
+										)}
 									</div>
 								);
 							})}

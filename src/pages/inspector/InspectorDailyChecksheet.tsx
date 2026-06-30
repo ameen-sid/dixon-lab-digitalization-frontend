@@ -53,7 +53,7 @@ export default function InspectorDailyChecksheet() {
 										platformNosParsed = [];
 									}
 								}
-								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+								parsedPlans[`${r.id}-plan-${p.id}`] = {
 									...p,
 									platformNos: platformNosParsed
 								};
@@ -102,7 +102,7 @@ export default function InspectorDailyChecksheet() {
 
 	// Filter active test plans to Reliability tests only active today
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
-		const [reqIdStr] = key.split('-sample-');
+		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		
 		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));

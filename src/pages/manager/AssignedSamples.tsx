@@ -83,7 +83,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	// Fetch and populate sample inspections from DB when activePlanId is set
 	useEffect(() => {
 		if (!activePlanId) return;
-		
+
 		const fetchDbInspections = async () => {
 			try {
 				const { getTestRequestDetails } = await import('../../services/operations/testRequestService');
@@ -91,13 +91,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				if (details && details.sampleInspections) {
 					const mapped: { [key: string]: SampleReport } = {};
 					details.sampleInspections.forEach((insp: any) => {
+						if (insp.testPlanId !== null && insp.testPlanId !== undefined) return;
 						let checksObj = {};
 						try {
 							checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : insp.checks;
 						} catch (e) {
 							checksObj = insp.checks || {};
 						}
-						
+
 						let imagesArr = [];
 						try {
 							imagesArr = typeof insp.images === 'string' ? JSON.parse(insp.images) : insp.images;
@@ -113,7 +114,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 							images: imagesArr  // server file paths
 						};
 					});
-					
+
 					setSampleInspections(prev => ({
 						...prev,
 						...mapped
@@ -123,7 +124,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				console.error('Failed to fetch sample inspections from database: ', err);
 			}
 		};
-		
+
 		fetchDbInspections();
 	}, [activePlanId]);
 
@@ -152,13 +153,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			const taskAny = task as any;
 			if (taskAny.sampleInspections) {
 				taskAny.sampleInspections.forEach((insp: any) => {
+					if (insp.testPlanId !== null && insp.testPlanId !== undefined) return;
 					let checksObj = {};
 					try {
 						checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
 					} catch (e) {
 						checksObj = {};
 					}
-					
+
 					let imagesArr = [];
 					try {
 						imagesArr = typeof insp.images === 'string' ? JSON.parse(insp.images) : (insp.images || []);
@@ -257,10 +259,10 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	// Filter tasks dynamically
 	const filteredTasks = tasks.filter(t => {
 		const q = searchQuery.toLowerCase();
-		const matchesSearch = t.brandName.toLowerCase().includes(q) || 
-			   t.requestId.toLowerCase().includes(q) || 
-			   t.modelNo.toLowerCase().includes(q) ||
-			   (t.testType?.name || '').toLowerCase().includes(q);
+		const matchesSearch = t.brandName.toLowerCase().includes(q) ||
+			t.requestId.toLowerCase().includes(q) ||
+			t.modelNo.toLowerCase().includes(q) ||
+			(t.testType?.name || '').toLowerCase().includes(q);
 
 		const status = getSampleInspectionStatus(t.id, t.sampleQty || 1, t.status);
 		const matchesStatus = statusFilter === 'All' || status === statusFilter;
@@ -362,6 +364,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			formData.append('remarks', remarks);
 			formData.append('status', status);
 			formData.append('checks', JSON.stringify(checks));
+			formData.append('existingImages', JSON.stringify(savedImagePaths));
 			pendingFiles.forEach(file => formData.append('images', file));
 			const savedRecord = await saveSampleInspection(activePlanId, formData)();
 
@@ -451,7 +454,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			<div className="space-y-6">
 				{/* Top Bar Navigation */}
 				<div className="flex items-center gap-3">
-					<button 
+					<button
 						onClick={() => navigate(`${basePath}/assigned-samples/${activePlanId}`)}
 						className="w-9 h-9 bg-white border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-555 hover:text-zinc-800 hover:shadow-sm transition-all cursor-pointer outline-none border-none shrink-0"
 					>
@@ -468,7 +471,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				</div>
 
 				<form onSubmit={handleSaveSampleReport} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					
+
 					{/* Left: The Checklist Table */}
 					<div className="lg:col-span-2 bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1.5">
 						<div className="overflow-x-auto">
@@ -526,7 +529,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 					{/* Right: Telemetry metadata and uploads */}
 					<div className="space-y-6">
-						
+
 						{/* Identification and remarks */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2">
@@ -537,7 +540,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									<label className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider block">
 										10. Sample ID Allotted
 									</label>
-									<input 
+									<input
 										type="text"
 										value={allottedId}
 										onChange={(e) => setAllottedId(e.target.value)}
@@ -551,7 +554,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									<label className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider block">
 										11. Remarks (If any)
 									</label>
-									<textarea 
+									<textarea
 										value={remarks}
 										onChange={(e) => setRemarks(e.target.value)}
 										placeholder="Add notes..."
@@ -567,14 +570,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 							<h4 className="text-xs font-bold text-zinc-955 uppercase tracking-wider border-b border-zinc-100 pb-2">
 								12. Sample Picture Upload
 							</h4>
-							
+
 							{/* Drag and Drop box */}
 							{!isViewOnly && (
-								<div 
+								<div
 									onClick={() => fileInputRef.current?.click()}
 									className="border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-2xl p-6 text-center cursor-pointer transition-all bg-zinc-50/50 hover:bg-zinc-50 flex flex-col items-center justify-center gap-2 group"
 								>
-									<input 
+									<input
 										type="file"
 										ref={fileInputRef}
 										onChange={handleImageChange}
@@ -718,7 +721,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				{/* Top bar */}
 				<div className="flex items-center justify-between gap-4">
 					<div className="flex items-center gap-3">
-						<button 
+						<button
 							onClick={() => navigate(`${basePath}/assigned-samples`)}
 							className="w-9 h-9 bg-white border border-zinc-200 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-800 hover:shadow-sm transition-all cursor-pointer outline-none border-none shrink-0"
 						>
@@ -757,7 +760,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						}
 						if (allCompleted) {
 							return (
-								<button 
+								<button
 									onClick={handleSubmitFinalInspectionPlan}
 									className="bg-[#11236a] text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all cursor-pointer active:scale-95 outline-none border-none flex items-center gap-1.5 shadow-sm"
 								>
@@ -807,13 +810,12 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 											<td className="py-4 px-6 font-bold text-zinc-400">Sample {sample.index + 1}</td>
 											<td className="py-4 px-6 font-extrabold text-zinc-900">{sample.id}</td>
 											<td className="py-4 px-6">
-												<span className={`text-[9px] font-bold px-2.5 py-0.5 border rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
-													sample.status === 'PASSED' 
-														? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-														: sample.status === 'FAILED'
-															? 'bg-rose-50 text-rose-600 border-rose-100'
-															: 'bg-zinc-50 text-zinc-550 border-zinc-200'
-												}`}>
+												<span className={`text-[9px] font-bold px-2.5 py-0.5 border rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${sample.status === 'PASSED'
+													? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+													: sample.status === 'FAILED'
+														? 'bg-rose-50 text-rose-600 border-rose-100'
+														: 'bg-zinc-50 text-zinc-550 border-zinc-200'
+													}`}>
 													{isPending ? (
 														<>Awaiting Setup</>
 													) : (
@@ -848,11 +850,10 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 											<td className="py-4 px-6 text-right">
 												<button
 													onClick={() => handleStartSampleInspection(sample.index, !isPending)}
-													className={`font-bold text-[11px] px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer outline-none active:scale-[0.98] ${
-														isPending
-															? 'bg-[#11236a] text-white border-none hover:bg-[#0c1a52]'
-															: 'bg-transparent text-zinc-700 hover:bg-zinc-50 border-zinc-200'
-													}`}
+													className={`font-bold text-[11px] px-3.5 py-1.5 rounded-lg border transition-all cursor-pointer outline-none active:scale-[0.98] ${isPending
+														? 'bg-[#11236a] text-white border-none hover:bg-[#0c1a52]'
+														: 'bg-transparent text-zinc-700 hover:bg-zinc-50 border-zinc-200'
+														}`}
 												>
 													{isPending ? 'Inspect Now' : 'View Result of Inspection'}
 												</button>
@@ -878,8 +879,8 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				{/* Search input (Left side) */}
 				<div className="relative w-full lg:max-w-xs">
 					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-555" />
-					<input 
-						type="text" 
+					<input
+						type="text"
 						placeholder="Search assigned inspection plans..."
 						value={searchQuery}
 						onChange={(e) => {
@@ -1007,15 +1008,14 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 												</span>
 											</td>
 											<td className="py-4 px-6 text-center">
-												<span className={`text-[9px] font-extrabold px-2.5 py-0.5 border rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${
-													inspStatus === 'Passed' 
-														? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-														: inspStatus === 'Failed'
-															? 'bg-rose-50 text-rose-700 border-rose-100'
-															: inspStatus === 'Partial'
-																? 'bg-amber-50 text-amber-705 border-amber-100 animate-pulse'
-																: 'bg-zinc-50 text-zinc-600 border-zinc-200'
-												}`}>
+												<span className={`text-[9px] font-extrabold px-2.5 py-0.5 border rounded-full uppercase tracking-wider inline-flex items-center gap-1 ${inspStatus === 'Passed'
+													? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+													: inspStatus === 'Failed'
+														? 'bg-rose-50 text-rose-700 border-rose-100'
+														: inspStatus === 'Partial'
+															? 'bg-amber-50 text-amber-705 border-amber-100 animate-pulse'
+															: 'bg-zinc-50 text-zinc-600 border-zinc-200'
+													}`}>
 													{inspStatus}
 												</span>
 											</td>
@@ -1028,7 +1028,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 															Certified Done
 														</span>
 													)}
-													<button 
+													<button
 														onClick={() => navigate(`${basePath}/assigned-samples/${task.id}`)}
 														className="bg-[#11236a] text-white font-bold text-[11px] px-3.5 py-1.5 rounded-lg hover:bg-[#0c1a52] transition-all cursor-pointer border-none outline-none active:scale-[0.97] flex items-center gap-1 shrink-0"
 													>

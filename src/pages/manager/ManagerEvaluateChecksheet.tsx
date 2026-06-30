@@ -91,10 +91,12 @@ export default function ManagerEvaluateChecksheet() {
 										platformNosParsed = [];
 									}
 								}
-								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+								const planData = {
 									...p,
 									platformNos: platformNosParsed
 								};
+								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = planData;
+								parsedPlans[`${r.id}-plan-${p.id}`] = planData;
 							}
 						}
 					}
@@ -138,7 +140,7 @@ export default function ManagerEvaluateChecksheet() {
 	const planInfo = (() => {
 		if (!planKey || !plans[planKey]) return null;
 		const plan = plans[planKey];
-		const [reqIdStr] = planKey.split('-sample-');
+		const reqIdStr = plan.testRequestId ? String(plan.testRequestId) : planKey.split('-')[0];
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
 		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
@@ -158,10 +160,14 @@ export default function ManagerEvaluateChecksheet() {
 	const reportData = (() => {
 		if (isReliability) return null;
 		
-		const [reqIdStr, sampleIdxStr] = (planKey || '').split('-sample-');
-		const sampleIdx = parseInt(sampleIdxStr, 10);
+		const planObj = planInfo?.plan;
+		if (!planObj) return null;
+
+		const sampleIdx = Number(planObj.sampleIndex);
+		const reqIdStr = planObj.testRequestId ? String(planObj.testRequestId) : (planKey ? planKey.split('-')[0] : '');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
-		const dbReport = request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx);
+		const dbReport = request?.sampleInspections?.find((r: any) => r.testPlanId === planObj.id) ||
+			request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx && !r.testPlanId);
 
 		if (!dbReport) return null;
 
@@ -173,7 +179,6 @@ export default function ManagerEvaluateChecksheet() {
 		}
 
 		// Derive equipment details live from plan.equipmentId -> equipments list
-		const planObj = planInfo?.plan;
 		const assignedEq = planObj?.equipmentId ? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId)) : null;
 
 		const getEqField = (field: string, fallback: string) => {
@@ -308,11 +313,12 @@ export default function ManagerEvaluateChecksheet() {
 			const currentUser = userStr ? JSON.parse(userStr) : null;
 			const managerName = currentUser ? currentUser.name : 'Lab Manager';
 
-			const [requestId, sampleIdxStr] = planKey.split('-sample-');
-			const sampleIdx = parseInt(sampleIdxStr, 10);
+			const requestId = String(planInfo.plan.testRequestId);
+			const sampleIdx = Number(planInfo.plan.sampleIndex);
 
 			// 1. Save TestPlan evaluation status to database
 			const planUpdateData = {
+				id: Number(planInfo.plan.id),
 				sampleIndex: sampleIdx,
 				testTypeId: Number(planInfo.plan.testTypeId),
 				testCategoryId: Number(planInfo.plan.testCategoryId),
@@ -400,7 +406,7 @@ export default function ManagerEvaluateChecksheet() {
 			const freshReqRes = await fetch(`/api/v1/test-requests/${requestId}`, {
 				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
-				if (!freshReqRes.ok) {
+			if (!freshReqRes.ok) {
 				throw new Error('Failed to fetch latest request details from database');
 			}
 			const freshRequest = (await freshReqRes.json()).data;
@@ -409,55 +415,68 @@ export default function ManagerEvaluateChecksheet() {
 				const qty = freshRequest.sampleQty || 1;
 				let allSamplesComplete = true;
 
+				// Verify all samples have their plans evaluated
+				// Get list of samples that passed inspection
+				const passedSampleIndices: number[] = [];
 				for (let i = 0; i < qty; i++) {
-					const plan = (freshRequest.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
-					const dbReport = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+					const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+					if (freshRequest.status === 'RETEST' || (report && report.status === 'PASSED')) {
+						passedSampleIndices.push(i);
+					}
+				}
 
-					if (plan) {
-						if (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED') {
-							continue;
-						}
-					} else if (dbReport) {
-						if (dbReport.status === 'FAILED') {
-							continue;
+				const requestPlans = freshRequest.testPlans || [];
+				if (passedSampleIndices.length > 0) {
+					// 1. Check that each passed sample has at least one plan
+					const hasPlansForAllPassed = passedSampleIndices.every(idx => 
+						requestPlans.some((p: any) => Number(p.sampleIndex) === idx)
+					);
+					if (!hasPlansForAllPassed) {
+						allSamplesComplete = false;
+					} else {
+						// 2. Check that every plan is evaluated
+						const allPlansEvaluated = requestPlans.every((p: any) => 
+							p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
+						);
+						if (!allPlansEvaluated) {
+							allSamplesComplete = false;
 						}
 					}
-					// If we reach here, this sample is not finished yet
-					allSamplesComplete = false;
-					break;
+				} else {
+					allSamplesComplete = true;
 				}
 
 				if (allSamplesComplete) {
 					let passedCount = 0;
 					let failedCount = 0;
 
-					for (let i = 0; i < qty; i++) {
-						const plan = (freshRequest.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
-						const dbReport = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+					requestPlans.forEach((p: any) => {
+						if (p.evaluationStatus === 'PASSED') {
+							passedCount++;
+						} else if (p.evaluationStatus === 'FAILED') {
+							failedCount++;
+						}
+					});
 
-						if (plan) {
-							if (plan.evaluationStatus === 'PASSED') {
-								passedCount++;
-							} else if (plan.evaluationStatus === 'FAILED') {
-								failedCount++;
-							}
-						} else if (dbReport) {
-							if (dbReport.status === 'FAILED') {
-								failedCount++;
-							}
+					// If there are failed inspections for samples without plans, count them as failed
+					for (let i = 0; i < qty; i++) {
+						const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+						if (report && report.status === 'FAILED') {
+							failedCount++;
 						}
 					}
 
 					let finalStatus = 'TESTING_COMPLETED';
-					if (passedCount === qty) {
+					const totalAllocationsCount = requestPlans.length + (qty - passedSampleIndices.length);
+
+					if (passedCount === totalAllocationsCount) {
 						finalStatus = 'TESTING_PASSED';
-					} else if (failedCount === qty) {
+					} else if (failedCount === totalAllocationsCount) {
 						finalStatus = 'TESTING_FAILED';
-					} else if (passedCount > 0 && failedCount > 0) {
+					} else {
 						finalStatus = 'TESTING_PARTIAL';
 					}
 
-					// All samples completed/evaluated, update request status to terminal state
 					const statusUpdateOp = updateTestRequestStatus(
 						Number(requestId),
 						finalStatus,

@@ -46,6 +46,7 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 		requests.forEach(r => {
 			if (r.sampleInspections) {
 				r.sampleInspections.forEach((insp: any) => {
+					if (insp.testPlanId !== null && insp.testPlanId !== undefined) return;
 					reportsMap[`${r.id}-sample-${insp.sampleIndex}`] = {
 						status: insp.status,
 						remarks: insp.remarks,

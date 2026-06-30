@@ -6,18 +6,19 @@ import { getTestCategories } from '../../services/operations/testCategoryService
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
 import { getUsers } from '../../services/operations/userService';
+import { getTestTypes } from '../../services/operations/testTypeService';
 
 
 const INSPECTION_CHECKPOINTS = [
-	{ id: 1, text: 'Model No, Brand Name, Manufacturer Name verify on Carton.' },
-	{ id: 2, text: 'Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
-	{ id: 3, text: 'Instruction Manual & Warranty Card verify in Carton.' },
-	{ id: 4, text: 'Visual check of Sample (Free from dent, scratches, etc.)' },
-	{ id: 5, text: 'Mechanical check (all parts assemble properly & fitment).' },
-	{ id: 6, text: 'Check Power Cord length & plug top rating.' },
-	{ id: 7, text: 'Continuity Check of Earthing (Value < 0.1 ohm).' },
-	{ id: 8, text: 'High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
-	{ id: 9, text: 'Earth Leakage Current Test (Value < 0.75 mA).' }
+	{ id: 1, text: 'Is Sample Description same as written on Test Request Form?' },
+	{ id: 2, text: 'Is Model / Identification same as written on Test Request Form?' },
+	{ id: 3, text: 'Is Product Serial Number same as written on Test Request Form?' },
+	{ id: 4, text: 'Is Label available on sample?' },
+	{ id: 5, text: 'Is Sample Rating same as written on Test Request Form?' },
+	{ id: 6, text: 'Is Trade Mark / Brand same as written on Test Request Form?' },
+	{ id: 7, text: 'Is User Manual provided along with Test Request Form?' },
+	{ id: 8, text: 'Is sample free from damage?' },
+	{ id: 9, text: 'Is all accessories received with sample?' }
 ];
 
 const parseChecksObj = (checksVal: any) => {
@@ -49,6 +50,7 @@ export default function ReportPreview() {
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
+	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [equipments, setEquipments] = useState<any[]>([]);
 	const [users, setUsers] = useState<any[]>([]);
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
@@ -61,6 +63,7 @@ export default function ReportPreview() {
 				const reqs = await getTestRequests()();
 				const categories = await getTestCategories()();
 				const protocols = await getTestProtocols()();
+				const types = await getTestTypes()();
 				const eqs = await getTestingEquipments({ limit: 1000 })();
 				const userList = await getUsers()();
 				const plansMap: { [key: string]: any } = {};
@@ -76,10 +79,12 @@ export default function ReportPreview() {
 										platformNosParsed = [];
 									}
 								}
-								plansMap[`${req.id}-sample-${plan.sampleIndex}`] = {
+								const planData = {
 									...plan,
 									platformNos: platformNosParsed
 								};
+								plansMap[`${req.id}-sample-${plan.sampleIndex}`] = planData;
+								plansMap[`${req.id}-plan-${plan.id}`] = planData;
 							});
 						}
 					});
@@ -89,6 +94,7 @@ export default function ReportPreview() {
 					setRequests(reqs || []);
 					setTestCategories(categories || []);
 					setTestProtocols(protocols || []);
+					setTestTypes(types || []);
 					setEquipments(eqs || []);
 					setUsers(userList || []);
 					setPlans(plansMap);
@@ -133,6 +139,25 @@ export default function ReportPreview() {
 		);
 	}
 
+	const findInspectionForPlan = (req: any, plan: any, sIdx: number | null) => {
+		if (!req || !req.sampleInspections || sIdx === null) return null;
+		if (plan && plan.id) {
+			const found = req.sampleInspections.find((si: any) => Number(si.testPlanId) === Number(plan.id));
+			if (found) return found;
+		}
+		return req.sampleInspections.find((si: any) => {
+			if (Number(si.sampleIndex) !== Number(sIdx)) return false;
+			if (si.testPlanId) return false;
+			let checksObj: any = {};
+			try {
+				checksObj = typeof si.checks === 'string' ? JSON.parse(si.checks) : (si.checks || {});
+			} catch {
+				checksObj = {};
+			}
+			return checksObj.specifiedRequirement !== undefined;
+		}) || null;
+	};
+
 	// 1. RESOLVE DATA DEPENDING ON REPORT TYPE
 	let request: any = null;
 	let sampleIndex: number | null = null;
@@ -142,11 +167,11 @@ export default function ReportPreview() {
 	let isOverallPartial = false;
 	let isEvaluated = false;
 
-	if (type === 'sample' && key) {
-		const [reqIdStr, sampleIdxStr] = key.split('-sample-');
-		sampleIndex = parseInt(sampleIdxStr, 10);
-		request = requests.find(r => String(r.id) === String(reqIdStr));
+	if ((type === 'sample' || type === 'plan') && key) {
 		targetPlan = plans[key];
+		const reqIdStr = targetPlan ? String(targetPlan.testRequestId) : key.split('-')[0];
+		request = requests.find(r => String(r.id) === String(reqIdStr));
+		sampleIndex = targetPlan ? Number(targetPlan.sampleIndex) : parseInt(key.split('-sample-')[1] || '0', 10);
 		if (targetPlan) {
 			isOverallPassed = targetPlan.evaluationStatus === 'PASSED';
 			isEvaluated = ['PASSED', 'FAILED'].includes((targetPlan.evaluationStatus || '').toUpperCase());
@@ -160,8 +185,7 @@ export default function ReportPreview() {
 			let failedCount = 0;
 			let evaluatedCount = 0;
 			for (let i = 0; i < qty; i++) {
-				const cacheKey = `${request.id}-sample-${i}`;
-				const plan = plans[cacheKey];
+				const samplePlans = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === i);
 				const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === i);
 				
 				let finalOutcome = 'PENDING';
@@ -174,15 +198,24 @@ export default function ReportPreview() {
 						failedCount++;
 						evaluatedCount++;
 					} else if (inspectionReport.status === 'PASSED') {
-						if (plan) {
-							if (plan.evaluationStatus === 'PASSED') {
+						if (samplePlans.length > 0) {
+							const allPassed = samplePlans.every((p: any) => p.evaluationStatus === 'PASSED');
+							const anyFailed = samplePlans.some((p: any) => p.evaluationStatus === 'FAILED');
+							const allEvaluated = samplePlans.every((p: any) => ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase()));
+
+							if (anyFailed) {
+								finalOutcome = 'FAILED';
+								remarks = samplePlans.map((p: any) => p.evaluationRemarks || 'Physical parameter out of tolerance.').join('; ');
+								hasFailure = true;
+								failedCount++;
+								evaluatedCount++;
+							} else if (allPassed) {
 								finalOutcome = 'PASSED';
-								remarks = plan.evaluationRemarks || 'Endurance specifications complied.';
+								remarks = samplePlans.map((p: any) => p.evaluationRemarks || 'Endurance specifications complied.').join('; ');
 								passedCount++;
 								evaluatedCount++;
-							} else if (plan.evaluationStatus === 'FAILED') {
+							} else if (allEvaluated) {
 								finalOutcome = 'FAILED';
-								remarks = plan.evaluationRemarks || 'Physical parameter out of tolerance.';
 								hasFailure = true;
 								failedCount++;
 								evaluatedCount++;
@@ -194,7 +227,8 @@ export default function ReportPreview() {
 					index: i,
 					allottedId: inspectionReport?.allottedId || `REQ-${request.id}-S${String(i + 1).padStart(2, '0')}`,
 					inspectionReport,
-					plan,
+					plan: samplePlans[0] || null,
+					plans: samplePlans,
 					finalOutcome,
 					remarks
 				});
@@ -206,8 +240,7 @@ export default function ReportPreview() {
 			// Use first non-null sample's plan for metadata template fields
 			let foundPlan = null;
 			for (let i = 0; i < qty; i++) {
-				const cacheKey = `${request.id}-sample-${i}`;
-				const plan = plans[cacheKey];
+				const plan = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
 				if (plan) {
 					foundPlan = plan;
 					break;
@@ -217,9 +250,13 @@ export default function ReportPreview() {
 		}
 	}
 
-	const inspectionReport = (type === 'sample' && request && sampleIndex !== null)
-		? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex)
-		: null;
+	const isSampleOrPlanReport = type === 'sample' || type === 'plan';
+	const inspectionReport = (isSampleOrPlanReport && request && targetPlan)
+		? (request.sampleInspections?.find((r: any) => Number(r.testPlanId) === Number(targetPlan.id)) ||
+		   request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId))
+		: ((isSampleOrPlanReport && request && sampleIndex !== null)
+			? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex)
+			: null);
 
 	const isSampleFailedInspection = inspectionReport?.status === 'FAILED';
 
@@ -245,7 +282,7 @@ export default function ReportPreview() {
 		}
 	})();
 
-	if (!request || (type === 'sample' && !targetPlan && !isSampleFailedInspection)) {
+	if (!request || ((type === 'sample' || type === 'plan') && !targetPlan && !isSampleFailedInspection)) {
 		return (
 			<div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center p-6 text-center">
 				<AlertTriangle className="w-12 h-12 text-rose-500 mb-2" />
@@ -256,7 +293,6 @@ export default function ReportPreview() {
 		);
 	}
 
-	const testCategory = targetPlan ? testCategories.find(c => String(c.id) === String(targetPlan.testCategoryId)) : null;
 	const testProtocol = targetPlan ? testProtocols.find(p => String(p.id) === String(targetPlan.testProtocolId)) : null;
 	const equipmentUsed = targetPlan ? equipments.find(e => String(e.id) === String(targetPlan.equipmentId)) : null;
 
@@ -311,7 +347,7 @@ export default function ReportPreview() {
 	// DQL constants & template variables
 	const isAllInspectionFailed = (() => {
 		if (!request) return false;
-		if (type === 'sample' && sampleIndex !== null) {
+		if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
 			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex);
 			if (inspectionReport && inspectionReport.status === 'FAILED') {
 				return true;
@@ -328,7 +364,18 @@ export default function ReportPreview() {
 		return failedInspCount === qty;
 	})();
 
-	const testDescription = isAllInspectionFailed ? 'NA' : (testCategory?.name || 'NEEDLE FLAME TEST');
+	const getTestDescription = (plan: any) => {
+		if (isAllInspectionFailed) return 'NA';
+		const planTestType = plan && testTypes.length > 0
+			? testTypes.find(t => String(t.id) === String(plan.testTypeId))
+			: null;
+		const planTestCategory = plan && testCategories.length > 0
+			? testCategories.find(c => String(c.id) === String(plan.testCategoryId))
+			: null;
+		return planTestType?.name || planTestCategory?.name || request?.testType?.name || 'NEEDLE FLAME TEST';
+	};
+
+	const testDescription = getTestDescription(targetPlan);
 	const issueNo = '01';
 	const revNo = '00';
 	const revDate = '00';
@@ -343,32 +390,64 @@ export default function ReportPreview() {
 	const startOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt));
 	const endOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt));
 
-	// Determine the engineer who submitted the report (from checks JSON metadata)
+	// Determine the engineer who submitted the report (from checks JSON metadata or TestPlan)
 	let engineerWhoSubmitted = '';
-	if (type === 'sample' && sampleIndex !== null) {
-		const insp = request?.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+	if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
+		const insp = findInspectionForPlan(request, targetPlan, sampleIndex);
 		if (insp) {
 			const checksObj = parseChecksObj(insp.checks);
 			if (checksObj.submittedByName) {
 				engineerWhoSubmitted = checksObj.submittedByName;
 			}
 		}
-	} else if (request?.sampleInspections && request.sampleInspections.length > 0) {
-		// For request reports, find all unique engineers who submitted any of the inspections
-		const submittedNames = new Set<string>();
-		for (const insp of request.sampleInspections) {
-			const checksObj = parseChecksObj(insp.checks);
-			if (checksObj.submittedByName) {
-				submittedNames.add(checksObj.submittedByName);
+		// Fallback to TestPlan.submittedBy
+		if (!engineerWhoSubmitted && targetPlan?.submittedBy) {
+			engineerWhoSubmitted = targetPlan.submittedBy;
+		}
+		// Fallback: search in all sampleInspections for this sampleIndex for any submittedByName
+		if (!engineerWhoSubmitted && request?.sampleInspections) {
+			const fallbackInsp = request.sampleInspections.find((si: any) => 
+				Number(si.sampleIndex) === sampleIndex && 
+				parseChecksObj(si.checks).submittedByName
+			);
+			if (fallbackInsp) {
+				engineerWhoSubmitted = parseChecksObj(fallbackInsp.checks).submittedByName;
 			}
 		}
+	}
+	
+	// If still empty or if we are loading the full request report, collect all engineer names from inspections/plans
+	if (!engineerWhoSubmitted && request) {
+		const submittedNames = new Set<string>();
+		
+		// 1. Collect from test plans
+		if (request.testPlans) {
+			for (const plan of request.testPlans) {
+				if (plan.submittedBy) {
+					submittedNames.add(plan.submittedBy);
+				}
+			}
+		}
+		
+		// 2. Collect from inspections
+		if (request.sampleInspections) {
+			for (const insp of request.sampleInspections) {
+				const checksObj = parseChecksObj(insp.checks);
+				if (checksObj.submittedByName) {
+					submittedNames.add(checksObj.submittedByName);
+				}
+			}
+		}
+		
 		if (submittedNames.size > 0) {
 			engineerWhoSubmitted = Array.from(submittedNames).join(' / ');
 		}
 	}
 
 	// Signatures
-	const testedBy = engineerWhoSubmitted || request?.engineerName || request?.assignedTo?.name || 'Quality Inspector';
+	const testedBy = engineerWhoSubmitted || 
+		(request?.assignedTo && request.assignedTo.role !== 'Lab Manager' && request.assignedTo.role !== 'Head' ? request.assignedTo.name : '') || 
+		'Quality Engineer';
 	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
 	let managerWhoEvaluated = '';
 	if (type === 'request' && samplesList.length > 0) {
@@ -380,9 +459,19 @@ export default function ReportPreview() {
 		}
 	}
 	// Determine if NABL
-	const testTypeName = (request?.testType?.name || targetPlan?.testType?.name || '').toLowerCase();
+	const planTestTypeObj = targetPlan?.testTypeId ? testTypes.find(t => String(t.id) === String(targetPlan.testTypeId)) : null;
+	const planTestTypeName = planTestTypeObj?.name || targetPlan?.testType?.name || '';
+	const requestTestTypeName = request?.testType?.name || '';
+	const testTypeName = (planTestTypeName || requestTestTypeName || '').toLowerCase();
 	const isNabl = testTypeName.includes('nabl');
-	const isReliability = testTypeName.includes('reliability');
+
+	const hasNonReliabilityPlans = request?.testPlans ? request.testPlans.some((p: any) => {
+		const pType = testTypes.find(t => String(t.id) === String(p.testTypeId));
+		const pTypeName = String(pType?.name || p.testType?.name || '').toLowerCase();
+		return !pTypeName.includes('reliability');
+	}) : false;
+
+	const isReliability = type === 'request' ? !hasNonReliabilityPlans : testTypeName.includes('reliability');
 
 	const nablManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() === 'nabl');
 	const normalManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() !== 'nabl');
@@ -404,8 +493,8 @@ export default function ReportPreview() {
 	const afterImages: string[] = [];
 	const specimenImages: string[] = [];
 
-	if (type === 'sample' && sampleIndex !== null) {
-		const insp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+	if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
+		const insp = findInspectionForPlan(request, targetPlan, sampleIndex);
 		if (insp) {
 			const checksObj = parseChecksObj(insp.checks);
 			const beforeList = Array.isArray(checksObj.beforeImages) ? checksObj.beforeImages : [];
@@ -433,7 +522,16 @@ export default function ReportPreview() {
 		});
 	}
 
+	const renderObservationCell = (engObs: string, _checksObj: any, statusColorClass: string) => {
+		return (
+			<div className="flex flex-col gap-1 text-left font-bold">
+				<span className={statusColorClass}>{engObs}</span>
+			</div>
+		);
+	};
+
 	const renderTestPicturesSection = (titleLabel: string = "Test Pictures:") => {
+		if (isReliability) return null;
 		const hasBefore = beforeImages.length > 0;
 		const hasAfter = afterImages.length > 0;
 		const hasLegacy = specimenImages.length > 0;
@@ -719,7 +817,7 @@ export default function ReportPreview() {
 							<p className="text-[10px] text-zinc-500 font-semibold">
 								{isSampleFailedInspection 
 									? `Inspection report for sample ${key}`
-									: type === 'sample' 
+									: (type === 'sample' || type === 'plan') 
 										? `Sample ID Allotment report for ${key}` 
 										: `Overall Request Report for ${request.requestId || `REQ-${request.id}`}`}
 							</p>
@@ -868,7 +966,7 @@ export default function ReportPreview() {
 													return (
 														<div key={idx} className="border border-zinc-300 rounded bg-white p-1 flex items-center justify-center aspect-[4/3] overflow-hidden">
 															<img
-																src={`http://127.0.0.1:3001/${relativePath}`}
+																src={`/${relativePath}`}
 																alt={`Inspection photo ${idx + 1}`}
 																className="max-w-full max-h-full object-contain"
 															/>
@@ -1021,7 +1119,7 @@ export default function ReportPreview() {
 											</thead>
 											<tbody className="divide-y-2 divide-black font-bold">
 												{isAllInspectionFailed ? (
-													type === 'sample' ? (
+													(type === 'sample' || type === 'plan') ? (
 														<tr className="divide-x-2 divide-black">
 															<td className="p-1.5 text-center">1</td>
 															<td className="p-1.5 uppercase">Visual & Physical Inspection</td>
@@ -1044,7 +1142,7 @@ export default function ReportPreview() {
 															</tr>
 														))
 													)
-												) : type === 'sample' ? (
+												) : (type === 'sample' || type === 'plan') ? (
 													<tr className="divide-x-2 divide-black">
 														<td className="p-1.5 text-center">1</td>
 														<td className="p-1.5 uppercase">{testDescription}</td>
@@ -1060,7 +1158,7 @@ export default function ReportPreview() {
 														</td>
 														<td className="p-1.5 uppercase">
 															{(() => {
-																const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+																const sampleInsp = findInspectionForPlan(request, targetPlan, sampleIndex);
 																const checksObj = (() => {
 																	if (!sampleInsp) return {};
 																	try {
@@ -1072,13 +1170,13 @@ export default function ReportPreview() {
 																const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 																const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 
-																if (targetPlan.evaluationStatus === 'PASSED') {
-																	return <span className="text-emerald-700 font-extrabold">{engObs}</span>;
-																} else if (targetPlan.evaluationStatus === 'FAILED') {
-																	return <span className="text-rose-700 font-extrabold">{engObs}</span>;
-																} else {
-																	return <span className="text-zinc-500 italic">Under Testing</span>;
-																}
+																const statusColorClass = targetPlan.evaluationStatus === 'PASSED'
+																	? 'text-emerald-700 font-extrabold'
+																	: targetPlan.evaluationStatus === 'FAILED'
+																		? 'text-rose-700 font-extrabold'
+																		: 'text-zinc-500 italic';
+
+																return renderObservationCell(engObs, checksObj, statusColorClass);
 															})()}
 														</td>
 													</tr>
@@ -1086,7 +1184,7 @@ export default function ReportPreview() {
 													samplesList.map((sample, idx) => (
 														<tr key={idx} className="divide-x-2 divide-black">
 															<td className="p-1.5 text-center">{idx + 1}</td>
-															<td className="p-1.5 uppercase">Sample #{idx + 1}: {testDescription}</td>
+															<td className="p-1.5 uppercase">Sample #{idx + 1}: {getTestDescription(plans[`${request.id}-sample-${idx}`])}</td>
 															<td className="p-1.5 font-medium leading-normal text-[9px]">
 																{(() => {
 																	const planObj = plans[`${request.id}-sample-${idx}`];
@@ -1100,7 +1198,8 @@ export default function ReportPreview() {
 															</td>
 															<td className="p-1.5 uppercase text-[9px]">
 																{(() => {
-																	const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === idx);
+																	const planObj = plans[`${request.id}-sample-${idx}`];
+																	const sampleInsp = findInspectionForPlan(request, planObj, idx);
 																	const checksObj = (() => {
 																		if (!sampleInsp) return {};
 																		try {
@@ -1112,13 +1211,13 @@ export default function ReportPreview() {
 																	const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 																	const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 
-																	if (sample.finalOutcome === 'PASSED') {
-																		return <span className="text-emerald-700 font-extrabold">{engObs}</span>;
-																	} else if (sample.finalOutcome === 'FAILED') {
-																		return <span className="text-rose-700 font-extrabold">{engObs}</span>;
-																	} else {
-																		return <span className="text-zinc-500 italic">Under Testing</span>;
-																	}
+																	const statusColorClass = sample.finalOutcome === 'PASSED'
+																		? 'text-emerald-700 font-extrabold'
+																		: sample.finalOutcome === 'FAILED'
+																			? 'text-rose-700 font-extrabold'
+																			: 'text-zinc-500 italic';
+
+																	return renderObservationCell(engObs, checksObj, statusColorClass);
 																})()}
 															</td>
 														</tr>
@@ -1474,13 +1573,13 @@ export default function ReportPreview() {
 												<td className="p-2 uppercase">Inspection Specification</td>
 												<td className="p-2">NA</td>
 												<td className="p-2 uppercase text-rose-700 font-bold">
-													{type === 'sample'
+													{(type === 'sample' || type === 'plan')
 														? (request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.')
 														: (samplesList[0]?.inspectionReport?.remarks || request.remarks || 'Failed inspection.')}
 												</td>
 												<td className="p-2 uppercase text-zinc-600">N/A</td>
 											</tr>
-										) : type === 'sample' ? (
+										) : (type === 'sample' || type === 'plan') ? (
 											<tr className="divide-x-2 divide-black">
 												<td className="p-2 text-center">1</td>
 												<td className="p-2 uppercase">{testDescription}</td>
@@ -1504,7 +1603,7 @@ export default function ReportPreview() {
 															<span className="text-zinc-550 italic">Under Testing</span>
 														)
 													) : (() => {
-														const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex);
+														const sampleInsp = findInspectionForPlan(request, targetPlan, sampleIndex);
 														const checksObj = (() => {
 															if (!sampleInsp) return {};
 															try {
@@ -1516,13 +1615,13 @@ export default function ReportPreview() {
 														const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 														const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 
-														if (targetPlan.evaluationStatus === 'PASSED') {
-															return <span className="text-emerald-700 font-bold">{engObs}</span>;
-														} else if (targetPlan.evaluationStatus === 'FAILED') {
-															return <span className="text-rose-700 font-bold">{engObs}</span>;
-														} else {
-															return <span className="text-zinc-550 italic">Under Testing</span>;
-														}
+														const statusColorClass = targetPlan.evaluationStatus === 'PASSED'
+															? 'text-emerald-700 font-bold'
+															: targetPlan.evaluationStatus === 'FAILED'
+																? 'text-rose-700 font-bold'
+																: 'text-zinc-555 italic';
+
+														return renderObservationCell(engObs, checksObj, statusColorClass);
 													})()}
 												</td>
 												<td className="p-2 uppercase font-bold text-zinc-800">
@@ -1536,11 +1635,14 @@ export default function ReportPreview() {
 												const eq = planObj?.equipmentId
 													? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
 													: null;
-												const sampleInsp = request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === idx);
+												const sampleInsp = findInspectionForPlan(request, planObj, idx);
+												const planTestTypeObj = planObj?.testTypeId && testTypes.find(t => String(t.id) === String(planObj.testTypeId));
+												const planTestTypeName = String(planTestTypeObj?.name || planObj?.testType?.name || request?.testType?.name || '').toLowerCase();
+												const isPlanReliability = planTestTypeName.includes('reliability');
 												return (
 													<tr key={idx} className="divide-x-2 divide-black">
 														<td className="p-2 text-center">{idx + 1}</td>
-														<td className="p-2 uppercase">{testDescription}</td>
+														<td className="p-2 uppercase">{getTestDescription(planObj)}</td>
 														<td className="p-2 font-medium leading-relaxed text-[9px]">
 															{(() => {
 																const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
@@ -1552,7 +1654,7 @@ export default function ReportPreview() {
 																'The test specimen is considered to have satisfactorily withstood the test.'}
 														</td>
 														<td className="p-2 uppercase text-[9px]">
-															{isReliability ? (
+															{isPlanReliability ? (
 																sample.finalOutcome === 'PASSED' ? (
 																	<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
 																) : sample.finalOutcome === 'FAILED' ? (
@@ -1571,13 +1673,14 @@ export default function ReportPreview() {
 																})();
 																const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 																const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
-																return sample.finalOutcome === 'PASSED' ? (
-																	<span className="text-emerald-700 font-bold">{engObs}</span>
-																) : sample.finalOutcome === 'FAILED' ? (
-																	<span className="text-rose-700 font-bold">{engObs}</span>
-																) : (
-																	<span className="text-zinc-500 italic">Under Testing</span>
-																);
+
+																const statusColorClass = sample.finalOutcome === 'PASSED'
+																	? 'text-emerald-700 font-bold'
+																	: sample.finalOutcome === 'FAILED'
+																		? 'text-rose-700 font-bold'
+																		: 'text-zinc-500 italic';
+
+																return renderObservationCell(engObs, checksObj, statusColorClass);
 															})()}
 														</td>
 														<td className="p-2 uppercase font-bold text-zinc-800 text-[9px]">

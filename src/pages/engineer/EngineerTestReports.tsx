@@ -104,13 +104,16 @@ export default function EngineerTestReports({
 					}
 				}
 
-				plansMap[`${req.id}-sample-${p.sampleIndex}`] = {
+				const planData = {
 					...p,
 					platformNos: platformNosParsed,
 					requestId: req.id,
 					requestStatus: req.status,
 					requestTestType: req.testType
 				};
+
+				plansMap[`${req.id}-sample-${p.sampleIndex}`] = planData;
+				plansMap[`${req.id}-plan-${p.id}`] = planData;
 			}
 		}
 
@@ -124,7 +127,8 @@ export default function EngineerTestReports({
 			if (!Array.isArray(req.sampleInspections)) return;
 
 			req.sampleInspections.forEach((insp: any) => {
-				const reportKey = `${req.id}-sample-${insp.sampleIndex}`;
+				const sampleKey = `${req.id}-sample-${insp.sampleIndex}`;
+				const planKeyVal = insp.testPlanId ? `${req.id}-plan-${insp.testPlanId}` : null;
 
 				let checksObj: any = {};
 				try {
@@ -161,7 +165,7 @@ export default function EngineerTestReports({
 				].includes((insp.status || '').toUpperCase());
 
 				if (isReportStatus && hasEngineerReportData) {
-					reportsMap[reportKey] = normalizeSavedReport({
+					const normalized = normalizeSavedReport({
 						specifiedRequirement: checksObj.specifiedRequirement || '',
 						observationResults: insp.remarks || '',
 						specimenImages: imagesArr,
@@ -173,6 +177,10 @@ export default function EngineerTestReports({
 						eqCalibration: checksObj.eqCalibration || '',
 						imagePaths: imagesArr
 					});
+					reportsMap[sampleKey] = normalized;
+					if (planKeyVal) {
+						reportsMap[planKeyVal] = normalized;
+					}
 				}
 			});
 		});
@@ -326,63 +334,70 @@ export default function EngineerTestReports({
 		}));
 	};
 
-	const nonReliabilityPlans = Object.entries(plans).map(([key, plan]) => {
-		const [reqIdStr, sampleIdxStr] = key.split('-sample-');
-		const sampleIdx = parseInt(sampleIdxStr, 10);
+	const nonReliabilityPlans = Object.entries(plans)
+		.filter(([key]) => key.includes('-plan-'))
+		.map(([key, plan]) => {
+			const reqIdStr = String(plan.testRequestId);
+			const sampleIdx = Number(plan.sampleIndex);
 
-		const request = requests.find(r => String(r.id) === String(reqIdStr));
+			const request = requests.find(r => String(r.id) === String(reqIdStr));
 
-		const masterTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
-		const testType = masterTestType || request?.testType || plan.requestTestType || null;
+			const masterTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
+			const testType = masterTestType || request?.testType || plan.requestTestType || null;
 
-		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
-		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
+			const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
+			const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
 
-		const testTypeName = String(testType?.name || '').toLowerCase();
+			const testTypeName = String(testType?.name || '').toLowerCase();
 
-		const isReliability = testTypeName.includes('reliability');
-		const isNabl = testTypeName.includes('nabl');
-		const isFilled = !!savedReports[key];
+			const isReliability = testTypeName.includes('reliability');
+			const isNabl = testTypeName.includes('nabl');
+			const isFilled = !!savedReports[key];
 
-		return {
-			key,
-			plan,
-			request,
-			sampleIndex: sampleIdx,
-			testType,
-			testCategory,
-			protocol,
-			isReliability,
-			isNabl,
-			isFilled,
-			testTypeName
-		};
-	}).filter(item => {
-		const requestStatus = (item.request?.status || '').toUpperCase();
-		const evaluationStatus = (item.plan?.evaluationStatus || '').toUpperCase();
+			return {
+				key,
+				plan,
+				request,
+				sampleIndex: sampleIdx,
+				testType,
+				testCategory,
+				protocol,
+				isReliability,
+				isNabl,
+				isFilled,
+				testTypeName
+			};
+		}).filter(item => {
+			const requestStatus = (item.request?.status || '').toUpperCase();
+			const evaluationStatus = (item.plan?.evaluationStatus || '').toUpperCase();
 
-		const isActiveTestingRequest = [
-			'UNDER_TEST',
-			'UNDER_TESTING'
-		].includes(requestStatus);
+			const isActiveTestingRequest = [
+				'UNDER_TEST',
+				'UNDER_TESTING',
+				'TESTING_PASSED',
+				'TESTING_FAILED',
+				'TESTING_PARTIAL',
+				'RETEST',
+				'INSPECTION_COMPLETED'
+			].includes(requestStatus);
 
-		const isNotEvaluated = ![
-			'PASSED',
-			'FAILED'
-		].includes(evaluationStatus);
+			const isNotEvaluated = ![
+				'PASSED',
+				'FAILED'
+			].includes(evaluationStatus);
 
-		const departmentAllowed = currentEngineerIsNabl
-			? item.isNabl
-			: !item.isNabl;
+			const departmentAllowed = currentEngineerIsNabl
+				? item.isNabl
+				: !item.isNabl;
 
-		return (
-			item.request &&
-			isActiveTestingRequest &&
-			!item.isReliability &&
-			isNotEvaluated &&
-			departmentAllowed
-		);
-	});
+			return (
+				item.request &&
+				isActiveTestingRequest &&
+				!item.isReliability &&
+				isNotEvaluated &&
+				departmentAllowed
+			);
+		});
 
 	const filteredPlans = nonReliabilityPlans.filter(item => {
 		const q = searchQuery.toLowerCase();
@@ -407,8 +422,8 @@ export default function EngineerTestReports({
 		if (!planKey || !plans[planKey]) return;
 
 		const plan = plans[planKey];
-		const [reqIdStr, sampleIdxStr] = planKey.split('-sample-');
-		const sampleIdx = parseInt(sampleIdxStr, 10);
+		const reqIdStr = String(plan.testRequestId);
+		const sampleIdx = Number(plan.sampleIndex);
 
 		if (!reportForm.observationResults.trim()) {
 			toast.error('Please fill in Observation / Results.');
@@ -723,7 +738,7 @@ export default function EngineerTestReports({
 								<div>
 									<span className="text-[9px] text-zinc-400 font-bold block uppercase">Allotted ID</span>
 									<span className="text-[#11236a] font-black">
-										{plan.allottedId || `REQ-${reqIdStr}-S${String(parseInt(planKey.split('-sample-')[1]) + 1).padStart(2, '0')}`}
+										{plan.allottedId || `REQ-${reqIdStr}-S${String(plan.sampleIndex + 1).padStart(2, '0')}`}
 									</span>
 								</div>
 
@@ -866,8 +881,11 @@ export default function EngineerTestReports({
 						{filteredPlans.map(item => (
 							<div
 								key={item.key}
-								onClick={() => navigate('/engineer/test-report/' + item.key)}
-								className="border border-zinc-200 hover:border-indigo-650 hover:shadow-md hover:bg-slate-50/50 rounded-2xl p-5 transition-all cursor-pointer flex flex-col justify-between"
+								onClick={() => {
+									if (item.isFilled) return;
+									navigate('/engineer/test-report/' + item.key);
+								}}
+								className={`border border-zinc-200 rounded-2xl p-5 transition-all flex flex-col justify-between ${item.isFilled ? 'bg-zinc-50/50 cursor-not-allowed opacity-90' : 'hover:border-indigo-650 hover:shadow-md hover:bg-slate-50/50 cursor-pointer'}`}
 							>
 								<div className="space-y-3">
 									<div className="flex justify-between items-start">
@@ -924,7 +942,7 @@ export default function EngineerTestReports({
 									</div>
 								</div>
 
-								<div className="flex items-center gap-2 mt-4 text-xs font-extrabold text-[#11236a] hover:underline justify-end pt-1">
+								<div className={`flex items-center gap-2 mt-4 text-xs font-extrabold justify-end pt-1 ${item.isFilled ? 'text-zinc-400 cursor-not-allowed' : 'text-[#11236a] hover:underline'}`}>
 									<span>{item.isFilled ? 'View Submitted Report' : 'Fill Test Report form'}</span>
 									<ChevronRight className="w-4 h-4" />
 								</div>

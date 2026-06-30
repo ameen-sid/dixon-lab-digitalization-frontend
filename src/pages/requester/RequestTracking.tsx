@@ -79,12 +79,10 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 
 	const reqDbIdVal = selectedRequest?.dbId || (selectedRequest?.id ? Number(selectedRequest.id.split('-').pop()) : null);
 
-	const testPlan = (() => {
-		if (activeTimelineSampleIndex === null) return null;
-		return realTestPlans.find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex) || null;
+	const samplePlans = (() => {
+		if (activeTimelineSampleIndex === null) return [];
+		return realTestPlans.filter((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex);
 	})();
-
-
 
 	const sampleReport = (() => {
 		if (activeTimelineSampleIndex === null) return null;
@@ -135,40 +133,60 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				completed: !!sampleReport,
 				failed: isSampleFailed
 			},
-			...(!isSampleFailed ? [
-				{
-					step: 'Testing execution',
-					date: (selectedRequest.status === 'COMPLETED' || (testPlan && testPlan.evaluationStatus))
-						? 'Testing completed successfully'
-						: testPlan
-							? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
-								? `In testing phase (Ends: ${new Date(testPlan.endDate).toLocaleDateString()})`
-								: new Date() < new Date(testPlan.startDate)
-									? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
-									: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
-							: 'Awaiting start',
-					completed: ['COMPLETED', 'FAILED', 'FAIL', 'TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(selectedRequest.status) || 
-							   !!(testPlan && testPlan.evaluationStatus) ||
-							   !!(testPlan && new Date() > new Date(testPlan.endDate))
-				},
-				{
-					step: 'Reliability Evaluation',
-					date: testPlan && testPlan.evaluationStatus
-						? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
-						: 'Awaiting checksheet completion and evaluation',
-					completed: !!(testPlan && testPlan.evaluationStatus)
-				},
-				{
-					step: 'Approved Final Report by Head',
-					date: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status) ? new Date().toLocaleDateString() : 'Pending final sign-off',
-					completed: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status)
-				}
-			] : [])
+			...(!isSampleFailed ? (
+				samplePlans.length > 0 
+					? samplePlans.flatMap((p: any) => {
+						const planName = p.testType?.name || 'General Test';
+						const isCompleted = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+						const isTestingPhase = !isCompleted && p.startDate && p.endDate;
+						
+						return [
+							{
+								step: `Testing Execution (${planName})`,
+								date: isCompleted
+									? 'Testing completed successfully'
+									: isTestingPhase
+										? (new Date() >= new Date(p.startDate) && new Date() <= new Date(p.endDate)
+											? `In testing phase (Ends: ${new Date(p.endDate).toLocaleDateString()})`
+											: new Date() < new Date(p.startDate)
+												? `Scheduled to start: ${new Date(p.startDate).toLocaleDateString()}`
+												: `Testing duration ended on ${new Date(p.endDate).toLocaleDateString()}`)
+										: 'Awaiting start',
+								completed: isCompleted || (p.endDate && new Date() > new Date(p.endDate))
+							},
+							{
+								step: `Evaluation (${planName})`,
+								date: p.evaluationStatus
+									? `Result: ${p.evaluationStatus} (${p.evaluationRemarks || 'No remarks'})`
+									: 'Awaiting checksheet completion and evaluation',
+								completed: isCompleted,
+								failed: p.evaluationStatus === 'FAILED'
+							}
+						];
+					})
+					: [
+						{
+							step: 'Testing Execution',
+							date: 'Awaiting test plan allocation',
+							completed: false
+						},
+						{
+							step: 'Evaluation',
+							date: 'Awaiting checksheet completion and evaluation',
+							completed: false
+						}
+					]
+			) : []),
+			{
+				step: 'Approved Final Report by Head',
+				date: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status) ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				completed: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status)
+			}
 		];
 		return steps;
 	})();
 
-	const activeIdx = timelineSteps.findIndex(s => !s.completed);
+	const activeIdx = timelineSteps.findIndex(s => !s.completed && !s.failed);
 
 	if (!selectedRequest) {
 		return (
@@ -403,7 +421,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									{selectedRequest.attachments.map((file) => (
 										<a
 											key={file.id}
-											href={`http://127.0.0.1:3001/${(() => {
+											href={`/${(() => {
 												const idx = file.filePath.toLowerCase().indexOf('uploads');
 												return idx !== -1 ? file.filePath.substring(idx).replace(/\\/g, '/') : file.filePath.replace(/\\/g, '/');
 											})()}`}
@@ -653,22 +671,42 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 														{report.status}
 													</span>
 													{report.status === 'PASSED' && (
-														<div className="flex items-center gap-1.5">
-															{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
-																<button
-																	type="button"
-																	onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
-																	className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
-																>
-																	<FileText className="w-2.5 h-2.5" /> Report
-																</button>
-															)}
+														<div className="flex flex-col gap-1.5 items-end">
+															{(() => {
+																const samplePlans = realTestPlans.filter((p: any) => Number(p.sampleIndex) === index);
+																if (samplePlans.length === 0) {
+																	return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
+																}
+																return samplePlans.map((p: any) => {
+																	const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+																	return (
+																		<div key={p.id} className="flex items-center gap-1.5">
+																			<span className="text-[9px] font-bold text-zinc-500">
+																				{p.testType?.name || 'General'}:
+																			</span>
+																			{isPlanEvaluated ? (
+																				<button
+																					type="button"
+																					onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
+																					className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																				>
+																					<FileText className="w-2.5 h-2.5" /> Report
+																				</button>
+																			) : (
+																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
+																					Testing
+																				</span>
+																			)}
+																		</div>
+																	);
+																});
+															})()}
 															<button
 																type="button"
 																onClick={() => setActiveTimelineSampleIndex(index)}
-																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
+																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none mt-1"
 															>
-																View More
+																View Timeline
 															</button>
 														</div>
 													)}
@@ -713,15 +751,18 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									<h3 className="text-xl font-extrabold text-[#11236a] leading-tight">
 										Sample #{activeTimelineSampleIndex + 1} Testing Timeline
 									</h3>
-									{['COMPLETED', 'FAILED', 'FAIL', 'RETEST'].includes(selectedRequest.status) && (
-										<button
-											onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${activeTimelineSampleIndex}`, '_blank')}
-											className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
-										>
-											<FileText className="w-3.5 h-3.5" />
-											<span>View Report</span>
-										</button>
-									)}
+									<div className="flex flex-wrap gap-2">
+										{samplePlans.filter((p: any) => ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase())).map((p: any) => (
+											<button
+												key={p.id}
+												onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
+												className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 hover:text-white px-2 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
+											>
+												<FileText className="w-3 h-3" />
+												<span>{p.testType?.name || 'Report'}</span>
+											</button>
+										))}
+									</div>
 								</div>
 								<p className="text-xs font-bold text-zinc-400 uppercase mt-1">
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>

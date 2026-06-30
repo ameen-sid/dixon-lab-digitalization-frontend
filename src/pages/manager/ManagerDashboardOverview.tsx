@@ -28,14 +28,14 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 	// 2. Test Plans Categorization
 	const pendingTestPlans = requests.filter(r => ['UNDER_INSPECTION', 'INSPECTION_COMPLETED', 'PENDING_TEST_PLAN', 'RETEST'].includes((r.status || '').toUpperCase()));
 	const activeTestPlans = requests.filter(r => ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase()));
-	const completedTestPlans = requests.filter(r => ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL'].includes((r.status || '').toUpperCase()));
+	const completedTestPlans = requests.filter(r => ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase()));
 	const failedTestPlans = requests.filter(r => ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase()));
 
 	// Calculate sum of sample quantities for active test plans
 	const activeTestPlansSamplesCount = activeTestPlans.reduce((acc, r) => acc + (r.sampleQty || 1), 0);
 
 	// 4. Samples inspected by Lab Manager
-	const inspectedByManager = requests.filter(r => r.engineerId === managerId && ['UNDER_TEST', 'UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'PASS', 'FAIL', 'PARTIAL', 'COMPLETED'].includes((r.status || '').toUpperCase()));
+	const inspectedByManager = requests.filter(r => r.engineerId === managerId && ['UNDER_TEST', 'UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'PASS', 'FAIL', 'PARTIAL', 'COMPLETED', 'FAILED', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase()));
 
 	// 5. Samples assigned to Engineers
 	const assignedToEngineers = requests.filter(r => !!r.engineerId && r.engineerId !== managerId);
@@ -59,7 +59,9 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 				if (isPlanEvaluated) return;
 
 				const sampleIdx = plan.sampleIndex;
-				const insp = inspections.find((si: any) => Number(si.sampleIndex) === Number(sampleIdx));
+				const insp = inspections.find((si: any) => 
+					si.testPlanId ? Number(si.testPlanId) === Number(plan.id) : Number(si.sampleIndex) === Number(sampleIdx)
+				);
 				if (!insp) return;
 
 				const isSubmitted = (insp.status || '').toUpperCase() === 'UNDER_REVIEW';
@@ -251,7 +253,7 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 												<td className="py-3 px-4 font-semibold text-zinc-655">{engineerName}</td>
 												<td className="py-3 px-4 text-right">
 													<button 
-														onClick={() => navigate(`/manager/evaluate-checksheet/${item.req.id}-sample-${item.sampleIndex}`)}
+														onClick={() => navigate(`/manager/evaluate-checksheet/${item.req.id}-plan-${item.plan.id}`)}
 														className="text-[10px] font-bold text-amber-700 hover:text-white bg-amber-50 hover:bg-amber-600 border border-amber-250 px-2.5 py-1 rounded-lg cursor-pointer transition-all"
 													>
 														Evaluate

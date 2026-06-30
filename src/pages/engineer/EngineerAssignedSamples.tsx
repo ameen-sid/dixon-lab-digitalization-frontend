@@ -91,6 +91,7 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 				if (details && details.sampleInspections) {
 					const mapped: { [key: string]: SampleReport } = {};
 					details.sampleInspections.forEach((insp: any) => {
+						if (insp.testPlanId !== null && insp.testPlanId !== undefined) return;
 						let checksObj = {};
 						try {
 							checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : insp.checks;
@@ -175,6 +176,7 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 			const taskAny = task as any;
 			if (taskAny.sampleInspections) {
 				taskAny.sampleInspections.forEach((insp: any) => {
+					if (insp.testPlanId !== null && insp.testPlanId !== undefined) return;
 					let checksObj = {};
 					try {
 						checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
@@ -385,6 +387,7 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 			formData.append('remarks', remarks);
 			formData.append('status', status);
 			formData.append('checks', JSON.stringify(checks));
+			formData.append('existingImages', JSON.stringify(savedImagePaths));
 			pendingFiles.forEach(file => formData.append('images', file));
 			const savedRecord = await saveSampleInspection(activePlanId, formData)();
 

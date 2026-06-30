@@ -161,16 +161,16 @@ export default function ManagerDashboard() {
 
 			// Perform an automatic check for completed requests that are still UNDER_TEST
 			for (const req of mapped) {
-				if (req.status === 'UNDER_TESTING' || req.status === 'UNDER_TEST') {
+				if (['UNDER_TESTING', 'UNDER_TEST', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
 					const qty = req.sampleQty || 1;
 					let allSamplesComplete = true;
 					let hasPlans = false;
 
 					for (let i = 0; i < qty; i++) {
-						const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-						const plan = (req.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
+						const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
+						const plansForSample = (req.testPlans || []).filter((p: any) => Number(p.sampleIndex) === i);
 
-						if (plan) {
+						if (plansForSample.length > 0) {
 							hasPlans = true;
 						}
 
@@ -179,8 +179,8 @@ export default function ManagerDashboard() {
 								// Failed inspection means it's complete/failed
 								continue;
 							} else if (dbReport.status === 'PASSED') {
-								// Passed inspection means it must have a completed evaluation status in the DB
-								if (plan && (plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED')) {
+								// Passed inspection means all its plans must be evaluated
+								if (plansForSample.length > 0 && plansForSample.every((p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED')) {
 									continue;
 								}
 							}
@@ -194,42 +194,64 @@ export default function ManagerDashboard() {
 						let passedCount = 0;
 						let failedCount = 0;
 
-						for (let i = 0; i < qty; i++) {
-							const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-							const plan = (req.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
+						const requestPlans = req.testPlans || [];
+						requestPlans.forEach((p: any) => {
+							if (p.evaluationStatus === 'PASSED') {
+								passedCount++;
+							} else if (p.evaluationStatus === 'FAILED') {
+								failedCount++;
+							}
+						});
 
-							if (dbReport) {
-								if (dbReport.status === 'FAILED') {
-									failedCount++;
-								} else if (dbReport.status === 'PASSED') {
-									if (plan && plan.evaluationStatus === 'PASSED') {
-										passedCount++;
-									} else if (plan && plan.evaluationStatus === 'FAILED') {
-										failedCount++;
-									}
-								}
+						// If there are failed inspections for samples without plans, count them as failed
+						const passedSampleIndices: number[] = [];
+						for (let i = 0; i < qty; i++) {
+							const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
+							if (req.status === 'RETEST' || (report && report.status === 'PASSED')) {
+								passedSampleIndices.push(i);
+							} else if (report && report.status === 'FAILED') {
+								failedCount++;
 							}
 						}
 
 						let finalStatus = 'TESTING_COMPLETED';
-						if (passedCount === qty) {
+						const totalAllocationsCount = requestPlans.length + (qty - passedSampleIndices.length);
+
+						if (passedCount === totalAllocationsCount) {
 							finalStatus = 'TESTING_PASSED';
-						} else if (failedCount === qty) {
+						} else if (failedCount === totalAllocationsCount) {
 							finalStatus = 'TESTING_FAILED';
-						} else if (passedCount > 0 && failedCount > 0) {
+						} else {
 							finalStatus = 'TESTING_PARTIAL';
 						}
 
-						try {
-							const statusUpdateOp = updateTestRequestStatus(
-								Number(req.id),
-								finalStatus,
-								undefined
-							);
-							await statusUpdateOp();
-							req.status = finalStatus;
-						} catch (e) {
-							console.error(`Failed to auto-update request ${req.id} status to ${finalStatus}:`, e);
+						if (req.status !== finalStatus) {
+							try {
+								const statusUpdateOp = updateTestRequestStatus(
+									Number(req.id),
+									finalStatus,
+									undefined
+								);
+								await statusUpdateOp();
+								req.status = finalStatus;
+							} catch (e) {
+								console.error(`Failed to auto-update request ${req.id} status to ${finalStatus}:`, e);
+							}
+						}
+					} else if (!allSamplesComplete) {
+						// If not all samples/plans are complete, but request is in a final status, reset it back to UNDER_TESTING
+						if (['TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
+							try {
+								const statusUpdateOp = updateTestRequestStatus(
+									Number(req.id),
+									'UNDER_TESTING',
+									undefined
+								);
+								await statusUpdateOp();
+								req.status = 'UNDER_TESTING';
+							} catch (e) {
+								console.error(`Failed to reset request ${req.id} status to UNDER_TESTING:`, e);
+							}
 						}
 					}
 				}
@@ -679,6 +701,7 @@ export default function ManagerDashboard() {
 				return (
 					<ManagerTestPlans
 						requests={approvedRequests}
+						onRefreshRequests={loadApprovedRequests}
 						onUpdateStatus={async (requestId, status, remarks) => {
 							const numId = Number(requestId);
 							if (isNaN(numId)) return;
@@ -699,6 +722,7 @@ export default function ManagerDashboard() {
 					<ManagerTestPlans
 						requests={approvedRequests}
 						selectedRequestId={id}
+						onRefreshRequests={loadApprovedRequests}
 						onUpdateStatus={async (requestId, status, remarks) => {
 							const numId = Number(requestId);
 							if (isNaN(numId)) return;

@@ -15,20 +15,31 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 	const filledPlans = useMemo(() => {
 		const list: any[] = [];
 		requests.forEach(req => {
-			const testTypeName = String(req.testType?.name || '').toLowerCase();
-			const isReliability = testTypeName.includes('reliability');
-			if (isReliability) return;
-
-			const isNabl = testTypeName.includes('nabl');
-			const departmentAllowed = currentEngineerIsNabl ? isNabl : !isNabl;
-			if (!departmentAllowed) return;
-
 			const requestPlans = Array.isArray(req.testPlans) ? req.testPlans : [];
 			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
 
 			requestPlans.forEach((plan: any) => {
+				const planTestTypeName = String(plan.testType?.name || req.testType?.name || '').toLowerCase();
+				const isReliability = planTestTypeName.includes('reliability');
+				if (isReliability) return;
+
+				const isNabl = planTestTypeName.includes('nabl');
+				const departmentAllowed = currentEngineerIsNabl ? isNabl : !isNabl;
+				if (!departmentAllowed) return;
+
 				const sampleIdx = plan.sampleIndex;
-				const insp = inspections.find((si: any) => Number(si.sampleIndex) === Number(sampleIdx));
+				const insp = inspections.find((si: any) => Number(si.testPlanId) === Number(plan.id)) ||
+					inspections.find((si: any) => {
+						if (Number(si.sampleIndex) !== Number(sampleIdx)) return false;
+						if (si.testPlanId) return false;
+						let checksObj: any = {};
+						try {
+							checksObj = typeof si.checks === 'string' ? JSON.parse(si.checks) : (si.checks || {});
+						} catch {
+							checksObj = {};
+						}
+						return checksObj.specifiedRequirement !== undefined;
+					});
 				if (!insp) return;
 
 				let checksObj: any = {};

@@ -93,7 +93,7 @@ export default function InspectorChecksheet() {
 										platformNosParsed = [];
 									}
 								}
-								plansMap[`${req.id}-sample-${plan.sampleIndex}`] = {
+								plansMap[`${req.id}-plan-${plan.id}`] = {
 									...plan,
 									platformNos: platformNosParsed
 								};
@@ -139,7 +139,7 @@ export default function InspectorChecksheet() {
 	const planInfo = (() => {
 		if (!planKey || !plans[planKey]) return null;
 		const plan = plans[planKey];
-		const [reqIdStr] = planKey.split('-sample-');
+		const [reqIdStr] = planKey.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
 		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
@@ -506,7 +506,7 @@ export default function InspectorChecksheet() {
 								<span className="p-2.5 text-zinc-500 uppercase tracking-wider text-[9px]">Sample ID</span>
 								<span className="p-2.5 col-span-2 text-zinc-900 uppercase font-black">
 									{(() => {
-										const sampleIndex = Number(planKey?.split('-sample-')[1]);
+										const sampleIndex = planInfo.plan.sampleIndex;
 										const inspection = planInfo.request?.sampleInspections?.find(
 											(si: any) => Number(si.sampleIndex) === sampleIndex
 										);

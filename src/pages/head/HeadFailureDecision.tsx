@@ -35,31 +35,33 @@ export default function HeadFailureDecision() {
 	}, []);
 
 	const failedRequests = requests.filter((req: any) => {
-		const statusLower = (req.status || '').toLowerCase();
-		if (statusLower === 'testing_completed') {
-			const hasFailedSample = (req.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
-									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
-			return hasFailedSample;
-		}
+		const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
+		const isAlreadyFailedDecided = (req.status || '').toLowerCase() === 'failed' || (req.status || '').toLowerCase() === 'retest';
+		if (!isSubmittedToHead && !isAlreadyFailedDecided) return false;
+		if (isAlreadyFailedDecided) return true;
 
-		const isFailedStatus = ['testing_failed', 'fail', 'failed', 'retest', 'inspection_failed', 'testing_partial', 'partial'].includes(statusLower);
+		// Calculate passedCount and failedCount
+		let passedCount = 0;
+		let failedCount = 0;
+
+		const requestPlans = req.testPlans || [];
+		requestPlans.forEach((p: any) => {
+			if (p.evaluationStatus === 'PASSED') {
+				passedCount++;
+			} else if (p.evaluationStatus === 'FAILED') {
+				failedCount++;
+			}
+		});
 
 		const qty = req.sampleQty || 1;
-		let failedCount = 0;
 		for (let i = 0; i < qty; i++) {
 			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
 			if (report && report.status === 'FAILED') {
 				failedCount++;
 			}
 		}
-		const isFullyFailed = failedCount === qty;
 
-		if (statusLower === 'inspection_completed') {
-			const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
-			return isFullyFailed && isSubmittedToHead;
-		}
-
-		return isFailedStatus || isFullyFailed;
+		return failedCount > passedCount;
 	});
 
 	// Filter based on search and status filter dropdown (Pending Decision vs Decision Taken)

@@ -35,29 +35,33 @@ export default function HeadCompletedReports() {
 	}, []);
 
 	const completedOrPartialRequests = requests.filter((req: any) => {
-		const statusLower = (req.status || '').toLowerCase();
-		if (statusLower === 'testing_completed') {
-			const hasFailedSample = (req.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
-									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
-			return !hasFailedSample;
-		}
+		const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
+		const isAlreadyApproved = (req.status || '').toLowerCase() === 'completed';
+		if (!isSubmittedToHead && !isAlreadyApproved) return false;
+		if (isAlreadyApproved) return true;
 
-		const allowedStatuses = [
-			'completed', 'pass', 'testing_passed'
-		];
-		if (!allowedStatuses.includes(statusLower)) return false;
-
-		// Exclude if all samples are failed (fully failed request)
-		const qty = req.sampleQty || 1;
+		// Calculate passedCount and failedCount
+		let passedCount = 0;
 		let failedCount = 0;
+
+		const requestPlans = req.testPlans || [];
+		requestPlans.forEach((p: any) => {
+			if (p.evaluationStatus === 'PASSED') {
+				passedCount++;
+			} else if (p.evaluationStatus === 'FAILED') {
+				failedCount++;
+			}
+		});
+
+		const qty = req.sampleQty || 1;
 		for (let i = 0; i < qty; i++) {
 			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
 			if (report && report.status === 'FAILED') {
 				failedCount++;
 			}
 		}
-		const isFullyFailed = failedCount === qty;
-		return !isFullyFailed;
+
+		return passedCount >= failedCount;
 	});
 
 	// Filter based on search and status filter dropdown

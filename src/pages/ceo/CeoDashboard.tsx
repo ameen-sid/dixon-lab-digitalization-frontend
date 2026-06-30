@@ -51,7 +51,18 @@ const isFailed = (s: any) => {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const isCompleted = (s: any) => ['pass', 'fail', 'partial', 'completed', 'testing_passed', 'testing_failed', 'testing_partial'].includes(getSafeStatusText(s));
+const isCompleted = (s: any) => [
+  'pass',
+  'fail',
+  'failed',
+  'partial',
+  'completed',
+  'testing_passed',
+  'testing_failed',
+  'testing_partial',
+  'testing_completed',
+  'inspection_failed'
+].includes(getSafeStatusText(s));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CUSTOM SVG CHARTS WITH LIVE DATA

@@ -175,14 +175,14 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 							color: #e11d48 !important;
 						}
 						.defect-img {
-							max-width: 140px !important;
-							max-height: 90px !important;
+							max-width: 260px !important;
+							max-height: 160px !important;
 							display: block;
 							margin: 3px auto;
 							object-fit: contain;
 						}
 						.thumb-img {
-							max-height: 35px !important;
+							max-height: 140px !important;
 							max-width: 100% !important;
 							display: block;
 							margin: 0 auto;
@@ -260,13 +260,13 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 					{/* Row 1 & 2: Header Grid */}
 					<thead>
 						<tr className="text-center font-bold text-[11px] leading-tight">
-							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Part/Product</td>
-							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Model Name</td>
-							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Customer/Supplier</td>
-							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[18%]" style={{ width: '18%' }}>Date</td>
-							<td className="border border-slate-650 text-zinc-900 bg-white font-extrabold align-middle w-[10%] px-1" style={{ width: '10%' }} rowSpan={2}>Result</td>
-							<td className="border border-slate-650 text-zinc-900 bg-white font-bold py-1 w-[9%]" style={{ width: '9%' }}>OK</td>
-							<td className="border border-slate-650 text-zinc-900 bg-white font-bold py-1 w-[9%]" style={{ width: '9%' }}>NG</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[9%]" style={{ width: '9%' }}>Part/Product</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[14%]" style={{ width: '14%' }}>Model Name</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[14%]" style={{ width: '14%' }}>Customer/Supplier</td>
+							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[14%]" style={{ width: '14%' }}>Date</td>
+							<td className="border border-slate-650 text-zinc-900 bg-white font-extrabold align-middle w-[11%] px-1" style={{ width: '11%' }} rowSpan={2}>Result</td>
+							<td className="border border-slate-655 text-zinc-900 bg-white font-bold py-1 w-[21%]" style={{ width: '21%' }}>OK</td>
+							<td className="border border-slate-655 text-zinc-900 bg-white font-bold py-1 w-[17%]" style={{ width: '17%' }}>NG</td>
 						</tr>
 						<tr className="text-center font-semibold text-zinc-700 bg-white">
 							<td className="border border-slate-650 py-2 px-2">{mappedCapa.partProduct}</td>
@@ -321,12 +321,12 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 						{/* Row 5: Main Content Matrix */}
 						<tr>
 							{/* Column 1: Part Name */}
-							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle">
+							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle" rowSpan={2}>
 								{mappedCapa.partName}
 							</td>
 
 							{/* Column 2: Problem & Reason */}
-							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={3}>
+							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={3} rowSpan={2}>
 								{/* Problem Detail */}
 								<div className="space-y-0.5">
 									<span className="block font-bold text-blue-800 text-[10px] uppercase">
@@ -341,12 +341,12 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 
 								{/* Defect Graphic */}
 								{mappedCapa.imageUrl ? (
-									<div className="border border-slate-300 rounded-none overflow-hidden bg-zinc-50 max-w-[200px] mx-auto p-1">
+									<div className="border border-slate-300 rounded-none overflow-hidden bg-zinc-50 max-w-[420px] mx-auto p-1">
 										<a href={mappedCapa.imageUrl} target="_blank" rel="noopener noreferrer">
 											<img 
 												src={mappedCapa.imageUrl} 
 												alt="Defect Detail" 
-												className="w-full h-auto max-h-[120px] defect-img object-contain cursor-zoom-in" 
+												className="w-full h-auto max-h-[250px] defect-img object-contain cursor-zoom-in bg-white p-1" 
 											/>
 										</a>
 									</div>
@@ -384,56 +384,67 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 							</td>
 
 							{/* Column 3: Counter Measure details */}
-							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={2}>
-								<div className="space-y-0.5">
-									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Temp Countermeasure :</span>
-									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.tempCountermeasure}</p>
-								</div>
+							<td className="border border-slate-650 p-2.5 align-top" colSpan={2}>
+								<div className="space-y-2.5">
+									<div className="space-y-0.5">
+										<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Temp Countermeasure :</span>
+										<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.tempCountermeasure}</p>
+									</div>
 
-								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
-									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Radical Countermeasure :</span>
-									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.radicalCountermeasure}</p>
-								</div>
+									<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+										<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Radical Countermeasure :</span>
+										<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px]">{mappedCapa.radicalCountermeasure}</p>
+									</div>
 
-								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
-									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Inspection Control :-</span>
-									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.inspectionControl}</p>
-								</div>
+									<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+										<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Inspection Control :-</span>
+										<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.inspectionControl}</p>
+									</div>
 
-								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
-									<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Process control :-</span>
-									<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.processControl}</p>
+									<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
+										<span className="block font-bold text-blue-800 text-[10px] uppercase">☐ Process control :-</span>
+										<p className="pl-3 text-zinc-800 leading-relaxed font-semibold text-[10px] whitespace-pre-line">{mappedCapa.processControl}</p>
+									</div>
 								</div>
+							</td>
 
-								{/* Before / After / Prevention attachments table */}
-								<table className="w-full border-collapse border border-slate-400 text-[9px] mt-2 bg-white">
+							{/* Column 4: Target Date */}
+							<td className="border border-slate-650 p-2.5 text-center font-bold text-zinc-800 text-xs align-top col-target">
+								<span className="block text-[8px] text-zinc-500 uppercase font-semibold border-b border-slate-200 pb-0.5">Target Date</span>
+								<span className="block text-[11px] font-extrabold text-zinc-900 mt-1">{mappedCapa.targetDate || mappedCapa.targetedDate}</span>
+							</td>
+
+							{/* Column 5: Status */}
+							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle col-status" rowSpan={2}>
+								{mappedCapa.status === 'COMPLETED' ? 'Done' : mappedCapa.status || 'Pending'}
+							</td>
+						</tr>
+
+						{/* Row 5b: Improvement Images (In a separate table row to guarantee same-baseline horizontal alignment) */}
+						<tr>
+							{/* Column 3: Counter Measure Images */}
+							<td className="border border-slate-650 p-2.5 align-middle bg-white" colSpan={2}>
+								{/* Before / After attachments table */}
+								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
 									<thead>
 										<tr className="bg-zinc-50 font-bold text-center">
-											<td className="border border-slate-400 py-0.5 w-[33.3%]">Before Improvement</td>
-											<td className="border border-slate-400 py-0.5 w-[33.3%]">After Improvement</td>
-											<td className="border border-slate-400 py-0.5 w-[33.3%]">Prevention</td>
+											<td className="border border-slate-400 py-0.5 w-[50%]">Before Improvement</td>
+											<td className="border border-slate-400 py-0.5 w-[50%]">After Improvement</td>
 										</tr>
 									</thead>
 									<tbody>
-										<tr className="h-12 text-center">
-											<td className="border border-slate-400 p-0.5 align-middle">
+										<tr className="h-44 text-center">
+											<td className="border border-slate-400 p-1.5 align-middle">
 												{mappedCapa.beforeImprovementImgUrl ? (
 													<a href={mappedCapa.beforeImprovementImgUrl} target="_blank" rel="noopener noreferrer">
-														<img src={mappedCapa.beforeImprovementImgUrl} className="thumb-img mx-auto object-contain" alt="Before" />
+														<img src={mappedCapa.beforeImprovementImgUrl} className="thumb-img mx-auto object-contain max-h-[150px] bg-white p-0.5 rounded-sm border border-zinc-200" alt="Before" />
 													</a>
 												) : '—'}
 											</td>
-											<td className="border border-slate-400 p-0.5 align-middle">
+											<td className="border border-slate-400 p-1.5 align-middle">
 												{mappedCapa.afterImprovementImgUrl ? (
 													<a href={mappedCapa.afterImprovementImgUrl} target="_blank" rel="noopener noreferrer">
-														<img src={mappedCapa.afterImprovementImgUrl} className="thumb-img mx-auto object-contain" alt="After" />
-													</a>
-												) : '—'}
-											</td>
-											<td className="border border-slate-400 p-0.5 align-middle">
-												{mappedCapa.preventionImgUrl ? (
-													<a href={mappedCapa.preventionImgUrl} target="_blank" rel="noopener noreferrer">
-														<img src={mappedCapa.preventionImgUrl} className="thumb-img mx-auto object-contain" alt="Prevention" />
+														<img src={mappedCapa.afterImprovementImgUrl} className="thumb-img mx-auto object-contain max-h-[150px] bg-white p-0.5 rounded-sm border border-zinc-200" alt="After" />
 													</a>
 												) : '—'}
 											</td>
@@ -442,14 +453,26 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								</table>
 							</td>
 
-							{/* Column 4: Target Date */}
-							<td className="border border-slate-650 p-2 text-center font-bold text-zinc-800 text-xs align-middle col-target">
-								{mappedCapa.targetDate || mappedCapa.targetedDate}
-							</td>
-
-							{/* Column 5: Status */}
-							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle col-status">
-								{mappedCapa.status === 'COMPLETED' ? 'Done' : mappedCapa.status || 'Pending'}
+							{/* Column 4: Prevention Image */}
+							<td className="border border-slate-650 p-2.5 text-center align-middle col-target bg-white">
+								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
+									<thead>
+										<tr className="bg-zinc-50 font-bold text-center">
+											<td className="border border-slate-400 py-0.5">Prevention</td>
+										</tr>
+									</thead>
+									<tbody>
+										<tr className="h-44 text-center">
+											<td className="border border-slate-400 p-1.5 align-middle">
+												{mappedCapa.preventionImgUrl ? (
+													<a href={mappedCapa.preventionImgUrl} target="_blank" rel="noopener noreferrer">
+														<img src={mappedCapa.preventionImgUrl} className="thumb-img mx-auto object-contain max-h-[150px] bg-white p-0.5 rounded-sm border border-zinc-200" alt="Prevention" />
+													</a>
+												) : '—'}
+											</td>
+										</tr>
+									</tbody>
+								</table>
 							</td>
 						</tr>
 

@@ -40,8 +40,7 @@ export const createTestRequest = (formData: FormData) => {
 			const response = await apiConnector(
 				'POST', 
 				CREATE_TEST_REQUEST_API, 
-				formData,
-				{ 'Content-Type': 'multipart/form-data' }
+				formData
 			);
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to submit testing request');
@@ -101,9 +100,7 @@ export const saveSampleInspection = (id: string | number, payload: FormData) => 
 	return async () => {
 		const toastId = toast.loading('Saving sample inspection...');
 		try {
-			const response = await apiConnector('POST', SAVE_SAMPLE_INSPECTION_API(id), payload, {
-				'Content-Type': 'multipart/form-data'
-			});
+			const response = await apiConnector('POST', SAVE_SAMPLE_INSPECTION_API(id), payload);
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to save sample inspection');
 
@@ -125,9 +122,7 @@ export const saveSampleReport = (id: string | number, payload: FormData) => {
 	return async () => {
 		const toastId = toast.loading('Saving sample report...');
 		try {
-			const response = await apiConnector('POST', SAVE_SAMPLE_REPORT_API(id), payload, {
-				'Content-Type': 'multipart/form-data'
-			});
+			const response = await apiConnector('POST', SAVE_SAMPLE_REPORT_API(id), payload);
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to save sample report');
 

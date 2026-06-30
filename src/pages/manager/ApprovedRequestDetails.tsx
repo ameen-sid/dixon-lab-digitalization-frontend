@@ -102,7 +102,23 @@ export default function ApprovedRequestDetails({
 
 	const testPlan = (() => {
 		if (activeTimelineSampleIndex === null) return null;
-		return (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex) || null;
+		const plan = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex) || null;
+		if (plan) {
+			let platformNosParsed: number[] = [];
+			if (plan.platformNos) {
+				try {
+					const parsed = typeof plan.platformNos === 'string' ? JSON.parse(plan.platformNos) : plan.platformNos;
+					platformNosParsed = (Array.isArray(parsed) ? parsed : [parsed]).map(Number).filter((n: any) => !isNaN(n));
+				} catch {
+					platformNosParsed = [];
+				}
+			}
+			return {
+				...plan,
+				platformNos: platformNosParsed
+			};
+		}
+		return null;
 	})();
 
 	const equipmentName = (() => {
@@ -388,7 +404,7 @@ export default function ApprovedRequestDetails({
 								{request.attachments.map((file) => (
 									<a
 										key={file.id}
-										href={`http://127.0.0.1:3001/${(() => {
+										href={`/${(() => {
 											const idx = file.filePath.toLowerCase().indexOf('uploads');
 											return idx !== -1 ? file.filePath.substring(idx).replace(/\\/g, '/') : file.filePath.replace(/\\/g, '/');
 										})()}`}

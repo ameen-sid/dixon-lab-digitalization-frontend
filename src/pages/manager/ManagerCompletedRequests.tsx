@@ -219,87 +219,137 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 							</span>
 						</div>
 
-						<div className="divide-y divide-zinc-100">
+						<div className="divide-y divide-zinc-150/70">
 							{(() => {
 								const qty = selectedReq.sampleQty || 1;
 								const list = [];
 								for (let i = 0; i < qty; i++) {
-									const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-									const plan = (selectedReq.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
+									const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
+									const plans = (selectedReq.testPlans || []).filter((p: any) => Number(p.sampleIndex) === i);
 									list.push({
 										index: i,
 										report,
-										plan
+										plans
 									});
 								}
 
-								return list.map(({ index, report, plan }) => {
+								return list.map(({ index, report, plans }) => {
 									const sampleNo = index + 1;
 									const isInspectionFailed = report?.status === 'FAILED';
-									
-									// Determine status badge colors
-									let statusText = 'Pending Testing';
-									let badgeClass = 'bg-zinc-50 text-zinc-500 border-zinc-150';
-
-									if (isInspectionFailed) {
-										statusText = 'Physical Check Failed';
-										badgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
-									} else if (plan) {
-										if (plan.evaluationStatus === 'PASSED') {
-											statusText = 'Testing Passed';
-											badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-										} else if (plan.evaluationStatus === 'FAILED') {
-											statusText = 'Testing Failed';
-											badgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
-										} else {
-											statusText = 'Under Testing';
-											badgeClass = 'bg-blue-50 text-blue-700 border-blue-100';
-										}
-									}
 
 									return (
-										<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-											<div className="space-y-1">
-												<div className="flex items-center gap-2 flex-wrap">
-													<span className="text-xs font-extrabold text-zinc-900">Sample #{sampleNo}</span>
-													<span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}`}>
-														{statusText}
-													</span>
+										<div key={index} className="py-5 first:pt-0 last:pb-0 space-y-4">
+											{/* Sample Header */}
+											<div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
+												<div className="flex items-center gap-2">
+													<span className="text-sm font-extrabold text-zinc-900">Sample #{sampleNo}</span>
+													{isInspectionFailed ? (
+														<span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-100">
+															Physical Check Failed
+														</span>
+													) : plans.length > 0 ? (
+														<span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">
+															Inspected & Planned
+														</span>
+													) : (
+														<span className="text-[9px] font-bold px-2 py-0.5 rounded-full border bg-zinc-50 text-zinc-500 border-zinc-150">
+															Pending Testing
+														</span>
+													)}
 												</div>
 												{report?.allottedId && (
 													<p className="text-[10px] text-zinc-555 font-bold">
 														Allotted ID: <span className="text-zinc-700">{report.allottedId}</span>
 													</p>
 												)}
-												{plan && (
-													<p className="text-[10px] text-zinc-400 font-medium">
-														Station: S{plan.stationNo} | Duration: {plan.numberOfDays} Days | Dates: {formatDate(plan.startDate)} to {formatDate(plan.endDate)}
-													</p>
-												)}
-												{plan?.evaluationRemarks && (
-													<p className="text-[10px] text-zinc-500 italic mt-1 bg-zinc-50/50 p-2 rounded-lg border border-zinc-100">
-														Remarks: {plan.evaluationRemarks}
-													</p>
-												)}
-												{isInspectionFailed && report?.remarks && (
-													<p className="text-[10px] text-rose-600 italic mt-1 bg-rose-50/20 p-2 rounded-lg border border-rose-100">
-														Inspection Defect Remarks: {report.remarks}
-													</p>
-												)}
 											</div>
 
-											{/* Action button to check report */}
-											<div className="shrink-0">
-												<button
-													onClick={() => {
-														window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank');
-													}}
-													className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none shadow-sm active:scale-95"
-												>
-													<Eye className="w-3.5 h-3.5" />
-													<span>View Sample Report</span>
-												</button>
-											</div>
+											{/* Inspection Failed Details / Report */}
+											{isInspectionFailed && (
+												<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rose-50/10 border border-rose-100 p-3.5 rounded-xl">
+													<div className="space-y-1">
+														<p className="text-[10px] text-zinc-555 font-bold">Physical Inspection Report</p>
+														{report?.remarks && (
+															<p className="text-[10px] text-rose-600 italic mt-1 bg-rose-50/20 p-2 rounded-lg border border-rose-100">
+																Inspection Defect Remarks: {report.remarks}
+															</p>
+														)}
+													</div>
+													<div className="shrink-0">
+														<button
+															onClick={() => {
+																window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank');
+															}}
+															className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-rose-700 hover:text-white px-3 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-600 transition-all cursor-pointer outline-none shadow-sm active:scale-95"
+														>
+															<Eye className="w-3.5 h-3.5" />
+															<span>View Inspection Report</span>
+														</button>
+													</div>
+												</div>
+											)}
+
+											{/* Test Plans List */}
+											{!isInspectionFailed && plans.length > 0 && (
+												<div className="space-y-3 pl-3 border-l-2 border-zinc-200">
+													{plans.map((plan: any) => {
+														let planStatusText = 'Scheduled';
+														let planBadgeClass = 'bg-zinc-50 text-zinc-500 border-zinc-150';
+
+														if (plan.evaluationStatus === 'PASSED') {
+															planStatusText = 'Testing Passed';
+															planBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+														} else if (plan.evaluationStatus === 'FAILED') {
+															planStatusText = 'Testing Failed';
+															planBadgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
+														} else {
+															planStatusText = 'Under Testing';
+															planBadgeClass = 'bg-blue-50 text-blue-700 border-blue-100';
+														}
+
+														return (
+															<div key={plan.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 border border-zinc-200/50 p-3.5 rounded-xl transition-all hover:bg-zinc-55">
+																<div className="space-y-1">
+																	<div className="flex items-center gap-2 flex-wrap">
+																		<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+																			{plan.testType?.name || 'General Test'}
+																		</span>
+																		<span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${planBadgeClass}`}>
+																			{planStatusText}
+																		</span>
+																	</div>
+																	<p className="text-[10px] text-zinc-555 font-semibold">
+																		Station: S{plan.stationNo} | Duration: {plan.numberOfDays} Days | Dates: {formatDate(plan.startDate)} to {formatDate(plan.endDate)}
+																	</p>
+																	{plan.evaluationRemarks && (
+																		<p className="text-[10px] text-zinc-500 italic mt-1 bg-white p-2 rounded-lg border border-zinc-100/70">
+																			Remarks: {plan.evaluationRemarks}
+																		</p>
+																	)}
+																</div>
+
+																<div className="shrink-0">
+																	<button
+																		onClick={() => {
+																			window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank');
+																		}}
+																		className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none shadow-sm active:scale-95"
+																	>
+																		<Eye className="w-3.5 h-3.5" />
+																		<span>View Test Report</span>
+																	</button>
+																</div>
+															</div>
+														);
+													})}
+												</div>
+											)}
+
+											{!isInspectionFailed && plans.length === 0 && (
+												<div className="text-zinc-400 text-[10px] italic pl-2">
+													No test plans configured for this sample.
+												</div>
+											)}
 										</div>
 									);
 								});

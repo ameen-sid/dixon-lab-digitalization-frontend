@@ -44,15 +44,17 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 			   (r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
 		// 2. Status Match
-		const isAllocated = !!r.engineerId;
-		const isCompleted = !!r.inspectionResult;
+		const statusUpper = (r.status || '').toUpperCase();
+		const isCompleted = ['COMPLETED', 'TESTING_PASSED', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'INSPECTION_COMPLETED', 'PASS', 'PARTIAL', 'FAILED', 'TESTING_FAILED', 'FAIL'].includes(statusUpper);
+		const isFailed = statusUpper === 'INSPECTION_FAILED';
+		const isAllocated = !!r.engineerId && !isCompleted && !isFailed;
 		let matchStatus = true;
 		if (statusFilter === 'PENDING') {
-			matchStatus = !isAllocated;
+			matchStatus = !isAllocated && !isCompleted && !isFailed;
 		} else if (statusFilter === 'ALLOCATED') {
-			matchStatus = isAllocated && !isCompleted;
+			matchStatus = isAllocated;
 		} else if (statusFilter === 'COMPLETED') {
-			matchStatus = isCompleted;
+			matchStatus = isCompleted || isFailed;
 		}
 
 		// 3. Date Range Match
@@ -123,7 +125,7 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 								{ value: 'ALL', label: 'All Statuses' },
 								{ value: 'PENDING', label: 'Pending Allocation' },
 								{ value: 'ALLOCATED', label: 'Allocated' },
-								{ value: 'COMPLETED', label: 'Completed' }
+								{ value: 'COMPLETED', label: 'Completed / Failed' }
 							]}
 							className="w-48 shrink-0"
 						/>
@@ -204,8 +206,10 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 							</thead>
 							<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-750">
 								{paginatedRequests.map((req) => {
-									const isAllocated = !!req.engineerId;
-									const isCompleted = !!req.inspectionResult;
+									const statusUpper = (req.status || '').toUpperCase();
+									const isCompleted = ['COMPLETED', 'TESTING_PASSED', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'INSPECTION_COMPLETED', 'PASS', 'PARTIAL', 'FAILED', 'TESTING_FAILED', 'FAIL'].includes(statusUpper);
+									const isFailed = statusUpper === 'INSPECTION_FAILED';
+									const isAllocated = !!req.engineerId && !isCompleted && !isFailed;
 									return (
 										<tr 
 											key={req.id} 
@@ -224,12 +228,16 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 												<span className={`text-[9px] font-bold px-2 py-0.5 border rounded-full uppercase tracking-wider flex items-center gap-1 w-fit ${
 													isCompleted 
 														? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-														: isAllocated 
-															? 'bg-indigo-50 text-indigo-600 border-indigo-100'
-															: 'bg-amber-50 text-amber-600 border-amber-100'
+														: isFailed
+															? 'bg-rose-50 text-rose-600 border-rose-100'
+															: isAllocated 
+																? 'bg-indigo-50 text-indigo-600 border-indigo-100'
+																: 'bg-amber-50 text-amber-600 border-amber-100'
 												}`}>
 													{isCompleted ? (
 														<>Completed</>
+													) : isFailed ? (
+														<>Failed</>
 													) : isAllocated ? (
 														<>Allocated</>
 													) : (
@@ -248,7 +256,7 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 													}}
 													className="bg-transparent border-none text-[#11236a] hover:text-[#0c1a52] font-bold text-xs inline-flex items-center gap-0.5 cursor-pointer outline-none group-hover:underline"
 												>
-													{isCompleted ? 'View Results' : isAllocated ? 'Manage Assignment' : 'Assign Engineer'}
+													{(isCompleted || isFailed) ? 'View Results' : isAllocated ? 'Manage Assignment' : 'Assign Engineer'}
 													<ChevronRight className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
 												</button>
 											</td>

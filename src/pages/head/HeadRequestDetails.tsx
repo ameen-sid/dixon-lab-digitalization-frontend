@@ -103,22 +103,22 @@ export default function HeadRequestDetails() {
 		loadRequestDetails();
 	}, [id]);
 
-	const testPlan = (() => {
-		if (activeTimelineSampleIndex === null || !request?.testPlans) return null;
-		const planObj = request.testPlans.find((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex);
-		if (!planObj) return null;
-		let parsedPlatforms = [];
-		if (planObj.platformNos) {
-			try {
-				parsedPlatforms = typeof planObj.platformNos === 'string' ? JSON.parse(planObj.platformNos) : planObj.platformNos;
-			} catch (e) {
-				parsedPlatforms = [];
+	const samplePlans = (() => {
+		if (activeTimelineSampleIndex === null || !request?.testPlans) return [];
+		return request.testPlans.filter((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex).map((planObj: any) => {
+			let parsedPlatforms = [];
+			if (planObj.platformNos) {
+				try {
+					parsedPlatforms = typeof planObj.platformNos === 'string' ? JSON.parse(planObj.platformNos) : planObj.platformNos;
+				} catch (e) {
+					parsedPlatforms = [];
+				}
 			}
-		}
-		return {
-			...planObj,
-			platformNos: parsedPlatforms
-		};
+			return {
+				...planObj,
+				platformNos: parsedPlatforms
+			};
+		});
 	})();
 
 	const sampleReport = (() => {
@@ -136,6 +136,7 @@ export default function HeadRequestDetails() {
 
 	const timelineSteps = (() => {
 		if (activeTimelineSampleIndex === null || !request) return [];
+		const isSampleFailed = sampleReport?.status === 'FAILED';
 		const steps = [
 			{
 				step: 'Testing Request Submitted',
@@ -148,33 +149,57 @@ export default function HeadRequestDetails() {
 				completed: !['PENDING_APPROVAL', 'REJECTED'].includes(request.status)
 			},
 			{
-				step: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
+				step: isSampleFailed
+					? `Sample Checked & Failed (ID: ${sampleReport?.allottedId || 'N/A'})`
+					: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
 				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
-				completed: !!sampleReport
+				completed: !!sampleReport,
+				failed: isSampleFailed
 			},
-			{
-				step: 'Testing execution',
-				date: (request.status === 'COMPLETED' || (testPlan && testPlan.evaluationStatus))
-					? 'Testing completed successfully'
-					: testPlan
-						? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
-							? `In testing phase (Ends: ${new Date(testPlan.endDate).toLocaleDateString()})`
-							: new Date() < new Date(testPlan.startDate)
-								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
-								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
-						: 'Awaiting start',
-				completed: request.status === 'COMPLETED' || 
-						   ['TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'COMPLETED', 'FAILED', 'FAIL'].includes(request.status) ||
-						   !!(testPlan && testPlan.evaluationStatus) ||
-						   !!(testPlan && new Date() > new Date(testPlan.endDate))
-			},
-			{
-				step: 'Reliability Evaluation',
-				date: testPlan && testPlan.evaluationStatus
-					? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
-					: 'Awaiting checksheet completion and evaluation',
-				completed: !!(testPlan && testPlan.evaluationStatus)
-			},
+			...(!isSampleFailed ? (
+				samplePlans.length > 0
+					? samplePlans.flatMap((p: any) => {
+						const planName = p.testType?.name || 'General Test';
+						const isCompleted = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+						const isTestingPhase = !isCompleted && p.startDate && p.endDate;
+
+						return [
+							{
+								step: `Testing Execution (${planName})`,
+								date: isCompleted
+									? 'Testing completed successfully'
+									: isTestingPhase
+										? (new Date() >= new Date(p.startDate) && new Date() <= new Date(p.endDate)
+											? `In testing phase (Ends: ${new Date(p.endDate).toLocaleDateString()})`
+											: new Date() < new Date(p.startDate)
+												? `Scheduled to start: ${new Date(p.startDate).toLocaleDateString()}`
+												: `Testing duration ended on ${new Date(p.endDate).toLocaleDateString()}`)
+										: 'Awaiting start',
+								completed: isCompleted || (p.endDate && new Date() > new Date(p.endDate))
+							},
+							{
+								step: `Evaluation (${planName})`,
+								date: p.evaluationStatus
+									? `Result: ${p.evaluationStatus} (${p.evaluationRemarks || 'No remarks'})`
+									: 'Awaiting checksheet completion and evaluation',
+								completed: isCompleted,
+								failed: p.evaluationStatus === 'FAILED'
+							}
+						];
+					})
+					: [
+						{
+							step: 'Testing Execution',
+							date: 'Awaiting test plan allocation',
+							completed: false
+						},
+						{
+							step: 'Evaluation',
+							date: 'Awaiting checksheet completion and evaluation',
+							completed: false
+						}
+					]
+			) : []),
 			{
 				step: 'Approved Final Report by Head',
 				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off',
@@ -184,7 +209,7 @@ export default function HeadRequestDetails() {
 		return steps;
 	})();
 
-	const activeIdx = timelineSteps.findIndex(s => !s.completed);
+	const activeIdx = timelineSteps.findIndex(s => !s.completed && !s.failed);
 
 	// Handle Approval Submit
 	const handleApproveSubmit = async () => {
@@ -495,7 +520,7 @@ export default function HeadRequestDetails() {
 								{request.attachments.map((file) => (
 									<a
 										key={file.id}
-										href={`http://127.0.0.1:3001/${(() => {
+										href={`/${(() => {
 											const idx = file.filePath.toLowerCase().indexOf('uploads');
 											return idx !== -1 ? file.filePath.substring(idx).replace(/\\/g, '/') : file.filePath.replace(/\\/g, '/');
 										})()}`}
@@ -669,14 +694,14 @@ export default function HeadRequestDetails() {
 												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
 													? formatCompletionDate(request.updatedAt || request.createdAt)
 													: 'Awaiting plan',
-												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!testPlan
+												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(request.testPlans && request.testPlans.length > 0)
 											},
 											{
 												step: 'Testing',
-												date: (["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || (testPlan && testPlan.evaluationStatus))
+												date: (["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || (request.testPlans && request.testPlans.some((p: any) => p.evaluationStatus)))
 													? formatCompletionDate(request.updatedAt || request.createdAt)
 													: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(testPlan && testPlan.evaluationStatus)
+												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(request.testPlans && request.testPlans.some((p: any) => p.evaluationStatus))
 											},
 											{
 												step: request.status === 'TESTING_COMPLETED'
@@ -811,13 +836,44 @@ export default function HeadRequestDetails() {
 														{report.status}
 													</span>
 													{report.status === 'PASSED' && (
-														<button
-															type="button"
-															onClick={() => setActiveTimelineSampleIndex(index)}
-															className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
-														>
-															View More
-														</button>
+														<div className="flex flex-col gap-1.5 items-end">
+															{(() => {
+																const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === index);
+																if (samplePlansList.length === 0) {
+																	return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
+																}
+																return samplePlansList.map((p: any) => {
+																	const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+																	return (
+																		<div key={p.id} className="flex items-center gap-1.5 font-bold text-xs">
+																			<span className="text-[9px] text-zinc-500">
+																				{p.testType?.name || 'General'}:
+																			</span>
+																			{isPlanEvaluated ? (
+																				<button
+																					type="button"
+																					onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
+																					className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																				>
+																					<FileText className="w-2.5 h-2.5" /> Report
+																				</button>
+																			) : (
+																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
+																					Testing
+																				</span>
+																			)}
+																		</div>
+																	);
+																});
+															})()}
+															<button
+																type="button"
+																onClick={() => setActiveTimelineSampleIndex(index)}
+																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none mt-1"
+															>
+																View Timeline
+															</button>
+														</div>
 													)}
 													{report.status === 'FAILED' && request.status === 'INSPECTION_FAILED' && !(request.remarks || '').includes('Submitted to Head') && (
 														<button

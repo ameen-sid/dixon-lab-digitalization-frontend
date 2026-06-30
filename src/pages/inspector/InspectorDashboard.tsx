@@ -52,7 +52,7 @@ export default function InspectorDashboard() {
 										platformNosParsed = [];
 									}
 								}
-								parsedPlans[`${r.id}-sample-${p.sampleIndex}`] = {
+								parsedPlans[`${r.id}-plan-${p.id}`] = {
 									...p,
 									platformNos: platformNosParsed
 								};
@@ -97,7 +97,7 @@ export default function InspectorDashboard() {
 
 	// Filter active test plans to Reliability tests
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
-		const [reqIdStr] = key.split('-sample-');
+		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
 		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));

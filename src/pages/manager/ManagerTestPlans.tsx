@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, XCircle, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
@@ -17,9 +17,11 @@ interface ManagerTestPlansProps {
 	requests: any[];
 	selectedRequestId?: string;
 	onUpdateStatus?: (id: string, status: string, remarks?: string) => Promise<any>;
+	onRefreshRequests?: () => Promise<void>;
 }
 
 interface TestPlanForm {
+	id?: number;
 	testTypeId: string;
 	testCategoryId: string;
 	productType: string; // 'SATL' | 'FATL' | 'FAFL' | 'WASH'
@@ -37,15 +39,15 @@ interface TestPlanForm {
 }
 
 const INSPECTION_CHECKPOINTS = [
-	{ id: 1, text: 'Model No, Brand Name, Manufacturer Name verify on Carton.' },
-	{ id: 2, text: 'Model No, Brand Name, Manufacturer Name verify on Rating Label.' },
-	{ id: 3, text: 'Instruction Manual & Warranty Card verify in Carton.' },
-	{ id: 4, text: 'Visual check of Sample (Free from dent, scratches, etc.)' },
-	{ id: 5, text: 'Mechanical check (all parts assemble properly & fitment).' },
-	{ id: 6, text: 'Check Power Cord length & plug top rating.' },
-	{ id: 7, text: 'Continuity Check of Earthing (Value < 0.1 ohm).' },
-	{ id: 8, text: 'High Voltage Test (1500 V / 1800 V for 1 min/1 sec).' },
-	{ id: 9, text: 'Earth Leakage Current Test (Value < 0.75 mA).' }
+	{ id: 1, text: 'Is Sample Description same as written on Test Request Form?' },
+	{ id: 2, text: 'Is Model / Identification same as written on Test Request Form?' },
+	{ id: 3, text: 'Is Product Serial Number same as written on Test Request Form?' },
+	{ id: 4, text: 'Is Label available on sample?' },
+	{ id: 5, text: 'Is Sample Rating same as written on Test Request Form?' },
+	{ id: 6, text: 'Is Trade Mark / Brand same as written on Test Request Form?' },
+	{ id: 7, text: 'Is User Manual provided along with Test Request Form?' },
+	{ id: 8, text: 'Is sample free from damage?' },
+	{ id: 9, text: 'Is all accessories received with sample?' }
 ];
 
 const getLocalTodayStr = () => {
@@ -56,7 +58,7 @@ const getLocalTodayStr = () => {
 	return `${year}-${month}-${day}`;
 };
 
-export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus }: ManagerTestPlansProps) {
+export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus, onRefreshRequests }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
 
 	// Resolve selected request from dynamic route parameter prop
@@ -86,10 +88,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			'TESTING_PASSED',
 			'TESTING_FAILED',
 			'TESTING_PARTIAL',
+			'TESTING_COMPLETED',
 			'COMPLETED',
+			'FAILED',
 			'RETEST',
-			'INSPECTION_FAILED'
-		].includes(r.status)
+			'INSPECTION_FAILED',
+			'PASS',
+			'FAIL',
+			'PARTIAL'
+		].includes((r.status || '').toUpperCase())
 	);
 
 	// Component states
@@ -113,9 +120,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const [nablPlatforms, setNablPlatforms] = useState<any[]>([]);
 	const [equipments, setEquipments] = useState<any[]>([]);
 
-	// Saved test plans computed dynamically from database requests prop
 	const savedPlans = useMemo(() => {
-		const plansMap: { [key: string]: TestPlanForm } = {};
+		const plansMap: { [key: string]: any[] } = {};
 		for (const req of requests) {
 			if (req.testPlans) {
 				for (const p of req.testPlans) {
@@ -128,7 +134,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							platformNosParsed = [];
 						}
 					}
-					plansMap[`${req.id}-sample-${p.sampleIndex}`] = {
+					const key = `${req.id}-sample-${p.sampleIndex}`;
+					if (!plansMap[key]) plansMap[key] = [];
+					plansMap[key].push({
+						id: p.id,
 						testTypeId: String(p.testTypeId),
 						testCategoryId: String(p.testCategoryId),
 						productType: p.productType || 'FATL',
@@ -143,12 +152,30 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						equipmentId: String(p.equipmentId || ''),
 						evaluationStatus: p.evaluationStatus || undefined,
 						evaluationRemarks: p.evaluationRemarks || undefined
-					};
+					});
 				}
 			}
 		}
 		return plansMap;
 	}, [requests]);
+
+	const isSubmittedToHead = selectedReq ? (selectedReq.remarks || '').includes('Submitted to Head') : false;
+
+	const canSubmitToHead = (() => {
+		if (!selectedReq) return false;
+		if (isAllInspectionFailed) return false;
+		const qty = selectedReq.sampleQty || 1;
+
+		for (let i = 0; i < qty; i++) {
+			const plansForSample = savedPlans[`${selectedReq.id}-sample-${i}`] || [];
+			if (plansForSample.length === 0) return false;
+			const hasEvaluated = plansForSample.some(
+				(p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
+			);
+			if (!hasEvaluated) return false;
+		}
+		return true;
+	})();
 
 	// Active planning form state
 	const [form, setForm] = useState<TestPlanForm>({
@@ -169,6 +196,35 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	// Helpers to determine test type context
 	const isNabl = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
 	const isReliability = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('reliability') || false;
+
+	const isPlatformReservedByOtherPlan = (stationNo: number, platformNo: number, currentPlanId?: number, checkNabl = false) => {
+		for (const req of requests) {
+			if (req.testPlans) {
+				for (const p of req.testPlans) {
+					if (currentPlanId && p.id === currentPlanId) continue;
+
+					// Determine if this test plan is NABL
+					const pIsNabl = testTypes.find(t => String(t.id) === String(p.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
+					if (pIsNabl !== checkNabl) continue;
+
+					let platformNosParsed: number[] = [];
+					if (p.platformNos) {
+						try {
+							const parsed = typeof p.platformNos === 'string' ? JSON.parse(p.platformNos) : p.platformNos;
+							platformNosParsed = (Array.isArray(parsed) ? parsed : [parsed]).map(Number).filter(n => !isNaN(n));
+						} catch (e) {
+							platformNosParsed = [];
+						}
+					}
+
+					if (Number(p.stationNo) === stationNo && platformNosParsed.includes(platformNo)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	};
 
 	// Fetch dynamic data parameters
 	const loadDbOptions = async () => {
@@ -255,7 +311,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	};
 
 	// Open test plan modal for a passed sample
-	const handleOpenPlanForm = async (sampleIndex: number) => {
+	const handleOpenPlanForm = async (sampleIndex: number, planToEdit?: any) => {
 		if (!selectedReq) return;
 		setActiveSampleIndex(sampleIndex);
 
@@ -271,45 +327,33 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			console.error('Failed to refresh live platforms & equipment status:', e);
 		}
 
-		const key = `${selectedReq.id}-sample-${sampleIndex}`;
-		const existing = savedPlans[key];
-
-		const requestTestTypeId = selectedReq.testTypeId ? String(selectedReq.testTypeId) : (selectedReq.testType?.id ? String(selectedReq.testType.id) : '');
-		const isRequestNabl = requestTestTypeId && testTypes.find(t => String(t.id) === String(requestTestTypeId))?.name?.toLowerCase().includes('nabl') || false;
-
-		// Populate categories & protocols based on the requestTestTypeId
-		const filteredCats = testCategories.filter(c => String(c.testTypeId) === String(requestTestTypeId));
-		const firstCat = filteredCats[0] || null;
-		const catId = firstCat ? String(firstCat.id) : '';
-
-		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
-		const firstProto = filteredProtos[0] || null;
-		const protoId = firstProto ? String(firstProto.id) : '';
-
-		if (existing) {
+		if (planToEdit) {
 			setForm({
-				...existing,
-				startDate: selectedReq.status === 'RETEST' ? getLocalTodayStr() : (existing.startDate || getLocalTodayStr()),
-				endDate: '', // Let it auto-calculate
-				evaluationStatus: selectedReq.status === 'RETEST' ? undefined : existing.evaluationStatus,
-				evaluationRemarks: selectedReq.status === 'RETEST' ? undefined : existing.evaluationRemarks,
-				testTypeId: requestTestTypeId,
-				testCategoryId: existing.testCategoryId || catId,
-				testProtocolId: existing.testProtocolId || protoId,
-				productType: existing.productType || 'FATL',
-				stationNo: isRequestNabl ? 1 : (Number(existing.stationNo) || 1),
-				platformNos: Array.isArray(existing.platformNos) ? existing.platformNos.map(Number) : []
+				id: planToEdit.id,
+				testTypeId: planToEdit.testTypeId,
+				testCategoryId: planToEdit.testCategoryId,
+				productType: planToEdit.productType || 'FATL',
+				stationNo: Number(planToEdit.stationNo) || 1,
+				platformNos: Array.isArray(planToEdit.platformNos) ? planToEdit.platformNos.map(Number) : [],
+				testProtocolId: planToEdit.testProtocolId,
+				referenceStandard: planToEdit.referenceStandard || '',
+				numberOfDays: Number(planToEdit.numberOfDays) || 9,
+				startDate: planToEdit.startDate || getLocalTodayStr(),
+				endDate: '', // Will be calculated
+				remarks: planToEdit.remarks || '',
+				equipmentId: planToEdit.equipmentId ? String(planToEdit.equipmentId) : '',
+				evaluationStatus: planToEdit.evaluationStatus,
+				evaluationRemarks: planToEdit.evaluationRemarks
 			});
 		} else {
 			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
-
 			setForm({
-				testTypeId: requestTestTypeId,
-				testCategoryId: catId,
+				testTypeId: '',
+				testCategoryId: '',
 				productType: 'FATL',
-				stationNo: isRequestNabl ? 1 : 1,
+				stationNo: 1,
 				platformNos: [],
-				testProtocolId: protoId,
+				testProtocolId: '',
 				referenceStandard: '',
 				numberOfDays: 9,
 				startDate: getLocalTodayStr(),
@@ -317,6 +361,47 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				remarks: '',
 				equipmentId: defaultEq ? String(defaultEq.id) : ''
 			});
+		}
+	};
+
+	// Delete test plan from database and release resources
+	const handleDeletePlan = async (planId: number, stationNo?: number, platformNos?: number[], equipmentId?: string, planTestTypeId?: string) => {
+		if (!selectedReq) return;
+		if (!window.confirm('Are you sure you want to delete this test plan?')) return;
+
+		try {
+			const planIsNabl = planTestTypeId && testTypes.find(t => String(t.id) === String(planTestTypeId))?.name?.toLowerCase().includes('nabl') || false;
+			const planIsReliability = planTestTypeId && testTypes.find(t => String(t.id) === String(planTestTypeId))?.name?.toLowerCase().includes('reliability') || false;
+
+			if (platformNos && platformNos.length > 0 && stationNo) {
+				const releaseOp = planIsNabl
+					? releaseNablPlatforms(Number(stationNo), platformNos.map(Number))
+					: releaseNormalPlatforms(Number(stationNo), platformNos.map(Number));
+				await releaseOp();
+			}
+			if (equipmentId && !planIsReliability) {
+				const releaseEqOp = releaseEquipment(Number(equipmentId));
+				await releaseEqOp();
+			}
+
+			const res = await fetch(`/api/v1/test-requests/${selectedReq.id}/test-plans/${planId}`, {
+				method: 'DELETE',
+				headers: {
+					'Authorization': `Bearer ${localStorage.getItem('token')}`
+				}
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to delete test plan');
+			}
+
+			toast.success('Test plan deleted successfully.');
+			if (onRefreshRequests) {
+				await onRefreshRequests();
+			}
+		} catch (error) {
+			console.error('Failed to delete test plan:', error);
+			toast.error('Failed to delete test plan.');
 		}
 	};
 
@@ -376,17 +461,17 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				? selectedReq.requestId
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
 
-			// Release any previously reserved platforms/equipments for this specific sample test plan first
-			const key = `${selectedReq.id}-sample-${activeSampleIndex}`;
-			const existing = savedPlans[key];
+			// Release any previously reserved platforms/equipments for this specific test plan first
+			const existing = form.id ? (savedPlans[`${selectedReq.id}-sample-${activeSampleIndex}`] || []).find((p: any) => p.id === form.id) : null;
 			if (existing) {
 				if (existing.platformNos && existing.platformNos.length > 0) {
-					const releaseOp = isNabl
+					const existingIsNabl = testTypes.find(t => String(t.id) === String(existing.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
+					const releaseOp = existingIsNabl
 						? releaseNablPlatforms(Number(existing.stationNo), existing.platformNos.map(Number))
 						: releaseNormalPlatforms(Number(existing.stationNo), existing.platformNos.map(Number));
 					await releaseOp();
 				}
-				if (existing.equipmentId && !isReliability) {
+				if (existing.equipmentId) {
 					const releaseEqOp = releaseEquipment(Number(existing.equipmentId));
 					await releaseEqOp();
 				}
@@ -428,6 +513,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 			// 3. Save to database
 			const testPlanData = {
+				id: form.id ? Number(form.id) : undefined,
 				sampleIndex: activeSampleIndex,
 				testTypeId: Number(form.testTypeId),
 				testCategoryId: Number(form.testCategoryId),
@@ -464,6 +550,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				);
 			}
 
+			if (onRefreshRequests) {
+				await onRefreshRequests();
+			}
+
 			toast.success(`Test plan for Sample #${activeSampleIndex + 1} saved, platforms & equipment reserved!`);
 			setActiveSampleIndex(null);
 		} catch (error) {
@@ -485,7 +575,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			(r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
 		// 2. Status Match
-		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL'].includes((r.status || '').toUpperCase());
+		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase());
 		const isFailed = ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase());
 		const isTesting = ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase());
 		const isSubmittedToHead = (r.remarks || '').includes('Submitted to Head');
@@ -664,7 +754,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											let plansCreated = 0;
 
 											for (let i = 0; i < qty; i++) {
-												const plan = savedPlans[`${req.id}-sample-${i}`];
+												const planList = savedPlans[`${req.id}-sample-${i}`] || [];
 												const report = (req.sampleInspections || []).find(
 													(r: any) => Number(r.sampleIndex) === i
 												);
@@ -681,17 +771,19 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													} else if (reportStatus === 'FAILED') {
 														physicalFailed++;
 													}
-												} else if (plan) {
+												} else if (planList.length > 0) {
 													physicalPassed++;
 												}
 
-												if (plan) {
-													plansCreated++;
-													if (plan.evaluationStatus === 'PASSED') {
-														testingPassed++;
-													} else if (plan.evaluationStatus === 'FAILED') {
-														testingFailed++;
-													}
+												if (planList.length > 0) {
+													plansCreated += planList.length;
+													planList.forEach((plan: any) => {
+														if (plan.evaluationStatus === 'PASSED') {
+															testingPassed++;
+														} else if (plan.evaluationStatus === 'FAILED') {
+															testingFailed++;
+														}
+													});
 												}
 											}
 
@@ -773,7 +865,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded-full uppercase tracking-wider">
 																Testing Failed
 															</span>
-														) : req.status === 'TESTING_PASSED' || req.status === 'COMPLETED' ? (
+														) : req.status === 'TESTING_PARTIAL' || req.status === 'PARTIAL' ? (
+															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-250 rounded-full uppercase tracking-wider">
+																Testing Partial
+															</span>
+														) : req.status === 'TESTING_PASSED' || req.status === 'COMPLETED' || req.status === 'TESTING_COMPLETED' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-250 rounded-full uppercase tracking-wider">
 																Testing Passed
 															</span>
@@ -898,7 +994,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												{selectedReq.attachments.map((file: any) => (
 													<a
 														key={file.id}
-														href={`http://127.0.0.1:3001/${(() => {
+														href={`/${(() => {
 															const idx = file.filePath.toLowerCase().indexOf('uploads');
 															return idx !== -1 ? file.filePath.substring(idx).replace(/\\/g, '/') : file.filePath.replace(/\\/g, '/');
 														})()}`}
@@ -960,48 +1056,32 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								<span className="text-[10px] font-extrabold px-2 py-0.5 bg-zinc-100 text-zinc-555 rounded-full">
 									{selectedReq.sampleQty || 1} Samples
 								</span>
-							</div>
-
-							<div className="divide-y divide-zinc-150/70">
+							</div>							<div className="divide-y divide-zinc-150/70">
 								{(() => {
 									const qty = selectedReq.sampleQty || 1;
 									const list = [];
 
 									for (let i = 0; i < qty; i++) {
 										const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-										const plan = savedPlans[`${selectedReq.id}-sample-${i}`];
+										const planList = savedPlans[`${selectedReq.id}-sample-${i}`] || [];
 										list.push({
 											index: i,
 											report,
-											plan
+											planList
 										});
 									}
 
-									return list.map(({ index, report, plan }) => {
+									return list.map(({ index, report, planList }) => {
 										const sampleNo = index + 1;
 										const isRetestOrTesting = ['RETEST', 'UNDER_TESTING', 'UNDER_TEST', 'TESTING_FAILED', 'TESTING_PASSED', 'FAILED', 'COMPLETED'].includes(selectedReq.status);
 										const isFailed = report?.status === 'FAILED' && !isRetestOrTesting;
 										const isPassed = report?.status === 'PASSED' || isRetestOrTesting;
 
-										const todayStr = getLocalTodayStr();
-										const isTesting = plan && plan.startDate <= todayStr;
-
-										const testType = testTypes.find(t => String(t.id) === String(selectedReq.testTypeId));
-										const isReliability = testType ? testType.name.toLowerCase().includes('reliability') : true;
-										const isUnderReview = report?.status === 'UNDER_REVIEW';
-										const showActionButtons = isPassed || (!isReliability && isUnderReview);
-
-										const requestTestingCompleted = ['COMPLETED', 'TESTING_PASSED'].includes(
-											(selectedReq.status || '').toUpperCase()
-										);
-
-										const testPlanEvaluationFailed = (plan?.evaluationStatus || '').toUpperCase() === 'FAILED';
-										const hideEditTestPlanButton = requestTestingCompleted || testPlanEvaluationFailed;
-
 										return (
-											<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-												<div className="space-y-1">
-													<div className="flex items-center gap-2 flex-wrap">
+											<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col gap-4">
+												{/* Sample Header & Inspection Status */}
+												<div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
+													<div className="flex items-center gap-2">
 														<span className="text-xs font-bold text-zinc-855">Sample #{sampleNo}</span>
 														{report ? (
 															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
@@ -1023,52 +1103,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																No Inspection Report
 															</span>
 														)}
-														{plan ? (
-															<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
-																? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-																: plan.evaluationStatus === 'FAILED'
-																	? 'bg-rose-50 text-rose-700 border border-rose-100'
-																	: isTesting
-																		? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
-																		: 'bg-amber-50 text-amber-700 border border-amber-100'
-																}`}>
-																{plan.evaluationStatus === 'PASSED'
-																	? 'Testing Passed'
-																	: plan.evaluationStatus === 'FAILED'
-																		? 'Testing Failed'
-																		: isTesting
-																			? 'Testing'
-																			: 'Scheduled'}
-															</span>
-														) : selectedReq.status === 'RETEST' ? (
-															<span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-100">
-																Retest Config Required
-															</span>
-														) : null}
 													</div>
 													{report && (
-														<p className="text-[10px] text-zinc-555 font-semibold mt-0.5">
+														<p className="text-[10px] text-zinc-555 font-semibold">
 															Allotted Code: <span className="text-zinc-700 font-extrabold">{report.allottedId || 'N/A'}</span>
 														</p>
 													)}
-													{plan && (
-														<div className={`text-[9px] rounded-lg p-2 mt-2 space-y-0.5 border ${selectedReq.status === 'RETEST'
-															? 'text-orange-700 bg-orange-50/50 border-orange-100/50'
-															: 'text-indigo-650 bg-indigo-50/50 border-indigo-100/50'
-															}`}>
-															<p className="font-extrabold">
-																{selectedReq.status === 'RETEST' ? 'Previous Test Plan (Retest Required):' : 'Active Test Plan Configured:'}
-															</p>
-															<p className="font-bold">
-																Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})
-																{plan.equipmentId && ` | Equipment: ${equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}`}
-															</p>
-															<p className="font-bold">Duration: {plan.numberOfDays} Days ({formatDateToDMY(plan.startDate)} to {formatDateToDMY(plan.endDate)})</p>
-														</div>
-													)}
 												</div>
 
-												{/* Action Buttons */}
+												{/* Test Plans List */}
 												{isFailed ? (
 													<div className="flex items-center gap-2">
 														<span className="text-[10px] font-extrabold px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl flex items-center gap-1.5 shrink-0 border border-rose-150">
@@ -1079,77 +1122,128 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															onClick={() => {
 																window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank');
 															}}
-															className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0 animate-fade-in"
+															className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0"
 														>
 															<FileText className="w-3.5 h-3.5" />
 															<span>View Details</span>
 														</button>
 													</div>
-												) : showActionButtons ? (
-													<div className="flex flex-wrap items-center gap-2 shrink-0">
-														{!hideEditTestPlanButton && (
-															<button
-																onClick={() => handleOpenPlanForm(index)}
-																className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0 hover:scale-[1.01] active:scale-95 ${selectedReq.status === 'RETEST'
-																	? 'bg-orange-600 hover:bg-orange-700 text-white'
-																	: plan
-																		? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-300'
-																		: 'bg-[#11236a] hover:bg-[#0c1a52] text-white'
-																	}`}
-															>
-																<Clipboard className="w-3.5 h-3.5 shrink-0" />
-																{selectedReq.status === 'RETEST' ? 'Configure Retest Plan' : plan ? 'Edit Test Plan' : 'Create Test Plan'}
-															</button>
-														)}
+												) : (
+													<div className="space-y-3">
+														{planList.length > 0 ? (
+															planList.map((plan: any) => {
+																const todayStr = getLocalTodayStr();
+																const isTesting = plan.startDate <= todayStr;
+																const planTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
 
-														{plan && selectedReq.status !== 'RETEST' && (() => {
-															const todayStr = getLocalTodayStr();
-															const isLastDateOrLater = todayStr >= plan.startDate;
-															const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+																const hideEditTestPlanButton = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 
-															if (isEvaluated) {
 																return (
-																	<div className="flex items-center gap-2">
-																		<span className={`text-[10px] font-extrabold px-3 py-1.5 rounded-xl flex items-center gap-1 border shrink-0 ${plan.evaluationStatus === 'PASSED'
-																			? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-																			: 'bg-rose-50 text-rose-600 border-rose-100'
-																			}`}>
-																			{plan.evaluationStatus === 'PASSED' ? (
-																				<CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-																			) : (
-																				<XCircle className="w-3.5 h-3.5 text-rose-650 shrink-0" />
+																	<div key={plan.id} className="bg-zinc-50/50 border border-zinc-200/60 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:bg-zinc-50">
+																		<div className="space-y-1">
+																			<div className="flex items-center gap-2 flex-wrap">
+																				<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+																					{planTestType?.name || 'General'}
+																				</span>
+																				<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
+																					? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+																					: plan.evaluationStatus === 'FAILED'
+																						? 'bg-rose-50 text-rose-700 border border-rose-100'
+																						: isTesting
+																							? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
+																							: 'bg-amber-50 text-amber-700 border border-amber-100'
+																					}`}>
+																					{plan.evaluationStatus === 'PASSED'
+																						? 'Testing Passed'
+																						: plan.evaluationStatus === 'FAILED'
+																							? 'Testing Failed'
+																							: isTesting
+																								? 'Testing'
+																								: 'Scheduled'}
+																				</span>
+																			</div>
+																			<div className="text-[9px] text-zinc-600 font-bold space-y-0.5 mt-1">
+																				<p>Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})</p>
+																				{plan.equipmentId && (
+																					<p>Equipment: {equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}</p>
+																				)}
+																				<p>Duration: {plan.numberOfDays} Days ({formatDateToDMY(plan.startDate)} to {formatDateToDMY(plan.endDate)})</p>
+																				{plan.remarks && (
+																					<p className="italic text-zinc-500 font-medium">Remarks: {plan.remarks}</p>
+																				)}
+																			</div>
+																		</div>
+
+																		<div className="flex flex-wrap items-center gap-2 shrink-0">
+																			{!hideEditTestPlanButton && (
+																				<button
+																					onClick={() => handleOpenPlanForm(index, plan)}
+																					className="px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+																				>
+																					<Clipboard className="w-3 h-3 shrink-0" />
+																					Edit
+																				</button>
 																			)}
-																			Evaluated: {plan.evaluationStatus}
-																		</span>
-																		<button
-																			onClick={() => window.open(`/reports/preview?type=sample&key=${selectedReq.id}-sample-${index}`, '_blank')}
-																			className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-xl text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all shrink-0 animate-fade-in"
-																		>
-																			<FileText className="w-3.5 h-3.5" />
-																			<span>Report</span>
-																		</button>
+
+																			{!hideEditTestPlanButton && (
+																				<button
+																					onClick={() => handleDeletePlan(plan.id, Number(plan.stationNo), plan.platformNos, plan.equipmentId, plan.testTypeId)}
+																					className="px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+																				>
+																					Delete
+																				</button>
+																			)}
+
+																			{(() => {
+																				const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+																				if (isEvaluated) {
+																					return (
+																						<button
+																							onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
+																							className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
+																						>
+																							<FileText className="w-3 h-3" />
+																							<span>Report</span>
+																						</button>
+																					);
+																				}
+
+																				const planReport = selectedReq.sampleInspections?.find(
+																					(si: any) => si.testPlanId === plan.id
+																				);
+																				const planIsUnderReview = planReport?.status === 'UNDER_REVIEW';
+
+																				const showEvaluate = isTesting || planIsUnderReview;
+																				if (showEvaluate) {
+																					return (
+																						<button
+																							onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-plan-${plan.id}`)}
+																							className="px-3.5 py-1.5 text-[10px] font-extrabold rounded-lg transition-all outline-none border-none cursor-pointer flex items-center gap-1 shadow-sm bg-amber-600 hover:bg-amber-700 text-white active:scale-95"
+																						>
+																							Evaluate
+																						</button>
+																					);
+																				}
+																				return null;
+																			})()}
+																		</div>
 																	</div>
 																);
-															}
+															})
+														) : (
+															<p className="text-[10px] text-zinc-400 italic">No active test plans configured for this sample.</p>
+														)}
 
-															const showEvaluate = isReliability ? isLastDateOrLater : isUnderReview;
-															if (showEvaluate) {
-																return (
-																	<button
-																		onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-sample-${index}`)}
-																		className="px-4 py-2 text-xs font-extrabold rounded-xl transition-all outline-none border-none cursor-pointer flex items-center gap-1.5 shadow-sm bg-amber-600 hover:bg-amber-700 text-white hover:scale-[1.01] active:scale-95 shrink-0"
-																	>
-																		Evaluate
-																	</button>
-																);
-															}
-															return null;
-														})()}
+														{/* "+ Add Test Plan" button */}
+														{isPassed && (
+															<button
+																onClick={() => handleOpenPlanForm(index)}
+																className="mt-2 px-3 py-2 bg-[#11236a] hover:bg-[#0c1a52] text-white text-[10px] font-extrabold rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1 border-none shadow-sm"
+															>
+																<span>+ Add Test Plan</span>
+															</button>
+														)}
 													</div>
-												) : (
-													<span className="text-[10px] font-bold text-zinc-400 shrink-0">
-														Awaiting complete inspection
-													</span>
 												)}
 											</div>
 										);
@@ -1160,10 +1254,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							{/* Activation Footer */}
 							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
 								{isAllInspectionFailed && ['INSPECTION_COMPLETED', 'INSPECTION_FAILED'].includes(selectedReq.status) && (
-									(selectedReq.status === 'INSPECTION_COMPLETED' || 
-									 (selectedReq.remarks || '').includes('Submitted to Head') || 
-									 (selectedReq.remarks || '').includes('Approved by Head') ||
-									 (selectedReq.remarks || '').includes('Returned for Retest')) ? (
+									(selectedReq.status === 'INSPECTION_COMPLETED' ||
+										(selectedReq.remarks || '').includes('Submitted to Head') ||
+										(selectedReq.remarks || '').includes('Approved by Head') ||
+										(selectedReq.remarks || '').includes('Returned for Retest')) ? (
 										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
 											Submitted to Head Panel
 										</span>
@@ -1187,6 +1281,36 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											<CheckCircle className="w-4 h-4" />
 											<span>Submit Failed Request</span>
 										</button>
+									)
+								)}
+
+								{!isAllInspectionFailed && (
+									isSubmittedToHead ? (
+										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
+											Submitted to Head Panel
+										</span>
+									) : (
+										canSubmitToHead && (
+											<button
+												onClick={async () => {
+													if (onUpdateStatus) {
+														try {
+															const remarksText = selectedReq.remarks ? `${selectedReq.remarks}` : '';
+															const newRemarks = remarksText.includes('Submitted to Head') ? remarksText : `Submitted to Head. ${remarksText}`;
+															await onUpdateStatus(selectedReq.id, selectedReq.status, newRemarks);
+															toast.success('Test reports successfully submitted to Head Panel.');
+															navigate('/manager/test-plans');
+														} catch (e) {
+															toast.error('Failed to submit test reports.');
+														}
+													}
+												}}
+												className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer outline-none shadow-sm active:scale-95 hover:scale-[1.01] border-none"
+											>
+												<CheckCircle className="w-4 h-4" />
+												<span>Submit to Head</span>
+											</button>
+										)
 									)
 								)}
 
@@ -1239,9 +1363,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<select
 										id="testType"
 										value={form.testTypeId}
-										disabled
 										onChange={(e) => handleTestTypeChange(e.target.value)}
-										className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 text-zinc-500 text-xs font-semibold outline-none cursor-not-allowed h-[42px] opacity-75"
+										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all cursor-pointer h-[42px]"
 									>
 										<option value="">-- Select Test Type --</option>
 										{testTypes.map((t: any) => (
@@ -1360,9 +1483,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															);
 															const isOccupied = slot
 																? (!slot.isAvailable &&
-																	(slot.testRequestId === Number(selectedReq.id)
-																		? !slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
-																		: true))
+																	(isPlatformReservedByOtherPlan(sNum, pNum, form.id, true) ||
+																		slot.testRequestId !== Number(selectedReq.id) ||
+																		(!form.id && slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`))
+																	)
+																)
 																: false;
 
 															return (
@@ -1435,9 +1560,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															);
 															const isOccupied = slot
 																? (!slot.isAvailable &&
-																	(slot.testRequestId === Number(selectedReq.id)
-																		? !slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
-																		: true))
+																	(isPlatformReservedByOtherPlan(sNum, pNum, form.id, false) ||
+																		slot.testRequestId !== Number(selectedReq.id) ||
+																		(!form.id && slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`))
+																	)
+																)
 																: false;
 
 															return (
@@ -1628,7 +1755,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${activeInspectionReport.status === 'PASSED'
 										? 'bg-emerald-50 text-emerald-700 border border-emerald-150'
 										: 'bg-rose-50 text-rose-700 border border-rose-150'
-									}`}>
+										}`}>
 										Inspection {activeInspectionReport.status}
 									</span>
 									<button
@@ -1673,11 +1800,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<tr key={cp.id} className="hover:bg-zinc-50/50">
 														<td className="p-3 font-medium text-zinc-800 leading-normal">{cp.text}</td>
 														<td className="p-3 text-center">
-															<span className={`inline-block px-2.5 py-1 text-[10px] font-extrabold rounded-lg uppercase tracking-wider text-center min-w-[50px] ${
-																val === 'Yes' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' :
-																val === 'No' ? 'bg-rose-50 text-rose-700 border border-rose-150' :
-																'bg-zinc-100 text-zinc-500 border border-zinc-200'
-															}`}>
+															<span className={`inline-block px-2.5 py-1 text-[10px] font-extrabold rounded-lg uppercase tracking-wider text-center min-w-[50px] ${val === 'Yes' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' :
+																	val === 'No' ? 'bg-rose-50 text-rose-700 border border-rose-150' :
+																		'bg-zinc-100 text-zinc-500 border border-zinc-200'
+																}`}>
 																{val || 'N/A'}
 															</span>
 														</td>
@@ -1722,10 +1848,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												return (
 													<div key={idx} className="relative group rounded-xl overflow-hidden border border-zinc-200 shadow-sm hover:shadow-md transition-all">
 														<img
-															src={`http://127.0.0.1:3001/${relativePath}`}
+															src={`/${relativePath}`}
 															alt={`Inspection photo ${idx + 1}`}
 															className="w-24 h-24 object-cover cursor-pointer hover:scale-105 transition-transform"
-															onClick={() => window.open(`http://127.0.0.1:3001/${relativePath}`, '_blank')}
+															onClick={() => window.open(`/${relativePath}`, '_blank')}
 														/>
 													</div>
 												);
