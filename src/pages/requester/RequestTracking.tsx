@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText, XCircle, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface RequestRecord {
 	id: string;
@@ -53,6 +54,38 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 	const [realSampleInspections, setRealSampleInspections] = useState<any[]>([]);
 	const [realTestPlans, setRealTestPlans] = useState<any[]>([]);
 	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
+
+	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
+		try {
+			const token = localStorage.getItem('token');
+			const dbIdVal = request.dbId || (request.id ? Number(request.id.split('-').pop()) : null);
+			if (!dbIdVal) throw new Error('Request ID not found');
+
+			const res = await fetch(`/api/v1/test-requests/${dbIdVal}/test-plans/${plan.id}/tear-down-report`, {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to generate report');
+			}
+
+			const blob = await res.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `Tear_Down_Report_${request.brandName}_${request.modelNo}_Plan_${plan.id}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			window.URL.revokeObjectURL(url);
+			toast.success('Tear Down Report downloaded successfully!');
+		} catch (err) {
+			console.error(err);
+			toast.error('Failed to download Tear Down Report.');
+		}
+	};
 
 
 	useEffect(() => {
@@ -685,13 +718,24 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 																				{p.testType?.name || 'General'}:
 																			</span>
 																			{isPlanEvaluated ? (
-																				<button
-																					type="button"
-																					onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
-																					className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
-																				>
-																					<FileText className="w-2.5 h-2.5" /> Report
-																				</button>
+																				<div className="flex items-center gap-1.5">
+																					<button
+																						type="button"
+																						onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
+																						className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																					>
+																						<FileText className="w-2.5 h-2.5" /> Report
+																					</button>
+																					{p.testType?.name?.toLowerCase().includes('reliability') && (
+																						<button
+																							type="button"
+																							onClick={() => handleDownloadTearDownExcel(p, selectedRequest)}
+																							className="text-[9px] font-extrabold text-emerald-700 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																						>
+																							<FileText className="w-2.5 h-2.5" /> Tear Down
+																						</button>
+																					)}
+																				</div>
 																			) : (
 																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
 																					Testing
@@ -753,14 +797,24 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									</h3>
 									<div className="flex flex-wrap gap-2">
 										{samplePlans.filter((p: any) => ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase())).map((p: any) => (
-											<button
-												key={p.id}
-												onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
-												className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 hover:text-white px-2 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
-											>
-												<FileText className="w-3 h-3" />
-												<span>{p.testType?.name || 'Report'}</span>
-											</button>
+											<div key={p.id} className="flex items-center gap-1.5">
+												<button
+													onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
+													className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 hover:text-white px-2 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
+												>
+													<FileText className="w-3 h-3" />
+													<span>{p.testType?.name || 'Report'}</span>
+												</button>
+												{p.testType?.name?.toLowerCase().includes('reliability') && (
+													<button
+														onClick={() => handleDownloadTearDownExcel(p, selectedRequest)}
+														className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 hover:text-white px-2 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95 shadow-sm"
+													>
+														<FileText className="w-3 h-3" />
+														<span>Tear Down</span>
+													</button>
+												)}
+											</div>
 										))}
 									</div>
 								</div>

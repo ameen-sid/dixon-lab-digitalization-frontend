@@ -12,6 +12,35 @@ export default function HeadReportDetails() {
 	const [loading, setLoading] = useState(true);
 	const [approving, setApproving] = useState(false);
 
+	const handleDownloadTearDownExcel = async (plan: any, reqRecord: any) => {
+		try {
+			const token = localStorage.getItem('token');
+			const res = await fetch(`/api/v1/test-requests/${reqRecord.id}/test-plans/${plan.id}/tear-down-report`, {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to generate report');
+			}
+
+			const blob = await res.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `Tear_Down_Report_${reqRecord.brandName}_${reqRecord.modelNo}_Plan_${plan.id}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			window.URL.revokeObjectURL(url);
+			toast.success('Tear Down Report downloaded successfully!');
+		} catch (err) {
+			console.error(err);
+			toast.error('Failed to download Tear Down Report.');
+		}
+	};
+
 	const loadRequestDetails = async () => {
 		if (!id) return;
 		setLoading(true);
@@ -255,13 +284,24 @@ export default function HeadReportDetails() {
 																)}
 															</div>
 															{isPlanEvaluated && (
-																<button
-																	onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
-																	className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
-																>
-																	<FileText className="w-2.5 h-2.5" />
-																	<span>Report</span>
-																</button>
+																<div className="flex items-center gap-1.5">
+																	<button
+																		onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
+																		className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+																	>
+																		<FileText className="w-2.5 h-2.5" />
+																		<span>Report</span>
+																	</button>
+																	{p.testType?.name?.toLowerCase().includes('reliability') && (
+																		<button
+																			onClick={() => handleDownloadTearDownExcel(p, request)}
+																			className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-700 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+																		>
+																			<FileText className="w-2.5 h-2.5" />
+																			<span>Tear Down</span>
+																		</button>
+																	)}
+																</div>
 															)}
 														</div>
 													);

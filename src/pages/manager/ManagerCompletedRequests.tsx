@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, AlertTriangle, ChevronRight, FolderOpen, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, Eye, AlertTriangle, ChevronRight, FolderOpen, RefreshCw, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
 
@@ -11,6 +12,35 @@ interface ManagerCompletedRequestsProps {
 
 export default function ManagerCompletedRequests({ requests, selectedRequestId }: ManagerCompletedRequestsProps) {
 	const navigate = useNavigate();
+	
+	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
+		try {
+			const token = localStorage.getItem('token');
+			const res = await fetch(`/api/v1/test-requests/${request.id}/test-plans/${plan.id}/tear-down-report`, {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to generate report');
+			}
+
+			const blob = await res.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `Tear_Down_Report_${request.brandName}_${request.modelNo}_Plan_${plan.id}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			window.URL.revokeObjectURL(url);
+			toast.success('Tear Down Report downloaded successfully!');
+		} catch (err) {
+			console.error(err);
+			toast.error('Failed to download Tear Down Report.');
+		}
+	};
 	
 	// Filtering and UI states
 	const [searchQuery, setSearchQuery] = useState('');
@@ -328,7 +358,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 																	)}
 																</div>
 
-																<div className="shrink-0">
+																<div className="shrink-0 flex items-center gap-2">
 																	<button
 																		onClick={() => {
 																			window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank');
@@ -338,6 +368,15 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 																		<Eye className="w-3.5 h-3.5" />
 																		<span>View Test Report</span>
 																	</button>
+																	{plan.testType?.name?.toLowerCase().includes('reliability') && (
+																		<button
+																			onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																			className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 hover:text-white px-3 py-2 rounded-xl border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none shadow-sm active:scale-95"
+																		>
+																			<FileText className="w-3.5 h-3.5" />
+																			<span>Tear Down Report</span>
+																		</button>
+																	)}
 																</div>
 															</div>
 														);
