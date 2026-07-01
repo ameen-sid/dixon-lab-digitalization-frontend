@@ -193,6 +193,35 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		equipmentId: ''
 	});
 
+	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
+		try {
+			const token = localStorage.getItem('token');
+			const res = await fetch(`/api/v1/test-requests/${request.id}/test-plans/${plan.id}/tear-down-report`, {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to generate report');
+			}
+
+			const blob = await res.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `Tear_Down_Report_${request.brandName}_${request.modelNo}_Plan_${plan.id}.xlsx`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			window.URL.revokeObjectURL(url);
+			toast.success('Tear Down Report downloaded successfully!');
+		} catch (err) {
+			console.error(err);
+			toast.error('Failed to download Tear Down Report.');
+		}
+	};
+
 	// Helpers to determine test type context
 	const isNabl = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
 	const isReliability = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('reliability') || false;
@@ -1197,14 +1226,26 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																			{(() => {
 																				const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 																				if (isEvaluated) {
+																					const isReliabilityPlan = planTestType?.name?.toLowerCase().includes('reliability');
 																					return (
-																						<button
-																							onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
-																							className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
-																						>
-																							<FileText className="w-3 h-3" />
-																							<span>Report</span>
-																						</button>
+																						<div className="flex items-center gap-2">
+																							<button
+																								onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
+																								className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
+																							>
+																								<FileText className="w-3 h-3" />
+																								<span>Report</span>
+																							</button>
+																							{isReliabilityPlan && (
+																								<button
+																									onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																									className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-emerald-250 cursor-pointer shadow-sm active:scale-95 transition-all"
+																								>
+																									<FileText className="w-3 h-3" />
+																									<span>Tear Down Report</span>
+																								</button>
+																							)}
+																						</div>
 																					);
 																				}
 
