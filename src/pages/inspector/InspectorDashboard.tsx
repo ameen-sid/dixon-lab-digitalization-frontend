@@ -131,7 +131,7 @@ export default function InspectorDashboard() {
 		
 		let curr = new Date(start);
 		let safety = 0;
-		while (curr <= end && safety < 100) {
+		while (curr <= end && safety < 1000) {
 			dates.push(curr.toISOString().split('T')[0]);
 			curr.setDate(curr.getDate() + 1);
 			safety++;
