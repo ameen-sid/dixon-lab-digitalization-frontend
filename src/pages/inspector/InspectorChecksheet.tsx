@@ -115,10 +115,22 @@ export default function InspectorChecksheet() {
 					// Map database entries to cellData state
 					const mappedData: { [key: string]: string } = {};
 					dbEntries.forEach((entry: any) => {
-						if (entry.date && entry.data && typeof entry.data === 'object') {
-							Object.entries(entry.data).forEach(([colId, val]) => {
-								mappedData[`${entry.date}_${colId}`] = String(val);
-							});
+						if (entry.date && entry.data) {
+							let parsedData = entry.data;
+							while (typeof parsedData === 'string') {
+								try {
+									const temp = JSON.parse(parsedData);
+									if (temp === parsedData) break;
+									parsedData = temp;
+								} catch (e) {
+									break;
+								}
+							}
+							if (parsedData && typeof parsedData === 'object') {
+								Object.entries(parsedData).forEach(([colId, val]) => {
+									mappedData[`${entry.date}_${colId}`] = String(val);
+								});
+							}
 						}
 					});
 					setCellData(mappedData);
