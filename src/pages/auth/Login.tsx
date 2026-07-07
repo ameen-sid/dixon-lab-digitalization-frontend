@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Loader } from 'lucide-react';
 import { login } from '../../services/operations/authService';
-
+ 
 export default function Login() {
 	const navigate = useNavigate();
-
+ 
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState('');
+ 
+	useEffect(() => {
+		const token = localStorage.getItem('token');
+		const userStr = localStorage.getItem('user');
+		if (token && userStr) {
+			navigate('/dashboard', { replace: true });
+		}
+	}, [navigate]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
