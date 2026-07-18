@@ -148,6 +148,10 @@ export default function InspectorDashboard() {
 	const _todayLocal = new Date();
 	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
 
+	const _yesterdayLocal = new Date();
+	_yesterdayLocal.setDate(_yesterdayLocal.getDate() - 1);
+	const yesterdayStr = `${_yesterdayLocal.getFullYear()}-${String(_yesterdayLocal.getMonth() + 1).padStart(2, '0')}-${String(_yesterdayLocal.getDate()).padStart(2, '0')}`;
+
 	const alerts: { id: string; type: 'missed' | 'overdue'; message: string; date?: string; planKey: string }[] = [];
 	const todayChecksheets: { planKey: string; request: any; plan: any; status: 'Completed' | 'Pending'; progress: number }[] = [];
 	const planSummaries: { planKey: string; request: any; plan: any; completedDays: number; totalDays: number; missedDays: number; upcomingDays: number; progress: number }[] = [];
@@ -161,14 +165,15 @@ export default function InspectorDashboard() {
 		let upcomingForThisPlan = 0;
 
 		const hasToday = dates.includes(todayStr);
-		const hasTodayEntry = entries.some((e: any) => e.date === todayStr);
+		const targetCheckDate = plan.startDate && yesterdayStr < plan.startDate ? todayStr : yesterdayStr;
+		const hasTargetEntry = entries.some((e: any) => e.date === targetCheckDate);
 
 		dates.forEach(dateStr => {
 			const hasEntry = entries.some((e: any) => e.date === dateStr);
-			if (dateStr > todayStr) {
+			if (dateStr > targetCheckDate) {
 				upcomingCount++;
 				upcomingForThisPlan++;
-			} else if (dateStr === todayStr) {
+			} else if (dateStr === targetCheckDate) {
 				if (hasEntry) {
 					completedCount++;
 					completedForThisPlan++;
@@ -202,7 +207,7 @@ export default function InspectorDashboard() {
 				planKey: key,
 				request,
 				plan,
-				status: hasTodayEntry ? 'Completed' : 'Pending',
+				status: hasTargetEntry ? 'Completed' : 'Pending',
 				progress
 			});
 		}

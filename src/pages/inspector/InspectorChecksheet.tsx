@@ -590,6 +590,7 @@ export default function InspectorChecksheet() {
 															onBlur={(e) => handleCellBlur(dateStr, col.id, e.target.value)}
 															onKeyDown={(e) => handleKeyDown(e, dateIndex, colIndex)}
 															disabled={isCalculated}
+															autoComplete="off"
 															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${
 																isCalculated 
 																	? 'text-zinc-500 font-extrabold cursor-not-allowed' 

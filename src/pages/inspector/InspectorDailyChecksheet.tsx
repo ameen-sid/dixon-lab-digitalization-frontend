@@ -100,6 +100,10 @@ export default function InspectorDailyChecksheet() {
 	const _todayLocal = new Date();
 	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
 
+	const _yesterdayLocal = new Date();
+	_yesterdayLocal.setDate(_yesterdayLocal.getDate() - 1);
+	const yesterdayStr = `${_yesterdayLocal.getFullYear()}-${String(_yesterdayLocal.getMonth() + 1).padStart(2, '0')}-${String(_yesterdayLocal.getDate()).padStart(2, '0')}`;
+
 	// Filter active test plans to Reliability tests only active today
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
 		const [reqIdStr] = key.split('-plan-');
@@ -184,8 +188,9 @@ export default function InspectorDailyChecksheet() {
 	// Apply all filter selections
 	const filteredPlans = reliabilityPlans.map(item => {
 		const entries = checksheetEntriesMap[item.key] || [];
-		const hasTodayEntry = entries.some((e: any) => e.date === todayStr);
-		const statusVal = hasTodayEntry ? 'Completed' : 'Pending';
+		const targetCheckDate = item.plan.startDate && yesterdayStr < item.plan.startDate ? todayStr : yesterdayStr;
+		const hasTargetEntry = entries.some((e: any) => e.date === targetCheckDate);
+		const statusVal = hasTargetEntry ? 'Completed' : 'Pending';
 		const eqName = equipments.find(e => String(e.id) === String(item.plan.equipmentId))?.name || 'N/A';
 
 		return {
