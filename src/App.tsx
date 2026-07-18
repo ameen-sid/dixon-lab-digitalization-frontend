@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/Dashboard';
 
@@ -17,6 +18,36 @@ import ReportPreview from './pages/manager/ReportPreview';
 import RequesterDashboard from './pages/requester/RequesterDashboard';
 
 function App() {
+	useEffect(() => {
+		const handleGlobalKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Enter') {
+				const target = e.target as HTMLElement;
+				
+				// Allow enter-to-submit on the login page
+				if (window.location.pathname === '/') {
+					return;
+				}
+
+				if (
+					target.tagName === 'INPUT' &&
+					!['button', 'submit', 'image', 'reset'].includes((target as HTMLInputElement).type)
+				) {
+					// Allow Enter on search inputs
+					const isSearch = (target.getAttribute('type') === 'search') ||
+									 (target.getAttribute('placeholder')?.toLowerCase().includes('search')) ||
+									 (target.getAttribute('name')?.toLowerCase().includes('search'));
+					if (!isSearch) {
+						e.preventDefault();
+					}
+				}
+			}
+		};
+		window.addEventListener('keydown', handleGlobalKeyDown);
+		return () => {
+			window.removeEventListener('keydown', handleGlobalKeyDown);
+		};
+	}, []);
+
 	return (
 		<Router>
 			<Toaster position="bottom-right" reverseOrder={false} />
