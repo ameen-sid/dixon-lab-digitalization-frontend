@@ -423,6 +423,8 @@ export default function InspectorChecksheet() {
 					}
 					#printable-checksheet, #printable-checksheet * {
 						visibility: visible;
+						overflow: visible !important;
+						max-height: none !important;
 					}
 					#printable-checksheet {
 						position: absolute;
@@ -433,6 +435,7 @@ export default function InspectorChecksheet() {
 						padding: 0;
 						border: none !important;
 						box-shadow: none !important;
+						display: block !important;
 					}
 					.no-print {
 						display: none !important;
@@ -462,10 +465,10 @@ export default function InspectorChecksheet() {
 				}
 			`}</style>
 
-			<div className="min-h-screen bg-[#f8fafc] text-zinc-900 p-8 flex flex-col gap-6">
+			<div className="h-screen bg-[#f8fafc] text-zinc-900 p-8 flex flex-col gap-6 overflow-hidden">
 				
 				{/* Header back & prints bar */}
-				<div className="flex flex-row justify-between items-center no-print">
+				<div className="flex flex-row justify-between items-center no-print shrink-0">
 					<button 
 						onClick={() => navigate('/inspector/daily-checksheet')}
 						className="flex items-center gap-2 text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 px-3.5 py-2 rounded-xl shadow-sm transition-colors cursor-pointer border-none outline-none"
@@ -491,11 +494,11 @@ export default function InspectorChecksheet() {
 				{/* Document checksheet frame */}
 				<div 
 					id="printable-checksheet" 
-					className="bg-white border border-zinc-300 rounded-[28px] p-8 shadow-xl flex flex-col gap-6"
+					className="bg-white border border-zinc-300 rounded-[28px] p-8 shadow-xl flex-1 flex flex-col gap-6 overflow-hidden"
 				>
 					
 					{/* Table Header Dixon style */}
-					<div className="border border-zinc-900 grid grid-cols-4 text-zinc-900">
+					<div className="border border-zinc-900 grid grid-cols-4 text-zinc-900 shrink-0">
 						<div className="col-span-1 border-r border-zinc-900 p-3.5 flex items-center justify-center text-[10px] font-bold tracking-widest uppercase">
 							R&D Test Lab
 						</div>
@@ -512,7 +515,7 @@ export default function InspectorChecksheet() {
 					</div>
 
 					{/* Metadata table grid */}
-					<div className="border-x border-b border-zinc-900 -mt-6 grid grid-cols-3 text-zinc-900 text-xs font-bold">
+					<div className="border-x border-b border-zinc-900 -mt-6 grid grid-cols-3 text-zinc-900 text-xs font-bold shrink-0">
 						<div className="col-span-2 divide-y divide-zinc-900">
 							<div className="grid grid-cols-3 divide-x divide-zinc-900">
 								<span className="p-2.5 text-zinc-500 uppercase tracking-wider text-[9px]">Request ID</span>
@@ -550,10 +553,10 @@ export default function InspectorChecksheet() {
 					</div>
 
 					{/* Grid Data Sheets */}
-					<div className="overflow-x-auto border border-zinc-900">
+					<div className="overflow-x-auto overflow-y-auto border border-zinc-900 flex-1 min-h-0">
 						<table className="min-w-full border-collapse text-left">
-							<thead>
-								<tr className="bg-zinc-100/80 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
+							<thead className="sticky top-0 z-10 bg-zinc-100 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
+								<tr className="bg-zinc-100 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
 									<th className="border-r border-zinc-900 p-2.5 text-center min-w-[100px]">Date</th>
 									{columns.map(col => (
 										<th key={col.id} className="border-r border-zinc-900 p-2.5 text-center text-[9px] min-w-[90px]">

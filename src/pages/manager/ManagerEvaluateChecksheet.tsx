@@ -585,9 +585,9 @@ export default function ManagerEvaluateChecksheet() {
 								? 'Fully automatic Washing Machine life test Check-sheet' 
 								: 'Semi-automatic Washing Machine Life Test Check Sheet'}
 						</h3>
-						<div className="overflow-x-auto border border-zinc-900 rounded-lg">
+						<div className="overflow-x-auto overflow-y-auto max-h-[50vh] border border-zinc-900 rounded-lg">
 							<table className="min-w-full border-collapse text-left">
-								<thead>
+								<thead className="sticky top-0 z-10 bg-zinc-100 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
 									<tr className="bg-zinc-100 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
 										<th className="border-r border-zinc-900 p-2.5 text-center min-w-[100px]">Date</th>
 										{columns.map(col => (
