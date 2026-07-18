@@ -246,24 +246,28 @@ export default function InspectorChecksheet() {
 		}
 
 		const cellKey = `${dateStr}_${colId}`;
+		let val = '';
 		if (tempValues[cellKey] !== undefined) {
-			return tempValues[cellKey];
+			val = tempValues[cellKey];
+		} else {
+			val = cellData[cellKey] || '';
 		}
-		return cellData[cellKey] || '';
+		return val.toUpperCase();
 	};
 
 	const handleCellChange = (dateStr: string, colId: string, val: string) => {
 		const cellKey = `${dateStr}_${colId}`;
-		setTempValues(prev => ({ ...prev, [cellKey]: val }));
+		setTempValues(prev => ({ ...prev, [cellKey]: val.toUpperCase() }));
 	};
 
 	// Save entry row to database on cell blur
 	const handleCellBlur = async (dateStr: string, colId: string, val: string) => {
 		if (!planKey) return;
 		const cellKey = `${dateStr}_${colId}`;
+		const upperVal = val.toUpperCase();
 		
 		// Update cache state locally
-		const updatedCellData = { ...cellData, [cellKey]: val };
+		const updatedCellData = { ...cellData, [cellKey]: upperVal };
 
 		// Auto-calculate and update totals before saving
 		if (productType === 'FATL') {
@@ -290,7 +294,7 @@ export default function InspectorChecksheet() {
 			const k = `${dateStr}_${col.id}`;
 			const cellVal = updatedCellData[k] || '';
 			if (cellVal) {
-				dateData[col.id] = cellVal;
+				dateData[col.id] = cellVal.toUpperCase();
 			}
 		});
 

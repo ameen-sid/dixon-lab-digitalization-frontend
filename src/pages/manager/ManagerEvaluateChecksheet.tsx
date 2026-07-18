@@ -624,7 +624,7 @@ export default function ManagerEvaluateChecksheet() {
 													}
 													return (
 														<td key={col.id} className={`border-r border-zinc-900 p-2 text-center font-bold ${isCalculated ? 'text-zinc-500 bg-zinc-50/50 font-black' : ''}`}>
-															{val || <span className="text-zinc-300 italic">-</span>}
+															{val ? val.toUpperCase() : <span className="text-zinc-300 italic">-</span>}
 														</td>
 													);
 												})}
