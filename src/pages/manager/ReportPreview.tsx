@@ -380,7 +380,22 @@ export default function ReportPreview() {
 	const revNo = '00';
 	const revDate = '00';
 	const docNo = 'PSL/QSP/07/TR-02';
-	const testPurpose = isAllInspectionFailed ? 'NA' : 'NA';
+	const testPurpose = (() => {
+		if (isAllInspectionFailed) return 'N/A';
+		if (targetPlan && targetPlan.testPurpose) {
+			return targetPlan.testPurpose;
+		}
+		if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
+			const insp = findInspectionForPlan(request, targetPlan, sampleIndex);
+			if (insp) {
+				const checksObj = parseChecksObj(insp.checks);
+				if (checksObj.testPurpose) {
+					return checksObj.testPurpose;
+				}
+			}
+		}
+		return 'N/A';
+	})();
 	const testItemDescription = request.sampleDescription || 'Spin Lid Switch';
 	const associateModel = request.modelNo || 'All Semi-Automatic Washing Machine';
 	const testSpecification = isAllInspectionFailed 

@@ -18,6 +18,7 @@ interface EngineerTestReportsProps {
 }
 
 interface TestReportForm {
+	testPurpose: string;
 	specifiedRequirement: string;
 	observationResults: string;
 	specimenImages: string[];
@@ -51,6 +52,7 @@ export default function EngineerTestReports({
 		const afterImages = Array.isArray(report?.afterImages) ? report.afterImages : [];
 
 		return {
+			testPurpose: report?.testPurpose || '',
 			specifiedRequirement: report?.specifiedRequirement || '',
 			observationResults: report?.observationResults || '',
 			specimenImages: storedImages,
@@ -73,6 +75,7 @@ export default function EngineerTestReports({
 	const [reportStatusFilter, setReportStatusFilter] = useState('ALL');
 
 	const [reportForm, setReportForm] = useState<TestReportForm>({
+		testPurpose: '',
 		specifiedRequirement: '',
 		observationResults: '',
 		specimenImages: [],
@@ -166,6 +169,7 @@ export default function EngineerTestReports({
 
 				if (isReportStatus && hasEngineerReportData) {
 					const normalized = normalizeSavedReport({
+						testPurpose: checksObj.testPurpose || '',
 						specifiedRequirement: checksObj.specifiedRequirement || '',
 						observationResults: insp.remarks || '',
 						specimenImages: imagesArr,
@@ -273,6 +277,7 @@ export default function EngineerTestReports({
 			});
 		} else {
 			setReportForm({
+				testPurpose: '',
 				specifiedRequirement: testProtocol?.judgementCriteria || '',
 				observationResults: '',
 				specimenImages: [],
@@ -443,6 +448,7 @@ export default function EngineerTestReports({
 			const user = userStr ? JSON.parse(userStr) : null;
 
 			const checksPayload = {
+				testPurpose: reportForm.testPurpose,
 				specifiedRequirement: reportForm.specifiedRequirement,
 				eqName: reportForm.eqName,
 				eqMake: reportForm.eqMake,
@@ -592,6 +598,18 @@ export default function EngineerTestReports({
 									value={request?.testMethodRef || 'N/A'}
 									disabled
 									className="bg-zinc-100 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-600 font-semibold outline-none cursor-not-allowed opacity-80"
+								/>
+							</div>
+
+							<div className="flex flex-col gap-1">
+								<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Test Purpose</label>
+								<input
+									type="text"
+									placeholder="Enter test purpose (e.g. routine check, validation, certification)..."
+									disabled={isSubmitted}
+									value={reportForm.testPurpose}
+									onChange={e => setReportForm({ ...reportForm, testPurpose: e.target.value })}
+									className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-800 font-semibold outline-none focus:border-[#11236a] focus:bg-white transition-all disabled:opacity-75 disabled:cursor-not-allowed"
 								/>
 							</div>
 
