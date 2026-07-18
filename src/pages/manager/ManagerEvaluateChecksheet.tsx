@@ -535,7 +535,7 @@ export default function ManagerEvaluateChecksheet() {
 		);
 	}
 
-	const [reqIdStr] = planKey!.split('-sample-');
+	const [reqIdStr] = planKey!.split('-plan-');
 
 	return (
 		<DashboardLayout
