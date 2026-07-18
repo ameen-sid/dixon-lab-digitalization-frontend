@@ -444,6 +444,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			return;
 		}
 
+		if (!form.numberOfDays || Number(form.numberOfDays) <= 0) {
+			toast.error('Number of Days must be a positive number.');
+			return;
+		}
+
 		if (!form.testCategoryId) {
 			toast.error('Please select a Test Category.');
 			return;
@@ -1704,8 +1709,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<input
 										id="numDays"
 										type="number"
+										min="1"
 										value={form.numberOfDays}
-										onChange={(e) => setForm({ ...form, numberOfDays: Number(e.target.value) })}
+										onChange={(e) => {
+											const val = e.target.value === '' ? 0 : Number(e.target.value);
+											setForm({ ...form, numberOfDays: val < 0 ? 0 : val });
+										}}
 										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all h-[42px]"
 									/>
 								</div>
