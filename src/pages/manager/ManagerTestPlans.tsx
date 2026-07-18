@@ -226,11 +226,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const isNabl = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
 	const isReliability = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('reliability') || false;
 
-	const isPlatformReservedByOtherPlan = (stationNo: number, platformNo: number, currentPlanId?: number, checkNabl = false) => {
+	const isPlatformReservedByOtherPlan = (stationNo: number, platformNo: number, currentPlanId?: number | string, checkNabl = false) => {
 		for (const req of requests) {
 			if (req.testPlans) {
 				for (const p of req.testPlans) {
-					if (currentPlanId && p.id === currentPlanId) continue;
+					if (currentPlanId && String(p.id) === String(currentPlanId)) continue;
+					if (p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED') continue;
 
 					// Determine if this test plan is NABL
 					const pIsNabl = testTypes.find(t => String(t.id) === String(p.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
@@ -344,18 +345,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		if (!selectedReq) return;
 		setActiveSampleIndex(sampleIndex);
 
-		// Synchronize fresh real-time platform & equipment bookings
-		try {
-			const normalPlts = await getNormalPlatforms()();
-			setNormalPlatforms(normalPlts || []);
-			const nablPlts = await getNablPlatforms()();
-			setNablPlatforms(nablPlts || []);
-			const eqps = await getTestingEquipments({ limit: 100 })();
-			setEquipments(eqps || []);
-		} catch (e) {
-			console.error('Failed to refresh live platforms & equipment status:', e);
-		}
-
 		if (planToEdit) {
 			setForm({
 				id: planToEdit.id,
@@ -390,6 +379,18 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				remarks: '',
 				equipmentId: defaultEq ? String(defaultEq.id) : ''
 			});
+		}
+
+		// Synchronize fresh real-time platform & equipment bookings
+		try {
+			const normalPlts = await getNormalPlatforms()();
+			setNormalPlatforms(normalPlts || []);
+			const nablPlts = await getNablPlatforms()();
+			setNablPlatforms(nablPlts || []);
+			const eqps = await getTestingEquipments({ limit: 100 })();
+			setEquipments(eqps || []);
+		} catch (e) {
+			console.error('Failed to refresh live platforms & equipment status:', e);
 		}
 	};
 
@@ -495,8 +496,20 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				? selectedReq.requestId
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
 
+			// Compute endDate on-the-fly if it's empty (can happen if useEffect hasn't fired yet)
+			let finalEndDate = form.endDate;
+			if (!finalEndDate && form.startDate && form.numberOfDays) {
+				const start = new Date(form.startDate);
+				start.setDate(start.getDate() + Number(form.numberOfDays) - 1);
+				finalEndDate = start.toISOString().split('T')[0];
+			}
+			if (!finalEndDate) {
+				toast.error('Could not compute end date. Please check start date and number of days.');
+				return;
+			}
+
 			// Release any previously reserved platforms/equipments for this specific test plan first
-			const existing = form.id ? (savedPlans[`${selectedReq.id}-sample-${activeSampleIndex}`] || []).find((p: any) => p.id === form.id) : null;
+			const existing = form.id ? (savedPlans[`${selectedReq.id}-sample-${activeSampleIndex}`] || []).find((p: any) => String(p.id) === String(form.id)) : null;
 			if (existing) {
 				if (existing.platformNos && existing.platformNos.length > 0) {
 					const existingIsNabl = testTypes.find(t => String(t.id) === String(existing.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
@@ -519,16 +532,16 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						form.platformNos.map(Number),
 						Number(selectedReq.id),
 						`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
-						selectedReq.modelNo,
-						form.endDate
+						selectedReq.modelNo || '-',
+						finalEndDate
 					)
 					: reserveNormalPlatforms(
 						Number(form.stationNo),
 						form.platformNos.map(Number),
 						Number(selectedReq.id),
 						`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
-						selectedReq.modelNo,
-						form.endDate
+						selectedReq.modelNo || '-',
+						finalEndDate
 					);
 				await resOp();
 			}
@@ -539,8 +552,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					Number(form.equipmentId),
 					Number(selectedReq.id),
 					`${reqIdPrefix} (Sample #${activeSampleIndex + 1})`,
-					selectedReq.modelNo,
-					form.endDate
+					selectedReq.modelNo || '-',
+					finalEndDate
 				);
 				await eqResOp();
 			}
@@ -558,7 +571,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				equipmentId: (form.equipmentId && !isReliability) ? Number(form.equipmentId) : null,
 				numberOfDays: Number(form.numberOfDays),
 				startDate: form.startDate,
-				endDate: form.endDate,
+				endDate: finalEndDate,
 				remarks: form.remarks,
 			};
 
@@ -1529,9 +1542,13 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															);
 															const isOccupied = slot
 																? (!slot.isAvailable &&
-																	(isPlatformReservedByOtherPlan(sNum, pNum, form.id, true) ||
-																		slot.testRequestId !== Number(selectedReq.id) ||
-																		(!form.id && slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`))
+																	(
+																		isPlatformReservedByOtherPlan(sNum, pNum, form.id, true) ||
+																		// In create mode only: treat same-request-same-sample as occupied
+																		(!form.id && (
+																			slot.testRequestId !== Number(selectedReq.id) ||
+																			slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
+																		))
 																	)
 																)
 																: false;
@@ -1606,12 +1623,18 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															);
 															const isOccupied = slot
 																? (!slot.isAvailable &&
-																	(isPlatformReservedByOtherPlan(sNum, pNum, form.id, false) ||
-																		slot.testRequestId !== Number(selectedReq.id) ||
-																		(!form.id && slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`))
+																	(
+																		isPlatformReservedByOtherPlan(sNum, pNum, form.id, false) ||
+																		// In create mode only: treat same-request-same-sample as occupied
+																		(!form.id && (
+																			slot.testRequestId !== Number(selectedReq.id) ||
+																			slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
+																		))
 																	)
 																)
 																: false;
+
+
 
 															return (
 																<button
