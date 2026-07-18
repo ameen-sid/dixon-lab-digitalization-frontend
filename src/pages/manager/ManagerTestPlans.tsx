@@ -316,7 +316,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		const firstCat = filteredCats[0] || null;
 		const catId = firstCat ? String(firstCat.id) : '';
 
-		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
+		const filteredProtos = testProtocols.filter(
+			p => String(p.testCategoryId) === String(catId) &&
+			String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
+		);
 		const firstProto = filteredProtos[0] || null;
 		const protoId = firstProto ? String(firstProto.id) : '';
 
@@ -329,13 +332,31 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	};
 
 	const handleTestCategoryChange = (catId: string) => {
-		const filteredProtos = testProtocols.filter(p => String(p.testCategoryId) === String(catId));
+		const filteredProtos = testProtocols.filter(
+			p => String(p.testCategoryId) === String(catId) &&
+			String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
+		);
 		const firstProto = filteredProtos[0] || null;
 		const protoId = firstProto ? String(firstProto.id) : '';
 
 		setForm(prev => ({
 			...prev,
 			testCategoryId: catId,
+			testProtocolId: protoId
+		}));
+	};
+
+	const handleProductTypeChange = (pType: string) => {
+		const filteredProtos = testProtocols.filter(
+			p => String(p.testCategoryId) === String(form.testCategoryId) &&
+			String(p.productType).toLowerCase() === String(pType).toLowerCase()
+		);
+		const firstProto = filteredProtos[0] || null;
+		const protoId = firstProto ? String(firstProto.id) : '';
+
+		setForm(prev => ({
+			...prev,
+			productType: pType,
 			testProtocolId: protoId
 		}));
 	};
@@ -1462,7 +1483,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											<button
 												key={pType}
 												type="button"
-												onClick={() => setForm({ ...form, productType: pType })}
+												onClick={() => handleProductTypeChange(pType)}
 												className={`py-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer outline-none border-none text-center ${isActive
 													? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
 													: 'bg-white border-zinc-250 text-zinc-555 hover:bg-zinc-50'
@@ -1705,7 +1726,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								>
 									<option value="">-- Select Test Protocol --</option>
 									{testProtocols
-										.filter((p: any) => String(p.testCategoryId) === String(form.testCategoryId))
+										.filter((p: any) => 
+											String(p.testCategoryId) === String(form.testCategoryId) &&
+											String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
+										)
 										.map((p: any) => (
 											<option key={p.id} value={String(p.id)}>{p.name}</option>
 										))}
