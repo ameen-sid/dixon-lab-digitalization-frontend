@@ -15,7 +15,7 @@ export default function HeadCapaReports() {
 	const [endDate, setEndDate] = useState('');
 
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 	const [remarks, setRemarks] = useState('');
 
 	const loadCapas = async () => {

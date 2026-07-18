@@ -50,7 +50,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	// Route-based Navigation flow parameters
 	const { planId, sampleIndex } = useParams<{ planId?: string; sampleIndex?: string }>();

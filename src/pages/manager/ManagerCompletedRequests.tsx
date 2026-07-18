@@ -48,7 +48,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	// Resolve the selected request for details view
 	const selectedReq = selectedRequestId

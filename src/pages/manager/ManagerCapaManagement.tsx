@@ -34,7 +34,7 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	const [initialCapaInput, setInitialCapaInput] = useState<any>(null);
 

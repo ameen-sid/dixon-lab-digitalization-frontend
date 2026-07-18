@@ -30,7 +30,7 @@ export default function CapaManagement({ capas, setActiveTab, setSelectedCapa }:
 	const [endDate, setEndDate] = useState('');
 
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	const filteredCapas = capas.filter(c => {
 		const matchesSearch = c.productName.toLowerCase().includes(searchQuery.toLowerCase()) || 

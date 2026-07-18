@@ -43,7 +43,7 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 	const [endDate, setEndDate] = useState('');
 
 	const [currentPage, setCurrentPage] = useState(1);
-	const [itemsPerPage, setItemsPerPage] = useState(5);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	const filteredRequests = requests.filter(req => {
 		const matchesSearch = req.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
