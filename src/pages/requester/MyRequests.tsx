@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, X, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
@@ -37,10 +38,20 @@ interface MyRequestsProps {
 }
 
 export default function MyRequests({ requests, setActiveTab, setSelectedRequest }: MyRequestsProps) {
+	const location = useLocation();
+	const queryParams = new URLSearchParams(location.search);
+	const initialStatus = queryParams.get('status') || 'ALL';
+
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [statusFilter, setStatusFilter] = useState(initialStatus);
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
+
+	useEffect(() => {
+		const statusParam = queryParams.get('status') || 'ALL';
+		setStatusFilter(statusParam);
+		setCurrentPage(1);
+	}, [location.search]);
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -50,7 +61,14 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 							  req.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
 							  req.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
 							  req.customerNameAddress.toLowerCase().includes(searchQuery.toLowerCase());
-		const matchesStatus = statusFilter === 'ALL' || req.status === statusFilter || (statusFilter === 'TESTING_FAILED' && ['TESTING_FAILED', 'FAILED', 'FAIL'].includes(req.status));
+		
+		const matchesStatus = 
+			statusFilter === 'ALL' || 
+			req.status === statusFilter || 
+			(statusFilter === 'PENDING_APPROVAL' && ['PENDING', 'PENDING_APPROVAL'].includes(req.status)) ||
+			(statusFilter === 'UNDER_TESTING' && ['UNDER_TEST', 'UNDER_TESTING', 'RETEST'].includes(req.status)) ||
+			(statusFilter === 'COMPLETED' && ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(req.status)) ||
+			(statusFilter === 'TESTING_FAILED' && ['TESTING_FAILED', 'FAILED', 'FAIL'].includes(req.status));
 		
 		let matchesDate = true;
 		if (startDate) {
