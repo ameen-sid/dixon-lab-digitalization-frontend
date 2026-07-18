@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Clipboard, CheckCircle, Search, Eye } from 'lucide-react';
 import CustomSelect from '../../components/CustomSelect';
+import Pagination from '../../components/Pagination';
 
 interface EngineerFilledReportsProps {
 	requests: any[];
@@ -11,6 +12,8 @@ interface EngineerFilledReportsProps {
 export default function EngineerFilledReports({ requests, currentEngineerId, currentEngineerIsNabl }: EngineerFilledReportsProps) {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [currentPage, setCurrentPage] = useState(1);
+	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	const filledPlans = useMemo(() => {
 		const list: any[] = [];
@@ -134,6 +137,16 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 		});
 	}, [filledPlans, searchQuery, statusFilter]);
 
+	// Reset page on filter/search change
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [searchQuery, statusFilter]);
+
+	const paginatedPlans = useMemo(() => {
+		const startIndex = (currentPage - 1) * itemsPerPage;
+		return filteredPlans.slice(startIndex, startIndex + itemsPerPage);
+	}, [filteredPlans, currentPage, itemsPerPage]);
+
 	const formatDateTime = (val: string) => {
 		if (!val) return '-';
 		const d = new Date(val);
@@ -237,7 +250,7 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 								</tr>
 							</thead>
 							<tbody>
-								{filteredPlans.map((item, i) => (
+								{paginatedPlans.map((item, i) => (
 									<tr key={i} className="border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors">
 										<td className="py-4 px-6 font-bold text-[#11236a]">
 											{item.allottedId}
@@ -274,6 +287,18 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 						</table>
 					)}
 				</div>
+
+				<Pagination
+					totalItems={filteredPlans.length}
+					itemsPerPage={itemsPerPage}
+					currentPage={currentPage}
+					onPageChange={setCurrentPage}
+					onItemsPerPageChange={(limit) => {
+						setItemsPerPage(limit);
+						setCurrentPage(1);
+					}}
+					itemNamePlural="reports"
+				/>
 			</div>
 		</div>
 	);
