@@ -10,6 +10,44 @@ import { getTestProtocols } from '../../services/operations/testProtocolService'
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
 import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
 
+// Helper to check if a checksheet database entry has actual parameter inputs (ignoring auto-calculated fields)
+const isMeaningfulChecksheetEntry = (entry: any): boolean => {
+	if (!entry || !entry.data) return false;
+	let parsedData = entry.data;
+	while (typeof parsedData === 'string') {
+		try {
+			const temp = JSON.parse(parsedData);
+			if (temp === parsedData) break;
+			parsedData = temp;
+		} catch (e) {
+			break;
+		}
+	}
+	if (!parsedData || typeof parsedData !== 'object') return false;
+
+	const computedKeys = ['totalCycles', 'totalCyclesWash', 'totalCyclesSpin'];
+	const meaningfulEntries = Object.entries(parsedData).filter(([key, val]) => {
+		if (computedKeys.includes(key)) return false;
+		return val !== undefined && val !== null && String(val).trim() !== '';
+	});
+
+	return meaningfulEntries.length > 0;
+};
+
+// Returns previous working day YYYY-MM-DD string, skipping Sundays (getDay() === 0)
+const getPreviousWorkingDayStr = (baseDate: Date = new Date()): string => {
+	const d = new Date(baseDate);
+	d.setHours(0, 0, 0, 0);
+	d.setDate(d.getDate() - 1);
+	if (d.getDay() === 0) {
+		d.setDate(d.getDate() - 1);
+	}
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const dayStr = String(d.getDate()).padStart(2, '0');
+	return `${year}-${month}-${dayStr}`;
+};
+
 export default function InspectorDailyChecksheet() {
 	const navigate = useNavigate();
 
@@ -99,10 +137,7 @@ export default function InspectorDailyChecksheet() {
 
 	const _todayLocal = new Date();
 	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
-
-	const _yesterdayLocal = new Date();
-	_yesterdayLocal.setDate(_yesterdayLocal.getDate() - 1);
-	const yesterdayStr = `${_yesterdayLocal.getFullYear()}-${String(_yesterdayLocal.getMonth() + 1).padStart(2, '0')}-${String(_yesterdayLocal.getDate()).padStart(2, '0')}`;
+	const yesterdayStr = getPreviousWorkingDayStr(_todayLocal);
 
 	// Filter active test plans to Reliability tests only active today
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
@@ -189,7 +224,7 @@ export default function InspectorDailyChecksheet() {
 	const filteredPlans = reliabilityPlans.map(item => {
 		const entries = checksheetEntriesMap[item.key] || [];
 		const targetCheckDate = item.plan.startDate && yesterdayStr < item.plan.startDate ? todayStr : yesterdayStr;
-		const hasTargetEntry = entries.some((e: any) => e.date === targetCheckDate);
+		const hasTargetEntry = entries.some((e: any) => e.date === targetCheckDate && isMeaningfulChecksheetEntry(e));
 		const statusVal = hasTargetEntry ? 'Completed' : 'Pending';
 		const eqName = equipments.find(e => String(e.id) === String(item.plan.equipmentId))?.name || 'N/A';
 
