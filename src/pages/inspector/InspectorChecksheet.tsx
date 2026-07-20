@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Printer, Clipboard } from 'lucide-react';
+import { ArrowLeft, Printer, Clipboard, CheckCircle2, XCircle, Upload, Trash2, Save, Image as ImageIcon, X } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { getTestRequests } from '../../services/operations/testRequestService';
+import { getTestRequests, saveSampleInspection } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getChecksheetEntries, upsertChecksheetEntry } from '../../services/operations/reliabilityChecksheetService';
+import toast from 'react-hot-toast';
 
 // Column definition types
 interface ColumnDef {
@@ -69,6 +70,16 @@ export default function InspectorChecksheet() {
 
 	// Loading state
 	const [loading, setLoading] = useState(true);
+
+	// Test outcome decision & photo upload states
+	const [isRecommendationModalOpen, setIsRecommendationModalOpen] = useState(false);
+	const [modalDecision, setModalDecision] = useState<'PASSED' | 'FAILED' | ''>('');
+	const [inspectorStatus, setInspectorStatus] = useState<'PASSED' | 'FAILED' | ''>('');
+	const [inspectorRemarks, setInspectorRemarks] = useState('');
+	const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+	const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
+	const [isSavingRecommendation, setIsSavingRecommendation] = useState(false);
+	const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null);
 
 	// Fetch all parameters and backend database entries on mount
 	useEffect(() => {
@@ -148,7 +159,7 @@ export default function InspectorChecksheet() {
 	}, [planKey]);
 
 	// Get select plan info
-	const planInfo = (() => {
+	const planInfo = useMemo(() => {
 		if (!planKey || !plans[planKey]) return null;
 		const plan = plans[planKey];
 		const [reqIdStr] = planKey.split('-plan-');
@@ -164,7 +175,113 @@ export default function InspectorChecksheet() {
 			testCategory,
 			protocol
 		};
-	})();
+	}, [planKey, plans, requests, testTypes, testCategories, testProtocols]);
+
+	// Populate existing inspection decision & photos if available
+	const targetPlanId = planInfo?.plan?.id;
+	useEffect(() => {
+		if (!planInfo || !targetPlanId) return;
+		const dbReport = planInfo.request?.sampleInspections?.find(
+			(si: any) => Number(si.testPlanId) === Number(targetPlanId)
+		);
+
+		if (dbReport) {
+			setInspectorStatus(dbReport.status === 'PASSED' || dbReport.status === 'FAILED' ? dbReport.status : '');
+			setInspectorRemarks(dbReport.remarks || '');
+			if (dbReport.images) {
+				try {
+					const imgs = typeof dbReport.images === 'string' ? JSON.parse(dbReport.images) : dbReport.images;
+					setUploadedPhotos(Array.isArray(imgs) ? imgs : []);
+				} catch (e) {
+					setUploadedPhotos([]);
+				}
+			} else {
+				setUploadedPhotos([]);
+			}
+		} else {
+			setInspectorStatus('');
+			setInspectorRemarks('');
+			setUploadedPhotos([]);
+			setSelectedImageFiles([]);
+		}
+	}, [targetPlanId]);
+
+	const handleImageFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (!e.target.files) return;
+		const files = Array.from(e.target.files);
+		setSelectedImageFiles(prev => [...prev, ...files]);
+
+		files.forEach(file => {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				if (reader.result) {
+					setUploadedPhotos(prev => [...prev, String(reader.result)]);
+				}
+			};
+			reader.readAsDataURL(file);
+		});
+	};
+
+	const handleRemovePhoto = (index: number) => {
+		setUploadedPhotos(prev => prev.filter((_, i) => i !== index));
+		setSelectedImageFiles(prev => prev.filter((_, i) => i !== index));
+	};
+
+	const handleOpenRecommendationModal = (decision: 'PASSED' | 'FAILED') => {
+		setModalDecision(decision);
+		setIsRecommendationModalOpen(true);
+	};
+
+	const handleSaveInspectionRecommendation = async () => {
+		const targetStatus = modalDecision || inspectorStatus;
+		if (!planInfo || !targetStatus) {
+			toast.error('Please select Pass or Fail decision.');
+			return;
+		}
+
+		setIsSavingRecommendation(true);
+		try {
+			const requestId = String(planInfo.request.id);
+			const sampleIdx = Number(planInfo.plan.sampleIndex);
+
+			const formData = new FormData();
+			formData.append('sampleIndex', String(sampleIdx));
+			formData.append('testPlanId', String(planInfo.plan.id));
+			formData.append('status', targetStatus);
+			formData.append('remarks', inspectorRemarks || '');
+			formData.append('allottedId', `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
+			const existingServerPhotos = uploadedPhotos.filter(img => typeof img === 'string' && !img.startsWith('data:'));
+			formData.append('existingImages', JSON.stringify(existingServerPhotos));
+
+			selectedImageFiles.forEach(file => {
+				formData.append('images', file);
+			});
+
+			const saveOp = saveSampleInspection(requestId, formData);
+			const res = await saveOp();
+
+			if (res && res.data && res.data.images) {
+				try {
+					const updatedImgs = typeof res.data.images === 'string' ? JSON.parse(res.data.images) : res.data.images;
+					if (Array.isArray(updatedImgs)) {
+						setUploadedPhotos(updatedImgs);
+					}
+				} catch (e) {
+					// fallback keep local
+				}
+			}
+
+			setInspectorStatus(targetStatus);
+			toast.success(`Test marked as ${targetStatus} & email notification sent to Lab Manager!`);
+			setSelectedImageFiles([]);
+			setIsRecommendationModalOpen(false);
+		} catch (err) {
+			console.error('Failed to save recommendation:', err);
+			toast.error('Failed to save test outcome decision and photos.');
+		} finally {
+			setIsSavingRecommendation(false);
+		}
+	};
 
 	// Determine column layout strictly from productType
 	const productType = (planInfo?.plan?.productType || planInfo?.protocol?.productType || 'SATL').toUpperCase();
@@ -477,10 +594,39 @@ export default function InspectorChecksheet() {
 						<span>Back to Test Queue</span>
 					</button>
 
-					<div className="flex items-center gap-4">
+					<div className="flex items-center gap-3">
 						<span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
 							Tip: Cell inputs save to database on blur
 						</span>
+
+						{/* Pass Test Button */}
+						<button 
+							type="button"
+							onClick={() => handleOpenRecommendationModal('PASSED')}
+							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${
+								inspectorStatus === 'PASSED'
+									? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
+									: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+							}`}
+						>
+							<CheckCircle2 className="w-4 h-4" />
+							<span>{inspectorStatus === 'PASSED' ? 'Passed (Edit)' : 'Pass Test'}</span>
+						</button>
+
+						{/* Fail Test Button */}
+						<button 
+							type="button"
+							onClick={() => handleOpenRecommendationModal('FAILED')}
+							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${
+								inspectorStatus === 'FAILED'
+									? 'bg-rose-700 text-white ring-2 ring-rose-300'
+									: 'bg-rose-600 hover:bg-rose-700 text-white'
+							}`}
+						>
+							<XCircle className="w-4 h-4" />
+							<span>{inspectorStatus === 'FAILED' ? 'Failed (Edit)' : 'Fail Test'}</span>
+						</button>
+
 						<button 
 							onClick={triggerPrint}
 							className="flex items-center gap-2 text-xs font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none"
@@ -619,6 +765,151 @@ export default function InspectorChecksheet() {
 
 				</div>
 			</div>
+
+			{/* Recommendation & Photos Modal */}
+			{isRecommendationModalOpen && (
+				<div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsRecommendationModalOpen(false)}>
+					<div 
+						className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-zinc-200 animate-fadeIn"
+						onClick={e => e.stopPropagation()}
+					>
+						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+							<div>
+								<h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+									<Clipboard className="w-5 h-5 text-indigo-600" />
+									<span>Test Completion Recommendation</span>
+								</h3>
+								<p className="text-xs text-zinc-500 font-medium mt-0.5">
+									Submit outcome recommendation and evidence photos to Lab Manager.
+								</p>
+							</div>
+							<button 
+								onClick={() => setIsRecommendationModalOpen(false)}
+								className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full transition-colors cursor-pointer"
+							>
+								<X className="w-5 h-5" />
+							</button>
+						</div>
+
+						{/* Selected Outcome Badge Indicator */}
+						<div className="flex items-center justify-between bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/60">
+							<span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Outcome Recommendation:</span>
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									onClick={() => setModalDecision('PASSED')}
+									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
+										modalDecision === 'PASSED'
+											? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+											: 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+									}`}
+								>
+									<CheckCircle2 className="w-4 h-4" />
+									<span>PASSED</span>
+								</button>
+
+								<button
+									type="button"
+									onClick={() => setModalDecision('FAILED')}
+									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
+										modalDecision === 'FAILED'
+											? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+											: 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+									}`}
+								>
+									<XCircle className="w-4 h-4" />
+									<span>FAILED</span>
+								</button>
+							</div>
+						</div>
+
+						{/* Inspector Observations Input */}
+						<div className="space-y-1.5">
+							<label className="text-xs font-bold text-zinc-700">Inspector Observations / Remarks</label>
+							<textarea
+								value={inspectorRemarks}
+								onChange={(e) => setInspectorRemarks(e.target.value)}
+								placeholder="Enter observations or comments for the Lab Manager..."
+								rows={3}
+								className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 outline-none focus:border-indigo-600 transition-all resize-none"
+							/>
+						</div>
+
+						{/* Evidence Photo Upload */}
+						<div className="space-y-2">
+							<label className="text-xs font-bold text-zinc-700 flex items-center gap-1.5">
+								<Upload className="w-3.5 h-3.5 text-indigo-600" />
+								<span>Upload Test / Evidence Photos</span>
+							</label>
+							<label className="border-2 border-dashed border-zinc-200 hover:border-indigo-500 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer bg-zinc-50/50 hover:bg-indigo-50/30 transition-all">
+								<Upload className="w-6 h-6 text-zinc-400 mb-1" />
+								<span className="text-xs font-bold text-zinc-700">Click to select photos</span>
+								<span className="text-[10px] text-zinc-400 mt-0.5">PNG, JPG, JPEG photos for manager review & report</span>
+								<input
+									type="file"
+									accept="image/*"
+									multiple
+									onChange={handleImageFileSelect}
+									className="hidden"
+								/>
+							</label>
+
+							{/* Uploaded Photos Preview Grid */}
+							{uploadedPhotos.length > 0 && (
+								<div className="flex flex-wrap items-center gap-2.5 pt-1 max-h-32 overflow-y-auto">
+									{uploadedPhotos.map((imgSrc, idx) => (
+										<div key={idx} className="relative group w-16 h-16 rounded-xl border border-zinc-200 overflow-hidden bg-zinc-100 shadow-sm shrink-0">
+											<img src={imgSrc} alt={`Evidence ${idx + 1}`} className="w-full h-full object-cover" />
+											<button
+												type="button"
+												onClick={() => handleRemovePhoto(idx)}
+												className="absolute top-0.5 right-0.5 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-md"
+											>
+												<Trash2 className="w-3 h-3" />
+											</button>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+
+						{/* Modal Action Buttons */}
+						<div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
+							<button
+								type="button"
+								onClick={() => setIsRecommendationModalOpen(false)}
+								className="px-4 py-2 border border-zinc-200 text-zinc-650 hover:bg-zinc-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleSaveInspectionRecommendation}
+								disabled={isSavingRecommendation}
+								className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+							>
+								<Save className="w-4 h-4" />
+								<span>{isSavingRecommendation ? 'Submitting...' : 'Submit & Notify Manager'}</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Photo Preview Modal */}
+			{previewPhotoModal && (
+				<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewPhotoModal(null)}>
+					<div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2" onClick={e => e.stopPropagation()}>
+						<button
+							onClick={() => setPreviewPhotoModal(null)}
+							className="absolute top-4 right-4 p-2 bg-zinc-900/80 text-white rounded-full hover:bg-zinc-900 transition-colors z-10 cursor-pointer"
+						>
+							<X className="w-5 h-5" />
+						</button>
+						<img src={previewPhotoModal} alt="Preview" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
+					</div>
+				</div>
+			)}
 		</>
 	);
 }

@@ -66,6 +66,7 @@ export default function ManagerEvaluateChecksheet() {
 
 	// Evaluation states
 	const [evaluationRemarks, setEvaluationRemarks] = useState('');
+	const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -165,6 +166,21 @@ export default function ManagerEvaluateChecksheet() {
 			testCategory,
 			protocol
 		};
+	})();
+
+	// Inspector recommendation & evidence photos for reliability plan
+	const dbInspection = planInfo?.request?.sampleInspections?.find(
+		(si: any) => Number(si.testPlanId) === Number(planInfo?.plan?.id)
+	);
+
+	const inspectionImages: string[] = (() => {
+		if (!dbInspection?.images) return [];
+		try {
+			const parsed = typeof dbInspection.images === 'string' ? JSON.parse(dbInspection.images) : dbInspection.images;
+			return Array.isArray(parsed) ? parsed : [];
+		} catch {
+			return [];
+		}
 	})();
 
 	const isReliability = planInfo?.testType?.name?.toLowerCase().includes('reliability') ?? true;
@@ -362,7 +378,7 @@ export default function ManagerEvaluateChecksheet() {
 			}
 
 			// 2. Save evaluation status and remarks to the backend database
-			const existingInspection = planInfo.request?.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIdx);
+			const existingInspection = planInfo.request?.sampleInspections?.find((r: any) => Number(r.testPlanId) === Number(planInfo.plan.id));
 			const existingChecks = (() => {
 				if (!existingInspection) return {};
 				try {
@@ -376,6 +392,7 @@ export default function ManagerEvaluateChecksheet() {
 			
 			const formData = new FormData();
 			formData.append('sampleIndex', String(sampleIdx));
+			formData.append('testPlanId', String(planInfo.plan.id));
 			formData.append('allottedId', planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
 			
 			// For reliability, we don't have engineer reports, so keep evaluationRemarks as comments
@@ -794,6 +811,50 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				)}
 
+				{/* Inspector Outcome Recommendation & Evidence Photos Card (Reliability plans only) */}
+				{isReliability && (dbInspection || inspectionImages.length > 0) && (
+					<div className="bg-white border border-zinc-200 rounded-[24px] p-5 shadow-sm space-y-4">
+						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+							<h4 className="text-xs font-black uppercase tracking-wider text-zinc-800 flex items-center gap-2">
+								<Clipboard className="w-4 h-4 text-indigo-600" />
+								<span>Inspector Test Recommendation & Evidence</span>
+							</h4>
+
+							{dbInspection?.status && (
+								<span className={`text-xs font-black px-3 py-1 rounded-full border ${
+									dbInspection.status === 'PASSED'
+										? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+										: dbInspection.status === 'FAILED'
+											? 'bg-rose-50 text-rose-700 border-rose-200'
+											: 'bg-zinc-100 text-zinc-700 border-zinc-200'
+								}`}>
+									Inspector Recommendation: {dbInspection.status}
+								</span>
+							)}
+						</div>
+
+						{dbInspection?.remarks && (
+							<div className="bg-zinc-50 border border-zinc-200/60 p-3.5 rounded-xl">
+								<span className="font-extrabold text-zinc-400 block text-[9px] uppercase tracking-wider mb-1">Inspector Observation / Remarks:</span>
+								<p className="text-xs text-zinc-800 font-semibold leading-relaxed">{dbInspection.remarks}</p>
+							</div>
+						)}
+
+						{inspectionImages.length > 0 && (
+							<div className="space-y-2">
+								<span className="text-xs font-extrabold text-zinc-700 block">Uploaded Evidence Photos ({inspectionImages.length}):</span>
+								<div className="flex flex-wrap items-center gap-3">
+									{inspectionImages.map((imgSrc, idx) => (
+										<div key={idx} className="w-20 h-20 rounded-xl border border-zinc-200 overflow-hidden bg-zinc-100 shadow-sm hover:scale-105 transition-transform cursor-pointer" onClick={() => setPreviewPhotoModal(imgSrc)}>
+											<img src={imgSrc} alt={`Evidence photo ${idx + 1}`} className="w-full h-full object-cover" />
+										</div>
+									))}
+								</div>
+							</div>
+						)}
+					</div>
+				)}
+
 				{/* Action Section */}
 				<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm flex flex-col gap-4">
 					<h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-900 border-b border-zinc-100 pb-2">
@@ -833,6 +894,20 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				</div>
 			</div>
+			{/* Photo Preview Modal */}
+			{previewPhotoModal && (
+				<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewPhotoModal(null)}>
+					<div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2" onClick={e => e.stopPropagation()}>
+						<button
+							onClick={() => setPreviewPhotoModal(null)}
+							className="absolute top-4 right-4 p-2 bg-zinc-900/80 text-white rounded-full hover:bg-zinc-900 transition-colors z-10 cursor-pointer"
+						>
+							<XCircle className="w-5 h-5" />
+						</button>
+						<img src={previewPhotoModal} alt="Preview" className="max-w-full max-h-[80vh] object-contain rounded-xl" />
+					</div>
+				</div>
+			)}
 		</DashboardLayout>
 	);
 }

@@ -145,6 +145,10 @@ export default function ReportPreview() {
 			const found = req.sampleInspections.find((si: any) => Number(si.testPlanId) === Number(plan.id));
 			if (found) return found;
 		}
+		const planTestTypeObj = plan?.testTypeId ? testTypes.find(t => String(t.id) === String(plan.testTypeId)) : null;
+		const isPlanReliability = String(planTestTypeObj?.name || plan?.testType?.name || '').toLowerCase().includes('reliability');
+		if (isPlanReliability) return null;
+
 		return req.sampleInspections.find((si: any) => {
 			if (Number(si.sampleIndex) !== Number(sIdx)) return false;
 			if (si.testPlanId) return false;
@@ -255,10 +259,14 @@ export default function ReportPreview() {
 		? (request.sampleInspections?.find((r: any) => Number(r.testPlanId) === Number(targetPlan.id)) ||
 		   request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId))
 		: ((isSampleOrPlanReport && request && sampleIndex !== null)
-			? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex)
+			? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId)
 			: null);
 
-	const isSampleFailedInspection = inspectionReport?.status === 'FAILED';
+	const initialReceivingInspection = (isSampleOrPlanReport && request && sampleIndex !== null)
+		? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId)
+		: null;
+
+	const isSampleFailedInspection = initialReceivingInspection?.status === 'FAILED';
 
 	const inspectionChecks = (() => {
 		if (!inspectionReport) return {};
@@ -348,7 +356,7 @@ export default function ReportPreview() {
 	const isAllInspectionFailed = (() => {
 		if (!request) return false;
 		if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
-			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex);
+			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId);
 			if (inspectionReport && inspectionReport.status === 'FAILED') {
 				return true;
 			}
@@ -356,7 +364,7 @@ export default function ReportPreview() {
 		const qty = request.sampleQty || 1;
 		let failedInspCount = 0;
 		for (let i = 0; i < qty; i++) {
-			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === i);
+			const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === i && !r.testPlanId);
 			if (inspectionReport && inspectionReport.status === 'FAILED') {
 				failedInspCount++;
 			}
@@ -546,12 +554,12 @@ export default function ReportPreview() {
 	};
 
 	const renderTestPicturesSection = (titleLabel: string = "Test Pictures:") => {
-		if (isReliability) return null;
 		const hasBefore = beforeImages.length > 0;
 		const hasAfter = afterImages.length > 0;
 		const hasLegacy = specimenImages.length > 0;
 
 		if (!hasBefore && !hasAfter && !hasLegacy) {
+			if (isReliability) return null;
 			return (
 				<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
 					<h4 className="text-center font-black text-[10px] underline mb-3 text-black uppercase">{titleLabel}</h4>
