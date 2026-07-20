@@ -58,6 +58,48 @@ const getLocalTodayStr = () => {
 	return `${year}-${month}-${day}`;
 };
 
+// Helper to normalize any date format (YYYY-MM-DD, DD-MM-YYYY, ISO string) to YYYY-MM-DD for HTML5 date inputs
+const toYYYYMMDD = (dateVal: any): string => {
+	if (!dateVal) return '';
+	if (typeof dateVal === 'string') {
+		const str = dateVal.trim();
+		if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+			return str;
+		}
+		if (str.includes('T')) {
+			return str.split('T')[0];
+		}
+		if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+			const parts = str.split(/[-/]/);
+			const day = parts[0].padStart(2, '0');
+			const month = parts[1].padStart(2, '0');
+			const year = parts[2];
+			return `${year}-${month}-${day}`;
+		}
+	}
+	const d = new Date(dateVal);
+	if (isNaN(d.getTime())) return '';
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${y}-${m}-${day}`;
+};
+
+// Calculates End Date = Start Date + (Number of Days - 1)
+const calculateEndDate = (startDateStr: string, numDays: number | string): string => {
+	const formattedStart = toYYYYMMDD(startDateStr);
+	const days = Number(numDays);
+	if (!formattedStart || isNaN(days) || days <= 0) return '';
+	const [y, m, d] = formattedStart.split('-').map(Number);
+	const date = new Date(y, m - 1, d);
+	if (isNaN(date.getTime())) return '';
+	date.setDate(date.getDate() + days - 1);
+	const resY = date.getFullYear();
+	const resM = String(date.getMonth() + 1).padStart(2, '0');
+	const resD = String(date.getDate()).padStart(2, '0');
+	return `${resY}-${resM}-${resD}`;
+};
+
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus, onRefreshRequests }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
 
@@ -146,8 +188,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						testProtocolId: String(p.testProtocolId),
 						referenceStandard: p.referenceStandard || '',
 						numberOfDays: p.numberOfDays || 9,
-						startDate: p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '',
-						endDate: p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : '',
+						startDate: p.startDate ? toYYYYMMDD(p.startDate) : '',
+						endDate: p.endDate ? toYYYYMMDD(p.endDate) : (p.startDate ? calculateEndDate(p.startDate, p.numberOfDays) : ''),
 						remarks: p.remarks || '',
 						equipmentId: String(p.equipmentId || ''),
 						evaluationStatus: p.evaluationStatus || undefined,
@@ -287,27 +329,20 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	// Date format helpers
 	const formatDateToDMY = (dateStr: string) => {
 		if (!dateStr) return '';
-		const [year, month, day] = dateStr.split('-');
+		const ymd = toYYYYMMDD(dateStr);
+		if (!ymd) return dateStr;
+		const [year, month, day] = ymd.split('-');
 		return `${day}-${month}-${year}`;
 	};
 
 	// Auto-calculation of End Date: StartDate + NumberOfDays - 1
 	useEffect(() => {
 		if (!form.startDate || !form.numberOfDays) {
-			setForm(prev => ({ ...prev, endDate: '' }));
+			setForm(prev => (prev.endDate ? { ...prev, endDate: '' } : prev));
 			return;
 		}
-		try {
-			const start = new Date(form.startDate);
-			if (isNaN(start.getTime())) return;
-
-			// Add days (minus 1 to include start date as day 1)
-			start.setDate(start.getDate() + Number(form.numberOfDays) - 1);
-			const calculatedStr = start.toISOString().split('T')[0];
-			setForm(prev => ({ ...prev, endDate: calculatedStr }));
-		} catch (e) {
-			console.error('Failed to auto-calculate end date:', e);
-		}
+		const calculatedStr = calculateEndDate(form.startDate, form.numberOfDays);
+		setForm(prev => (prev.endDate !== calculatedStr ? { ...prev, endDate: calculatedStr } : prev));
 	}, [form.startDate, form.numberOfDays]);
 
 	// Dependent dropdown change handlers
@@ -367,6 +402,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		setActiveSampleIndex(sampleIndex);
 
 		if (planToEdit) {
+			const initialStart = toYYYYMMDD(planToEdit.startDate) || getLocalTodayStr();
+			const initialNumDays = Number(planToEdit.numberOfDays) || 9;
+			const initialEnd = toYYYYMMDD(planToEdit.endDate) || calculateEndDate(initialStart, initialNumDays);
+
 			setForm({
 				id: planToEdit.id,
 				testTypeId: planToEdit.testTypeId,
@@ -376,9 +415,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				platformNos: Array.isArray(planToEdit.platformNos) ? planToEdit.platformNos.map(Number) : [],
 				testProtocolId: planToEdit.testProtocolId,
 				referenceStandard: planToEdit.referenceStandard || '',
-				numberOfDays: Number(planToEdit.numberOfDays) || 9,
-				startDate: planToEdit.startDate || getLocalTodayStr(),
-				endDate: '', // Will be calculated
+				numberOfDays: initialNumDays,
+				startDate: initialStart,
+				endDate: initialEnd,
 				remarks: planToEdit.remarks || '',
 				equipmentId: planToEdit.equipmentId ? String(planToEdit.equipmentId) : '',
 				evaluationStatus: planToEdit.evaluationStatus,
@@ -386,6 +425,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			});
 		} else {
 			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
+			const defaultStart = getLocalTodayStr();
+			const defaultNumDays = 9;
+			const defaultEnd = calculateEndDate(defaultStart, defaultNumDays);
+
 			setForm({
 				testTypeId: '',
 				testCategoryId: '',
@@ -394,9 +437,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				platformNos: [],
 				testProtocolId: '',
 				referenceStandard: '',
-				numberOfDays: 9,
-				startDate: getLocalTodayStr(),
-				endDate: '',
+				numberOfDays: defaultNumDays,
+				startDate: defaultStart,
+				endDate: defaultEnd,
 				remarks: '',
 				equipmentId: defaultEq ? String(defaultEq.id) : ''
 			});
@@ -518,12 +561,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
 
 			// Compute endDate on-the-fly if it's empty (can happen if useEffect hasn't fired yet)
-			let finalEndDate = form.endDate;
-			if (!finalEndDate && form.startDate && form.numberOfDays) {
-				const start = new Date(form.startDate);
-				start.setDate(start.getDate() + Number(form.numberOfDays) - 1);
-				finalEndDate = start.toISOString().split('T')[0];
-			}
+			let finalEndDate = form.endDate || calculateEndDate(form.startDate, form.numberOfDays);
 			if (!finalEndDate) {
 				toast.error('Could not compute end date. Please check start date and number of days.');
 				return;
