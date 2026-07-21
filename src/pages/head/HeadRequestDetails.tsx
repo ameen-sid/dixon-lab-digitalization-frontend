@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
+import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
 interface AttachmentRecord {
 	id: number;
@@ -70,7 +71,12 @@ const formatCompletionDate = (dateString: string | undefined) => {
 	return `${day}-${month}-${year}`;
 };
 
-export default function HeadRequestDetails() {
+interface HeadRequestDetailsProps {
+	requestId?: string;
+	onBack?: () => void;
+}
+
+export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDetailsProps) {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [request, setRequest] = useState<RequestRecord | null>(null);
@@ -105,6 +111,39 @@ export default function HeadRequestDetails() {
 		}
 	};
 
+	const [viewTearDownFile, setViewTearDownFile] = useState<{ url: string; filename?: string } | null>(null);
+
+	const getTearDownInfo = (plan: any, reqRecord: any) => {
+		if (!plan || !reqRecord) return null;
+		const insp = reqRecord.sampleInspections?.find(
+			(si: any) => Number(si.testPlanId) === Number(plan.id)
+		);
+		if (!insp || !insp.checks) return null;
+		let checksObj: any = {};
+		try {
+			checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+		} catch {
+			checksObj = {};
+		}
+		if (checksObj.tearDownFileUrl) {
+			return {
+				url: checksObj.tearDownFileUrl,
+				filename: checksObj.tearDownFileName || 'Tear_Down_Report.xlsx',
+				uploadedAt: checksObj.tearDownUploadedAt
+			};
+		}
+		return null;
+	};
+
+	const handleTearDownAction = (plan: any, reqRecord: any) => {
+		const info = getTearDownInfo(plan, reqRecord);
+		if (info) {
+			setViewTearDownFile({ url: info.url, filename: info.filename });
+		} else {
+			handleDownloadTearDownExcel(plan, reqRecord);
+		}
+	};
+
 	// Modals and operations state
 	const [showApproveModal, setShowApproveModal] = useState(false);
 	const [showRejectModal, setShowRejectModal] = useState(false);
@@ -113,16 +152,26 @@ export default function HeadRequestDetails() {
 	// Telemetry and active sample timeline details
 	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
 
+	const targetId = requestId || id;
+
+	const handleGoBack = () => {
+		if (onBack) {
+			onBack();
+		} else {
+			navigate('/head/sample-tests');
+		}
+	};
+
 	const loadRequestDetails = async () => {
-		if (!id) return;
+		if (!targetId) return;
 		setLoading(true);
 		try {
-			const fetchOp = getTestRequestDetails(id);
+			const fetchOp = getTestRequestDetails(targetId);
 			const data = await fetchOp();
 			setRequest(data);
 		} catch (error) {
 			console.error('Failed to load request details:', error);
-			navigate('/head/sample-tests');
+			handleGoBack();
 		} finally {
 			setLoading(false);
 		}
@@ -130,7 +179,7 @@ export default function HeadRequestDetails() {
 
 	useEffect(() => {
 		loadRequestDetails();
-	}, [id]);
+	}, [targetId]);
 
 	const samplePlans = (() => {
 		if (activeTimelineSampleIndex === null || !request?.testPlans) return [];
@@ -291,7 +340,7 @@ export default function HeadRequestDetails() {
 				<AlertTriangle className="w-10 h-10 text-rose-500 mx-auto" />
 				<h4 className="text-sm font-bold text-zinc-800">Testing Request Not Found</h4>
 				<button
-					onClick={() => navigate('/head/sample-tests')}
+					onClick={handleGoBack}
 					className="px-4 py-2 bg-[#11236a] hover:bg-[#0c1a52] text-white font-bold rounded-xl border-none cursor-pointer text-xs"
 				>
 					Back to Queue
@@ -306,7 +355,7 @@ export default function HeadRequestDetails() {
 			{/* Top Control Bar */}
 			<div className="flex items-center justify-between bg-white border border-zinc-200/50 rounded-2xl px-5 py-3.5 shadow-sm">
 				<button
-					onClick={() => navigate('/head/sample-tests')}
+					onClick={handleGoBack}
 					className="flex items-center gap-1.5 text-zinc-700 hover:text-[#11236a] text-xs font-bold bg-transparent border-none cursor-pointer transition-colors"
 				>
 					<ChevronLeft className="w-4 h-4" />
@@ -887,15 +936,24 @@ export default function HeadRequestDetails() {
 																					>
 																						<FileText className="w-2.5 h-2.5" /> Report
 																					</button>
-																					{p.testType?.name?.toLowerCase().includes('reliability') && (
-																						<button
-																							type="button"
-																							onClick={() => handleDownloadTearDownExcel(p, request)}
-																							className="text-[9px] font-extrabold text-emerald-700 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
-																						>
-																							<FileText className="w-2.5 h-2.5" /> Tear Down
-																						</button>
-																					)}
+																					{p.testType?.name?.toLowerCase().includes('reliability') && (() => {
+																						const tdInfo = getTearDownInfo(p, request);
+																						return (
+																							<button
+																								type="button"
+																								disabled={!tdInfo}
+																								onClick={() => handleTearDownAction(p, request)}
+																								title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
+																								className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all flex items-center gap-0.5 ${
+																									tdInfo
+																										? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer outline-none active:scale-95'
+																										: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
+																								}`}
+																							>
+																								<FileText className="w-2.5 h-2.5" /> Tear Down
+																							</button>
+																						);
+																					})()}
 																				</div>
 																			) : (
 																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
@@ -1093,6 +1151,14 @@ export default function HeadRequestDetails() {
 						</div>
 					</div>
 				</div>
+			)}
+
+			{viewTearDownFile && (
+				<TearDownViewerModal
+					fileUrl={viewTearDownFile.url}
+					fileName={viewTearDownFile.filename}
+					onClose={() => setViewTearDownFile(null)}
+				/>
 			)}
 		</div>
 	);

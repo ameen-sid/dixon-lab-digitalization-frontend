@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer, Upload, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
+import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
 // Import operations
 import { getTestTypes } from '../../services/operations/testTypeService';
@@ -261,6 +262,63 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		} catch (err) {
 			console.error(err);
 			toast.error('Failed to download Tear Down Report.');
+		}
+	};
+
+	// Tear Down upload & viewer states
+	const [isUploadingTearDown, setIsUploadingTearDown] = useState<number | null>(null);
+	const [viewTearDownFile, setViewTearDownFile] = useState<{ url: string; filename?: string } | null>(null);
+
+	const getTearDownInfo = (plan: any, reqRecord: any) => {
+		if (!plan || !reqRecord) return null;
+		const insp = reqRecord.sampleInspections?.find(
+			(si: any) => Number(si.testPlanId) === Number(plan.id)
+		);
+		if (!insp || !insp.checks) return null;
+		let checksObj: any = {};
+		try {
+			checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+		} catch {
+			checksObj = {};
+		}
+		if (checksObj.tearDownFileUrl) {
+			return {
+				url: checksObj.tearDownFileUrl,
+				filename: checksObj.tearDownFileName || 'Tear_Down_Report.xlsx',
+				uploadedAt: checksObj.tearDownUploadedAt
+			};
+		}
+		return null;
+	};
+
+	const handleTearDownFileUpload = async (plan: any, reqRecord: any, file: File) => {
+		setIsUploadingTearDown(plan.id);
+		try {
+			const token = localStorage.getItem('token');
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const res = await fetch(`/api/v1/test-requests/${reqRecord.id}/test-plans/${plan.id}/upload-tear-down`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				},
+				body: formData
+			});
+			const data = await res.json();
+			if (res.ok && data.success) {
+				toast.success('Tear Down Report uploaded successfully!');
+				if (onRefreshRequests) {
+					await onRefreshRequests();
+				}
+			} else {
+				toast.error(data.message || 'Failed to upload Tear Down Report.');
+			}
+		} catch (err) {
+			console.error(err);
+			toast.error('Network error uploading Tear Down Report.');
+		} finally {
+			setIsUploadingTearDown(null);
 		}
 	};
 
@@ -1304,8 +1362,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																				const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 																				if (isEvaluated) {
 																					const isReliabilityPlan = planTestType?.name?.toLowerCase().includes('reliability');
+																					const tearDownInfo = getTearDownInfo(plan, selectedReq);
+
 																					return (
-																						<div className="flex items-center gap-2">
+																						<div className="flex items-center gap-2 flex-wrap">
 																							<button
 																								onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
 																								className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
@@ -1314,13 +1374,67 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																								<span>Report</span>
 																							</button>
 																							{isReliabilityPlan && (
-																								<button
-																									onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
-																									className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-emerald-250 cursor-pointer shadow-sm active:scale-95 transition-all"
-																								>
-																									<FileText className="w-3 h-3" />
-																									<span>Tear Down Report</span>
-																								</button>
+																								<>
+																									{tearDownInfo ? (
+																										<div className="flex items-center gap-1.5">
+																											<button
+																												onClick={() => setViewTearDownFile({ url: tearDownInfo.url, filename: tearDownInfo.filename })}
+																												className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all"
+																											>
+																												<Eye className="w-3 h-3" />
+																												<span>View Tear Down Report</span>
+																											</button>
+
+																											<label className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-[10px] border border-emerald-250 cursor-pointer transition-all flex items-center gap-1">
+																												<Upload className="w-3 h-3 text-emerald-600" />
+																												<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Re-upload'}</span>
+																												<input
+																													type="file"
+																													accept=".xlsx,.xls,.pdf"
+																													className="hidden"
+																													onChange={(e) => {
+																														if (e.target.files && e.target.files[0]) {
+																															handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
+																														}
+																													}}
+																												/>
+																											</label>
+
+																											<button
+																												onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																												title="Download Tear Down Format"
+																												className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[10px] transition-all cursor-pointer"
+																											>
+																												<Download className="w-3 h-3" />
+																											</button>
+																										</div>
+																									) : (
+																										<div className="flex items-center gap-1.5">
+																											<button
+																												onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																												className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-emerald-250 cursor-pointer shadow-sm active:scale-95 transition-all"
+																											>
+																												<Download className="w-3 h-3" />
+																												<span>Download Tear Down Format</span>
+																											</button>
+
+																											<label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all">
+																												<Upload className="w-3 h-3" />
+																												<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Upload Filled Tear Down'}</span>
+																												<input
+																													type="file"
+																													accept=".xlsx,.xls,.pdf"
+																													className="hidden"
+																													onChange={(e) => {
+																														if (e.target.files && e.target.files[0]) {
+																															handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
+																														}
+																													}}
+																												/>
+																											</label>
+																										</div>
+																									)}
+																								</>
 																							)}
 																						</div>
 																					);
@@ -1998,6 +2112,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						</div>
 					</div>
 				</div>
+			)}
+
+			{/* Tear Down Viewer Modal */}
+			{viewTearDownFile && (
+				<TearDownViewerModal
+					fileUrl={viewTearDownFile.url}
+					fileName={viewTearDownFile.filename}
+					onClose={() => setViewTearDownFile(null)}
+				/>
 			)}
 		</div>
 	);

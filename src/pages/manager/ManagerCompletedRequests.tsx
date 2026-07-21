@@ -4,11 +4,22 @@ import { ArrowLeft, Search, Eye, AlertTriangle, ChevronRight, FolderOpen, Refres
 import toast from 'react-hot-toast';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
+import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
 interface ManagerCompletedRequestsProps {
 	requests: any[];
 	selectedRequestId?: string;
 }
+
+const formatDate = (dateStr: string | undefined) => {
+	if (!dateStr) return 'N/A';
+	const d = new Date(dateStr);
+	if (isNaN(d.getTime())) return dateStr;
+	const day = String(d.getDate()).padStart(2, '0');
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const year = d.getFullYear();
+	return `${day}/${month}/${year}`;
+};
 
 export default function ManagerCompletedRequests({ requests, selectedRequestId }: ManagerCompletedRequestsProps) {
 	const navigate = useNavigate();
@@ -39,6 +50,39 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		} catch (err) {
 			console.error(err);
 			toast.error('Failed to download Tear Down Report.');
+		}
+	};
+
+	const [viewTearDownFile, setViewTearDownFile] = useState<{ url: string; filename?: string } | null>(null);
+
+	const getTearDownInfo = (plan: any, reqRecord: any) => {
+		if (!plan || !reqRecord) return null;
+		const insp = reqRecord.sampleInspections?.find(
+			(si: any) => Number(si.testPlanId) === Number(plan.id)
+		);
+		if (!insp || !insp.checks) return null;
+		let checksObj: any = {};
+		try {
+			checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+		} catch {
+			checksObj = {};
+		}
+		if (checksObj.tearDownFileUrl) {
+			return {
+				url: checksObj.tearDownFileUrl,
+				filename: checksObj.tearDownFileName || 'Tear_Down_Report.xlsx',
+				uploadedAt: checksObj.tearDownUploadedAt
+			};
+		}
+		return null;
+	};
+
+	const handleTearDownAction = (plan: any, reqRecord: any) => {
+		const info = getTearDownInfo(plan, reqRecord);
+		if (info) {
+			setViewTearDownFile({ url: info.url, filename: info.filename });
+		} else {
+			handleDownloadTearDownExcel(plan, reqRecord);
 		}
 	};
 	
@@ -368,15 +412,24 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 																		<Eye className="w-3.5 h-3.5" />
 																		<span>View Test Report</span>
 																	</button>
-																	{plan.testType?.name?.toLowerCase().includes('reliability') && (
-																		<button
-																			onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
-																			className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 hover:text-white px-3 py-2 rounded-xl border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none shadow-sm active:scale-95"
-																		>
-																			<FileText className="w-3.5 h-3.5" />
-																			<span>Tear Down Report</span>
-																		</button>
-																	)}
+																	{plan.testType?.name?.toLowerCase().includes('reliability') && (() => {
+																		const tdInfo = getTearDownInfo(plan, selectedReq);
+																		return (
+																			<button
+																				disabled={!tdInfo}
+																				onClick={() => handleTearDownAction(plan, selectedReq)}
+																				title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
+																				className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-2 rounded-xl border transition-all outline-none shadow-sm ${
+																					tdInfo
+																						? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
+																						: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
+																				}`}
+																			>
+																				<FileText className="w-3.5 h-3.5" />
+																				<span>Tear Down Report</span>
+																			</button>
+																		);
+																	})()}
 																</div>
 															</div>
 														);
@@ -396,6 +449,13 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 						</div>
 					</div>
 				</div>
+				{viewTearDownFile && (
+					<TearDownViewerModal
+						fileUrl={viewTearDownFile.url}
+						fileName={viewTearDownFile.filename}
+						onClose={() => setViewTearDownFile(null)}
+					/>
+				)}
 			</div>
 		);
 	}
@@ -575,6 +635,14 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 					</div>
 				)}
 			</div>
+
+			{viewTearDownFile && (
+				<TearDownViewerModal
+					fileUrl={viewTearDownFile.url}
+					fileName={viewTearDownFile.filename}
+					onClose={() => setViewTearDownFile(null)}
+				/>
+			)}
 		</div>
 	);
 }

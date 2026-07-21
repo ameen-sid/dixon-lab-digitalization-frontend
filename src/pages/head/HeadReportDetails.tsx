@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, FileText, ExternalLink, ShieldCheck, Bookmark } from 'lucide-react';
 import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
+import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
 export default function HeadReportDetails() {
 	const { id } = useParams<{ id: string }>();
@@ -38,6 +39,39 @@ export default function HeadReportDetails() {
 		} catch (err) {
 			console.error(err);
 			toast.error('Failed to download Tear Down Report.');
+		}
+	};
+
+	const [viewTearDownFile, setViewTearDownFile] = useState<{ url: string; filename?: string } | null>(null);
+
+	const getTearDownInfo = (plan: any, reqRecord: any) => {
+		if (!plan || !reqRecord) return null;
+		const insp = reqRecord.sampleInspections?.find(
+			(si: any) => Number(si.testPlanId) === Number(plan.id)
+		);
+		if (!insp || !insp.checks) return null;
+		let checksObj: any = {};
+		try {
+			checksObj = typeof insp.checks === 'string' ? JSON.parse(insp.checks) : (insp.checks || {});
+		} catch {
+			checksObj = {};
+		}
+		if (checksObj.tearDownFileUrl) {
+			return {
+				url: checksObj.tearDownFileUrl,
+				filename: checksObj.tearDownFileName || 'Tear_Down_Report.xlsx',
+				uploadedAt: checksObj.tearDownUploadedAt
+			};
+		}
+		return null;
+	};
+
+	const handleTearDownAction = (plan: any, reqRecord: any) => {
+		const info = getTearDownInfo(plan, reqRecord);
+		if (info) {
+			setViewTearDownFile({ url: info.url, filename: info.filename });
+		} else {
+			handleDownloadTearDownExcel(plan, reqRecord);
 		}
 	};
 
@@ -292,15 +326,24 @@ export default function HeadReportDetails() {
 																		<FileText className="w-2.5 h-2.5" />
 																		<span>Report</span>
 																	</button>
-																	{p.testType?.name?.toLowerCase().includes('reliability') && (
-																		<button
-																			onClick={() => handleDownloadTearDownExcel(p, request)}
-																			className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-700 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
-																		>
-																			<FileText className="w-2.5 h-2.5" />
-																			<span>Tear Down</span>
-																		</button>
-																	)}
+																	{p.testType?.name?.toLowerCase().includes('reliability') && (() => {
+																		const tdInfo = getTearDownInfo(p, request);
+																		return (
+																			<button
+																				disabled={!tdInfo}
+																				onClick={() => handleTearDownAction(p, request)}
+																				title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
+																				className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all outline-none ${
+																					tdInfo
+																						? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
+																						: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
+																				}`}
+																			>
+																				<FileText className="w-2.5 h-2.5" />
+																				<span>Tear Down</span>
+																			</button>
+																		);
+																	})()}
 																</div>
 															)}
 														</div>
@@ -358,6 +401,14 @@ export default function HeadReportDetails() {
 				</div>
 
 			</div>
+
+			{viewTearDownFile && (
+				<TearDownViewerModal
+					fileUrl={viewTearDownFile.url}
+					fileName={viewTearDownFile.filename}
+					onClose={() => setViewTearDownFile(null)}
+				/>
+			)}
 		</div>
 	);
 }
