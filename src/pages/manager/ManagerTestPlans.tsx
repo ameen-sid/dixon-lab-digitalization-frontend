@@ -482,7 +482,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				evaluationRemarks: planToEdit.evaluationRemarks
 			});
 		} else {
-			const defaultEq = equipments.find((e: any) => e.status === 'ACTIVE' || e.isAvailable);
+			const defaultEq = equipments.find((e: any) => {
+				const isMaint = ['maintenance', 'under_maintenance'].includes(String(e.status || '').toLowerCase());
+				return !isMaint && (e.isAvailable === true || String(e.status || '').toUpperCase() === 'ACTIVE' || String(e.status || '').toUpperCase() === 'AVAILABLE');
+			});
 			const defaultStart = getLocalTodayStr();
 			const defaultNumDays = 9;
 			const defaultEnd = calculateEndDate(defaultStart, defaultNumDays);
@@ -610,6 +613,17 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			if (!form.equipmentId) {
 				toast.error('Assigned R&D Equipment is mandatory for this test type.');
 				return;
+			}
+		}
+
+		if (form.equipmentId) {
+			const selEq = equipments.find((e: any) => String(e.id) === String(form.equipmentId));
+			if (selEq) {
+				const isMaint = ['maintenance', 'under_maintenance'].includes(String(selEq.status || '').toLowerCase());
+				if (isMaint) {
+					toast.error(`Equipment "${selEq.name}" is currently under maintenance and cannot be assigned.`);
+					return;
+				}
 			}
 		}
 
@@ -1665,14 +1679,26 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										<>
 											<option value="">-- Select R&D Equipment --</option>
 											{equipments.map((eq: any) => {
+												const isMaint = ['maintenance', 'under_maintenance'].includes(String(eq.status || '').toLowerCase());
 												const isOccupied = !eq.isAvailable;
+												const isDisabled = isMaint || (isOccupied && String(form.equipmentId) !== String(eq.id));
+
+												let label = eq.name;
+												if (isMaint) {
+													label += ' (Under Maintenance - Not Available)';
+												} else if (isOccupied) {
+													label += ' (Occupied - busy)';
+												} else {
+													label += ' (Available)';
+												}
+
 												return (
 													<option
 														key={eq.id}
 														value={String(eq.id)}
-														disabled={isOccupied && String(form.equipmentId) !== String(eq.id)}
+														disabled={isDisabled}
 													>
-														{eq.name} {isOccupied ? `(Occupied - busy)` : '(Available)'}
+														{label}
 													</option>
 												);
 											})}

@@ -953,7 +953,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     const efficientCount = done.filter(r => {
       const planKey = Object.keys(plans).find(k => k.startsWith(String(r.id) + '-'));
       const plan = plans[planKey || ''];
-      const targetDays = plan ? Number(plan.numberOfDays) + 2 : 12;
+      const targetDays = plan ? Number(plan.numberOfDays) + 5 : 15;
       const actualDays = Math.round((new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()) / 86400000);
       return actualDays <= targetDays;
     }).length;
@@ -1014,14 +1014,16 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
       return overlaps && !(p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED');
     });
     const occupiedPlatforms = activePlans.reduce((sum: number, p: any) => sum + (p.platformNos?.length || 0), 0);
-    // NABL is 1 station * 10 platforms = 10 slots. Standard is 14 stations * 10 platforms = 140 slots.
-    const capacity = isNablSelected ? 10 : 140;
-    const platformUtil = (occupiedPlatforms / capacity) * 100;
     const eqUsed = activePlans.filter((p: any) => p.equipmentId).map((p: any) => String(p.equipmentId));
     const uniqueEqUsed = new Set(eqUsed).size;
-    const eqUtil = equipment.length > 0 ? (uniqueEqUsed / equipment.length) * 100 : 0;
-    const util = ((platformUtil + eqUtil) / 2) || 0;
-    return Number(Math.min(100, util).toFixed(1));
+
+    // Platform capacity: 10 for NABL, 140 for Standard
+    const platformCapacity = isNablSelected ? 10 : 140;
+    const totalResourcesCapacity = platformCapacity + equipment.length;
+    const activeResources = occupiedPlatforms + uniqueEqUsed;
+
+    const resourceUtil = totalResourcesCapacity > 0 ? (activeResources / totalResourcesCapacity) * 100 : 0;
+    return Number(Math.min(100, resourceUtil).toFixed(1));
   })();
 
 
@@ -1241,7 +1243,13 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                 request,
               };
             })
-            .filter((item) => item.request);
+            .filter((item) => {
+              if (!item.request) return false;
+              const safeReqStatus = getSafeStatusText(item.request.status);
+              const isConcluded = ['completed', 'testing_passed', 'testing_failed', 'rejected', 'failed', 'pass', 'fail'].includes(safeReqStatus);
+              const isEvalConcluded = item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED';
+              return !isConcluded && !isEvalConcluded;
+            });
 
           return {
             ...eq,
@@ -1295,7 +1303,13 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                 request,
               };
             })
-            .filter((item) => item.request);
+            .filter((item) => {
+              if (!item.request) return false;
+              const safeReqStatus = getSafeStatusText(item.request.status);
+              const isConcluded = ['completed', 'testing_passed', 'testing_failed', 'rejected', 'failed', 'pass', 'fail'].includes(safeReqStatus);
+              const isEvalConcluded = item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED';
+              return !isConcluded && !isEvalConcluded;
+            });
 
           return {
             ...platform,
@@ -1734,7 +1748,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                             <th className="pb-3 pr-3">CAPA ID</th>
                             <th className="pb-3 px-3">CAPA Title</th>
                             <th className="pb-3 px-3">Status</th>
-                            <th className="pb-3 px-3">Belongs To</th>
                             <th className="pb-3 px-3">Request</th>
                             <th className="pb-3 px-3">Test Type</th>
                             <th className="pb-3 pl-3">Created Date</th>
@@ -1758,10 +1771,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                               </td>
 
                               <td className="py-3 px-3">
-                                {displayValue(c.owner || c.submittedBy || c.submittedById)}
-                              </td>
-
-                              <td className="py-3 px-3">
                                 {displayValue(c.relatedRequest)}
                               </td>
 
@@ -1781,74 +1790,83 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
 
                   {detailModal.type === 'equipment' && (
                     <div className="space-y-4">
-                      {detailModal.data.map((eq) => (
-                        <div key={eq.id} className="border border-zinc-100 rounded-2xl p-4 bg-zinc-50/50">
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                            <div>
-                              <h3 className="text-sm font-extrabold text-zinc-900">
-                                {displayValue(eq.name || eq.equipmentName || `Equipment ${eq.id}`)}
-                              </h3>
-                              <p className="text-xs text-zinc-500 font-semibold">
-                                Status: {displayValue(eq.status || (eq.isAvailable ? 'Available' : 'Occupied'))}
-                              </p>
-                            </div>
+                      {detailModal.data.map((eq) => {
+                        const isMaint = ['maintenance', 'under_maintenance'].includes(String(eq.status || '').toLowerCase());
+                        const statusText = isMaint ? 'MAINTENANCE' : (eq.status || (eq.isAvailable ? 'AVAILABLE' : 'OCCUPIED'));
+                        const badgeText = isMaint ? 'MAINTENANCE' : (eq.isAvailable ? 'AVAILABLE' : 'OCCUPIED');
+                        const badgeColorClass = isMaint
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300 font-extrabold'
+                          : eq.isAvailable
+                            ? 'bg-emerald-50 text-emerald-700 font-extrabold'
+                            : 'bg-indigo-50 text-indigo-700 font-extrabold';
 
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-extrabold uppercase ${eq.isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-indigo-50 text-indigo-700'
-                              }`}>
-                              {eq.isAvailable ? 'Available' : 'Occupied'}
-                            </span>
-                          </div>
-
-                          {detailModal.label === 'Occupied' && (
-                            <div className="mt-4">
-                              <p className="text-[11px] font-extrabold text-zinc-500 mb-2">
-                                Running Request Details
-                              </p>
-
-                              {eq.relatedPlans?.length ? (
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-xs">
-                                    <thead>
-                                      <tr className="text-left text-[10px] uppercase text-zinc-400 border-b border-zinc-200">
-                                        <th className="pb-2">Request</th>
-                                        <th className="pb-2">Brand / Model</th>
-                                        <th className="pb-2">Test Type</th>
-                                        <th className="pb-2">Station</th>
-                                        <th className="pb-2">Allocated Days</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {eq.relatedPlans.map((item: any) => (
-                                        <tr key={item.key} className="border-b border-zinc-100">
-                                          <td className="py-2 font-bold text-indigo-700">
-                                            {item.request?.requestId || `REQ-${item.request?.id}`}
-                                          </td>
-                                          <td className="py-2">
-                                            {item.request?.brandName || '-'} {item.request?.modelNo ? `- ${item.request.modelNo}` : ''}
-                                          </td>
-                                          <td className="py-2">
-                                            {displayValue(item.request?.testType || item.plan?.productType)}
-                                          </td>
-                                          <td className="py-2">
-                                            Station {item.plan?.stationNo || '-'}
-                                          </td>
-                                          <td className="py-2">
-                                            {item.plan?.numberOfDays || '-'} Days
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : (
-                                <p className="text-xs text-zinc-400 font-semibold">
-                                  No linked active request found for this equipment.
+                        return (
+                          <div key={eq.id} className="border border-zinc-100 rounded-2xl p-4 bg-zinc-50/50">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                              <div>
+                                <h3 className="text-sm font-extrabold text-zinc-900">
+                                  {displayValue(eq.name || eq.equipmentName || `Equipment ${eq.id}`)}
+                                </h3>
+                                <p className="text-xs text-zinc-500 font-semibold">
+                                  Status: {displayValue(statusText)}
                                 </p>
-                              )}
+                              </div>
+
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase ${badgeColorClass}`}>
+                                {badgeText}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {detailModal.label === 'Occupied' && (
+                              <div className="mt-4">
+                                <p className="text-[11px] font-extrabold text-zinc-500 mb-2">
+                                  Running Request Details
+                                </p>
+
+                                {eq.relatedPlans?.length ? (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                      <thead>
+                                        <tr className="text-left text-[10px] uppercase text-zinc-400 border-b border-zinc-200">
+                                          <th className="pb-2">Request</th>
+                                          <th className="pb-2">Brand / Model</th>
+                                          <th className="pb-2">Test Type</th>
+                                          <th className="pb-2">Expected Release Date</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {eq.relatedPlans.map((item: any) => (
+                                          <tr key={item.key} className="border-b border-zinc-100">
+                                            <td className="py-2 font-bold text-indigo-700">
+                                              {item.request?.requestId || `REQ-${item.request?.id}`}
+                                            </td>
+                                            <td className="py-2">
+                                              {item.request?.brandName || '-'} {item.request?.modelNo ? `- ${item.request.modelNo}` : ''}
+                                            </td>
+                                            <td className="py-2">
+                                              {displayValue(item.request?.testType || item.plan?.productType)}
+                                            </td>
+                                            <td className="py-2">
+                                              {item.plan?.numberOfDays || '-'} Days
+                                            </td>
+                                            <td className="py-2 font-semibold text-zinc-800">
+                                              {displayDate(item.plan?.endDate)}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-zinc-400 font-semibold">
+                                    No linked active request found for this equipment.
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -1886,8 +1904,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                                         <th className="pb-2">Request</th>
                                         <th className="pb-2">Brand / Model</th>
                                         <th className="pb-2">Test Type</th>
-                                        <th className="pb-2">Station</th>
-                                        <th className="pb-2">Platforms</th>
+                                        <th className="pb-2">Expected Release Date</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -1902,11 +1919,8 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                                           <td className="py-2">
                                             {displayValue(item.request?.testType || item.plan?.productType)}
                                           </td>
-                                          <td className="py-2">
-                                            Station {item.plan?.stationNo || '-'}
-                                          </td>
-                                          <td className="py-2">
-                                            {item.plan?.platformNos?.map((p: number) => `P${item.plan.stationNo}-S${p}`).join(', ') || '-'}
+                                          <td className="py-2 font-semibold text-zinc-800">
+                                            {displayDate(item.plan?.endDate)}
                                           </td>
                                         </tr>
                                       ))}
