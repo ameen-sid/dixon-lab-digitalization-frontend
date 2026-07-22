@@ -23,7 +23,7 @@ const formatDate = (dateStr: string | undefined) => {
 
 export default function ManagerCompletedRequests({ requests, selectedRequestId }: ManagerCompletedRequestsProps) {
 	const navigate = useNavigate();
-	
+
 	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
 		try {
 			const token = localStorage.getItem('token');
@@ -85,7 +85,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 			handleDownloadTearDownExcel(plan, reqRecord);
 		}
 	};
-	
+
 	// Filtering and UI states
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
@@ -102,7 +102,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 	const evaluatedRequests = requests.filter((r: any) => {
 		const statusUpper = (r.status || '').toUpperCase();
 		const remarks = r.remarks || '';
-		
+
 		if (statusUpper === 'COMPLETED') {
 			return true;
 		}
@@ -119,7 +119,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 	const filteredRequests = evaluatedRequests.filter((r: any) => {
 		// 1. Search filter
 		const idStr = String(r.id).toLowerCase();
-		const matchesSearch = 
+		const matchesSearch =
 			(r.requestId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
 			idStr.includes(searchQuery.toLowerCase()) ||
 			(r.brandName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -154,17 +154,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 
 		return matchesSearch && matchesStatus && matchesDate;
 	});
-
-	// Date format helper
-	const formatDate = (dateStr: string) => {
-		if (!dateStr) return 'N/A';
-		const d = new Date(dateStr);
-		if (isNaN(d.getTime())) return dateStr;
-		const day = String(d.getDate()).padStart(2, '0');
-		const month = String(d.getMonth() + 1).padStart(2, '0');
-		const year = d.getFullYear();
-		return `${day}/${month}/${year}`;
-	};
 
 	// Status badge helper
 	const getStatusBadge = (status: string) => {
@@ -419,11 +408,10 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 																				disabled={!tdInfo}
 																				onClick={() => handleTearDownAction(plan, selectedReq)}
 																				title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-																				className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-2 rounded-xl border transition-all outline-none shadow-sm ${
-																					tdInfo
+																				className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-2 rounded-xl border transition-all outline-none shadow-sm ${tdInfo
 																						? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
 																						: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-																				}`}
+																					}`}
 																			>
 																				<FileText className="w-3.5 h-3.5" />
 																				<span>Tear Down Report</span>

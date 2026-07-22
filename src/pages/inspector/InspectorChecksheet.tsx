@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Printer, Clipboard, CheckCircle2, XCircle, Upload, Trash2, Save, Image as ImageIcon, X } from 'lucide-react';
+import { ArrowLeft, Printer, Clipboard, CheckCircle2, XCircle, Upload, Trash2, Save, X } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { getTestRequests, saveSampleInspection } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
@@ -294,7 +294,7 @@ export default function InspectorChecksheet() {
 		const start = new Date(startStr);
 		const end = new Date(endStr);
 		if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
-		
+
 		let curr = new Date(start);
 		let safety = 0;
 		while (curr <= end && safety < 1000) {
@@ -305,7 +305,7 @@ export default function InspectorChecksheet() {
 		return dates;
 	};
 
-	const datesList = planInfo 
+	const datesList = planInfo
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
 
@@ -382,7 +382,7 @@ export default function InspectorChecksheet() {
 		if (!planKey) return;
 		const cellKey = `${dateStr}_${colId}`;
 		const upperVal = val.toUpperCase();
-		
+
 		// Update cache state locally
 		const updatedCellData = { ...cellData, [cellKey]: upperVal };
 
@@ -583,10 +583,10 @@ export default function InspectorChecksheet() {
 			`}</style>
 
 			<div className="h-screen bg-[#f8fafc] text-zinc-900 p-8 flex flex-col gap-6 overflow-hidden">
-				
+
 				{/* Header back & prints bar */}
 				<div className="flex flex-row justify-between items-center no-print shrink-0">
-					<button 
+					<button
 						onClick={() => navigate('/inspector/daily-checksheet')}
 						className="flex items-center gap-2 text-xs font-bold text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 px-3.5 py-2 rounded-xl shadow-sm transition-colors cursor-pointer border-none outline-none"
 					>
@@ -600,34 +600,32 @@ export default function InspectorChecksheet() {
 						</span>
 
 						{/* Pass Test Button */}
-						<button 
+						<button
 							type="button"
 							onClick={() => handleOpenRecommendationModal('PASSED')}
-							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${
-								inspectorStatus === 'PASSED'
+							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'PASSED'
 									? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
 									: 'bg-emerald-600 hover:bg-emerald-700 text-white'
-							}`}
+								}`}
 						>
 							<CheckCircle2 className="w-4 h-4" />
 							<span>{inspectorStatus === 'PASSED' ? 'Passed (Edit)' : 'Pass Test'}</span>
 						</button>
 
 						{/* Fail Test Button */}
-						<button 
+						<button
 							type="button"
 							onClick={() => handleOpenRecommendationModal('FAILED')}
-							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${
-								inspectorStatus === 'FAILED'
+							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'FAILED'
 									? 'bg-rose-700 text-white ring-2 ring-rose-300'
 									: 'bg-rose-600 hover:bg-rose-700 text-white'
-							}`}
+								}`}
 						>
 							<XCircle className="w-4 h-4" />
 							<span>{inspectorStatus === 'FAILED' ? 'Failed (Edit)' : 'Fail Test'}</span>
 						</button>
 
-						<button 
+						<button
 							onClick={triggerPrint}
 							className="flex items-center gap-2 text-xs font-bold text-white bg-[#11236a] hover:bg-[#0c1a52] px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none"
 						>
@@ -638,11 +636,11 @@ export default function InspectorChecksheet() {
 				</div>
 
 				{/* Document checksheet frame */}
-				<div 
-					id="printable-checksheet" 
+				<div
+					id="printable-checksheet"
 					className="bg-white border border-zinc-300 rounded-[28px] p-8 shadow-xl flex-1 flex flex-col gap-6 overflow-hidden"
 				>
-					
+
 					{/* Table Header Dixon style */}
 					<div className="border border-zinc-900 grid grid-cols-4 text-zinc-900 shrink-0">
 						<div className="col-span-1 border-r border-zinc-900 p-3.5 flex items-center justify-center text-[10px] font-bold tracking-widest uppercase">
@@ -650,8 +648,8 @@ export default function InspectorChecksheet() {
 						</div>
 						<div className="col-span-2 border-r border-zinc-900 p-3.5 flex flex-col items-center justify-center text-center">
 							<h2 className="text-sm font-black tracking-wider uppercase leading-snug">
-								{productType === 'FATL' 
-									? 'Fully automatic Washing Machine life test Check-sheet' 
+								{productType === 'FATL'
+									? 'Fully automatic Washing Machine life test Check-sheet'
 									: 'Semi-automatic Washing Machine Life Test Check Sheet'}
 							</h2>
 						</div>
@@ -724,8 +722,8 @@ export default function InspectorChecksheet() {
 											</td>
 											{columns.map((col, colIndex) => {
 												const val = getCellValue(dateStr, col.id);
-												const isCalculated = (productType === 'FATL' && col.id === 'totalCycles') || 
-																	 (productType === 'SATL' && (col.id === 'totalCyclesWash' || col.id === 'totalCyclesSpin'));
+												const isCalculated = (productType === 'FATL' && col.id === 'totalCycles') ||
+													(productType === 'SATL' && (col.id === 'totalCyclesWash' || col.id === 'totalCyclesSpin'));
 												return (
 													<td key={col.id} className={`border-r border-zinc-900 p-1.5 ${isCalculated ? 'bg-zinc-50' : ''}`}>
 														<input
@@ -737,11 +735,10 @@ export default function InspectorChecksheet() {
 															onKeyDown={(e) => handleKeyDown(e, dateIndex, colIndex)}
 															disabled={isCalculated}
 															autoComplete="off"
-															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${
-																isCalculated 
-																	? 'text-zinc-500 font-extrabold cursor-not-allowed' 
+															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${isCalculated
+																	? 'text-zinc-500 font-extrabold cursor-not-allowed'
 																	: 'text-zinc-900 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500'
-															}`}
+																}`}
 														/>
 													</td>
 												);
@@ -769,7 +766,7 @@ export default function InspectorChecksheet() {
 			{/* Recommendation & Photos Modal */}
 			{isRecommendationModalOpen && (
 				<div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsRecommendationModalOpen(false)}>
-					<div 
+					<div
 						className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 border border-zinc-200 animate-fadeIn"
 						onClick={e => e.stopPropagation()}
 					>
@@ -783,7 +780,7 @@ export default function InspectorChecksheet() {
 									Submit outcome recommendation and evidence photos to Lab Manager.
 								</p>
 							</div>
-							<button 
+							<button
 								onClick={() => setIsRecommendationModalOpen(false)}
 								className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full transition-colors cursor-pointer"
 							>
@@ -798,11 +795,10 @@ export default function InspectorChecksheet() {
 								<button
 									type="button"
 									onClick={() => setModalDecision('PASSED')}
-									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
-										modalDecision === 'PASSED'
+									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${modalDecision === 'PASSED'
 											? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
 											: 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
-									}`}
+										}`}
 								>
 									<CheckCircle2 className="w-4 h-4" />
 									<span>PASSED</span>
@@ -811,11 +807,10 @@ export default function InspectorChecksheet() {
 								<button
 									type="button"
 									onClick={() => setModalDecision('FAILED')}
-									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${
-										modalDecision === 'FAILED'
+									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${modalDecision === 'FAILED'
 											? 'bg-rose-600 text-white border-rose-600 shadow-sm'
 											: 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
-									}`}
+										}`}
 								>
 									<XCircle className="w-4 h-4" />
 									<span>FAILED</span>
