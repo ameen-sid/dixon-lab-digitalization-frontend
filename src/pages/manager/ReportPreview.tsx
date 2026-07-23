@@ -554,11 +554,11 @@ export default function ReportPreview() {
 	};
 
 	const renderTestPicturesSection = (titleLabel: string = "Test Pictures:") => {
-		const hasBefore = beforeImages.length > 0;
-		const hasAfter = afterImages.length > 0;
+		const combinedImages = [...beforeImages, ...afterImages];
+		const hasCombined = combinedImages.length > 0;
 		const hasLegacy = specimenImages.length > 0;
 
-		if (!hasBefore && !hasAfter && !hasLegacy) {
+		if (!hasCombined && !hasLegacy) {
 			if (isReliability) return null;
 			return (
 				<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
@@ -575,58 +575,26 @@ export default function ReportPreview() {
 			);
 		}
 
+		const imagesToRender = (hasCombined ? combinedImages : specimenImages).slice(0, 6);
+
+		// Determine grid columns dynamically based on image count to make it look premium
+		const cols = imagesToRender.length === 1 
+			? 'grid-cols-1 max-w-md mx-auto' 
+			: imagesToRender.length === 2 
+				? 'grid-cols-2 max-w-2xl mx-auto' 
+				: 'grid-cols-3';
+
 		return (
 			<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50 space-y-4">
 				<h4 className="text-center font-black text-[10px] underline text-black uppercase">{titleLabel}</h4>
 				
-				{(hasBefore || hasAfter) ? (
-					<div className="grid grid-cols-2 gap-4">
-						{/* Before Test column */}
-						<div className="space-y-1.5 text-center">
-							<span className="text-[8px] font-extrabold text-zinc-500 uppercase tracking-wider block">Before Test</span>
-							<div className="grid grid-cols-1 gap-2">
-								{hasBefore ? (
-									beforeImages.slice(0, 1).map((img, index) => (
-										<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-											<img src={img} alt={`Before Test ${index + 1}`} className="max-w-full max-h-full object-contain" />
-										</div>
-									))
-								) : (
-									<div className="border border-dashed border-zinc-300 rounded-lg bg-white aspect-[4/3] flex items-center justify-center text-zinc-400 text-[8px] font-bold uppercase">
-										No Before Picture
-									</div>
-								)}
-							</div>
+				<div className={`grid ${cols} gap-4 justify-center`}>
+					{imagesToRender.map((img, index) => (
+						<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
+							<img src={img} alt={`Test Image ${index + 1}`} className="max-w-full max-h-full object-contain" />
 						</div>
-
-						{/* After Test column */}
-						<div className="space-y-1.5 text-center">
-							<span className="text-[8px] font-extrabold text-zinc-500 uppercase tracking-wider block">After Test</span>
-							<div className="grid grid-cols-1 gap-2">
-								{hasAfter ? (
-									afterImages.slice(0, 1).map((img, index) => (
-										<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-											<img src={img} alt={`After Test ${index + 1}`} className="max-w-full max-h-full object-contain" />
-										</div>
-									))
-								) : (
-									<div className="border border-dashed border-zinc-300 rounded-lg bg-white aspect-[4/3] flex items-center justify-center text-zinc-400 text-[8px] font-bold uppercase">
-										No After Picture
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
-				) : (
-					/* Legacy flat layout fallback */
-					<div className="grid grid-cols-2 gap-4 justify-center">
-						{specimenImages.slice(0, 2).map((img, index) => (
-							<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-								<img src={img} alt={`Specimen ${index + 1}`} className="max-w-full max-h-full object-contain" />
-							</div>
-						))}
-					</div>
-				)}
+					))}
+				</div>
 			</div>
 		);
 	};
