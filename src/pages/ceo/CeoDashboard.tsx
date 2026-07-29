@@ -1291,7 +1291,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                 ? plan.platformNos.map(String).includes(String(platform.platformNo || platform.no || platform.id))
                 : false;
 
-              return stationMatch || platformMatch;
+              return stationMatch && platformMatch;
             })
             .map(([key, plan]: [string, any]) => {
               const [reqIdStr] = key.split('-sample-');
