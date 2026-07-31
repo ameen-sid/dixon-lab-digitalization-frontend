@@ -30,6 +30,9 @@ export default function Dashboard() {
 			case 'lab manager':
 				navigate('/manager/dashboard', { replace: true });
 				break;
+			case 'nabl manager':
+				navigate('/nabl-manager/dashboard', { replace: true });
+				break;
 			case 'engineer':
 				navigate('/engineer/dashboard', { replace: true });
 				break;

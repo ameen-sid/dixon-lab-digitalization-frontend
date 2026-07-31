@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle } from 'lucide-react';
+import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle, ClipboardList } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
 interface DashboardLayoutProps {
@@ -112,6 +112,16 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		}
 	} else if (user.role.toLowerCase() === 'ceo') {
 		derivedActiveTab = 'dashboard';
+	} else if (user.role.toLowerCase() === 'nabl manager') {
+		if (path.includes('/nabl-manager/requests')) {
+			derivedActiveTab = 'requests';
+		} else if (path.includes('/nabl-manager/test-plans')) {
+			derivedActiveTab = 'test-plans';
+		} else if (path.includes('/nabl-manager/completed-tests')) {
+			derivedActiveTab = 'completed-tests';
+		} else {
+			derivedActiveTab = 'dashboard';
+		}
 	}
 
 	const handleTabClick = (itemId: string) => {
@@ -151,6 +161,11 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'filled-reports') navigate('/engineer/filled-reports');
 		} else if (userRoleLower === 'ceo') {
 			if (itemId === 'dashboard') navigate('/ceo/dashboard');
+		} else if (userRoleLower === 'nabl manager') {
+			if (itemId === 'dashboard') navigate('/nabl-manager/dashboard');
+			else if (itemId === 'requests') navigate('/nabl-manager/requests');
+			else if (itemId === 'test-plans') navigate('/nabl-manager/test-plans');
+			else if (itemId === 'completed-tests') navigate('/nabl-manager/completed-tests');
 		} else if (userRoleLower === 'inspector') {
 			if (itemId === 'dashboard') navigate('/inspector/dashboard');
 			else if (itemId === 'daily-checksheet') navigate('/inspector/daily-checksheet');
@@ -398,14 +413,19 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 									</div>
 								))}
 							</>
-						) : (user.role?.toLowerCase() === 'ceo') ? (
+						) : (user.role?.toLowerCase() === 'ceo' || user.role?.toLowerCase() === 'nabl manager') ? (
 							<>
 								{[
 									{
-										category: 'CEO Portal',
-										items: [
-											{ id: 'dashboard', label: 'Overview', icon: Compass },
-										]
+										category: user.role?.toLowerCase() === 'ceo' ? 'CEO Portal' : 'NABL Manager Portal',
+										items: user.role?.toLowerCase() === 'ceo'
+											? [{ id: 'dashboard', label: 'Overview', icon: Compass }]
+											: [
+												{ id: 'dashboard', label: 'Overview', icon: Compass },
+												{ id: 'requests', label: 'NABL Requests', icon: FileText },
+												{ id: 'test-plans', label: 'NABL Test Plans', icon: ClipboardList },
+												{ id: 'completed-tests', label: 'Completed Tests', icon: CheckCircle }
+											]
 									}
 								].map((cat, groupIdx) => (
 									<div key={groupIdx} className="flex flex-col gap-1">

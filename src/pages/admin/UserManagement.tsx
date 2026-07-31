@@ -26,6 +26,8 @@ const mapUIToBackendRole = (uiRole: string): string => {
 			return 'Engineer';
 		case 'Lab Manager':
 			return 'Lab Manager';
+		case 'NABL Manager':
+			return 'NABL Manager';
 		case 'Head':
 			return 'Head';
 		case 'Inspector':
@@ -47,6 +49,8 @@ const mapBackendRoleToUI = (backendRole: string): string => {
 			return 'Engineer';
 		case 'Lab Manager':
 			return 'Lab Manager';
+		case 'NABL Manager':
+			return 'NABL Manager';
 		case 'Head':
 			return 'Head';
 		case 'Inspector':
@@ -360,6 +364,7 @@ export default function UserManagement() {
 								{ value: "All", label: "All Roles" },
 								{ value: "Engineer", label: "Engineer" },
 								{ value: "Lab Manager", label: "Lab Manager" },
+								{ value: "NABL Manager", label: "NABL Manager" },
 								{ value: "Head", label: "Head" },
 								{ value: "Inspector", label: "Inspector" },
 								{ value: "Requester", label: "Requester" },
@@ -567,6 +572,7 @@ export default function UserManagement() {
 										options={[
 											{ value: "Engineer", label: "Engineer" },
 											{ value: "Lab Manager", label: "Lab Manager" },
+											{ value: "NABL Manager", label: "NABL Manager" },
 											{ value: "Head", label: "Head" },
 											{ value: "Inspector", label: "Inspector" },
 											{ value: "Requester", label: "Requester" },
@@ -673,6 +679,7 @@ export default function UserManagement() {
 										options={[
 											{ value: "Engineer", label: "Engineer" },
 											{ value: "Lab Manager", label: "Lab Manager" },
+											{ value: "NABL Manager", label: "NABL Manager" },
 											{ value: "Head", label: "Head" },
 											{ value: "Inspector", label: "Inspector" },
 											{ value: "Requester", label: "Requester" },

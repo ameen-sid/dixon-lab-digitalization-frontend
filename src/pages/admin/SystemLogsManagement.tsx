@@ -90,8 +90,13 @@ export default function SystemLogsManagement() {
 
 			const result = await systemLogService.getSystemLogs(filterParams)();
 			if (result && result.success) {
-				setLogs(result.data?.logs || []);
-				setTotalLogs(result.data?.total || 0);
+				const fetchedLogs: SystemLog[] = result.data?.logs || [];
+				const filteredLogs = fetchedLogs.filter(
+					(log) => log.entity !== 'MISReport' && !log.action?.includes('MIS_REPORT')
+				);
+
+				setLogs(filteredLogs);
+				setTotalLogs(result.data?.total || filteredLogs.length);
 
 				// Set stats from data if returned or fallback
 				setStats({

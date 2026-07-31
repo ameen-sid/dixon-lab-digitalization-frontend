@@ -77,7 +77,10 @@ export default function AdminDashboard() {
 	const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
 
 	useEffect(() => {
-		if (currentUser && (currentUser.role === 'Lab Manager' || currentUser.role?.toLowerCase() === 'lab manager')) {
+		if (currentUser && (
+			currentUser.role === 'Lab Manager' || currentUser.role?.toLowerCase() === 'lab manager' ||
+			currentUser.role === 'NABL Manager' || currentUser.role?.toLowerCase() === 'nabl manager'
+		)) {
 			if (isNablDept && path.includes('/admin/platform-availability')) {
 				navigate('/admin/nabl-station-availability');
 			} else if (!isNablDept && path.includes('/admin/nabl-station-availability')) {

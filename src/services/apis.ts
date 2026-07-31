@@ -83,6 +83,15 @@ export const testRequestEndpoints = {
 	SAVE_SAMPLE_REPORT_API: (id: string | number) => BASE_URL + `/test-requests/${id}/sample-reports`,
 };
 
+// NABL Request Endpoints
+export const nablRequestEndpoints = {
+	GET_NABL_REQUESTS_API: BASE_URL + '/nabl-requests',
+	CREATE_NABL_REQUEST_API: BASE_URL + '/nabl-requests',
+	GET_NABL_REQUEST_DETAILS_API: (id: string | number) => BASE_URL + `/nabl-requests/${id}`,
+	UPDATE_NABL_REQUEST_STATUS_API: (id: string | number) => BASE_URL + `/nabl-requests/${id}`,
+	SAVE_NABL_TEST_PLAN_API: (id: string | number) => BASE_URL + `/nabl-requests/${id}/test-plans`,
+};
+
 // Platform Availability Endpoints
 export const platformAvailabilityEndpoints = {
 	GET_PLATFORMS_API: BASE_URL + '/platform-availability',

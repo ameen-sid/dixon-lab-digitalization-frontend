@@ -16,6 +16,12 @@ import InspectorChecksheet from './pages/inspector/InspectorChecksheet';
 import ManagerEvaluateChecksheet from './pages/manager/ManagerEvaluateChecksheet';
 import ReportPreview from './pages/manager/ReportPreview';
 import RequesterDashboard from './pages/requester/RequesterDashboard';
+import NablManagerDashboard from './pages/nabl-manager/NablManagerDashboard';
+import NablManagerRequests from './pages/nabl-manager/NablManagerRequests';
+import NablManagerTestPlans from './pages/nabl-manager/NablManagerTestPlans';
+import NablRequestReport from './pages/nabl-manager/NablRequestReport';
+import NablManagerCompletedTests from './pages/nabl-manager/NablManagerCompletedTests';
+import NablCompletedTestDetails from './pages/nabl-manager/NablCompletedTestDetails';
 
 function App() {
 	useEffect(() => {
@@ -106,6 +112,12 @@ function App() {
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
 				<Route path="/inspector/daily-checksheet" element={<InspectorDailyChecksheet />} />
 				<Route path="/inspector/checksheet/:planKey" element={<InspectorChecksheet />} />
+				<Route path="/nabl-manager/dashboard" element={<NablManagerDashboard />} />
+				<Route path="/nabl-manager/requests" element={<NablManagerRequests />} />
+				<Route path="/nabl-manager/requests/:id" element={<NablRequestReport />} />
+				<Route path="/nabl-manager/test-plans" element={<NablManagerTestPlans />} />
+				<Route path="/nabl-manager/completed-tests" element={<NablManagerCompletedTests />} />
+				<Route path="/nabl-manager/completed-tests/:id" element={<NablCompletedTestDetails />} />
 
 				{/* Requester sub-pages serving unique URL paths */}
 				<Route path="/requester" element={<RequesterDashboard />} />
