@@ -195,8 +195,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 					</div>
 				</header>
 				{/* Main Content Area */}
-				<main className="flex-1 h-full overflow-y-auto p-8 pr-6">
-					<div className="max-w-7xl mx-auto w-full pb-10">
+				<main className="flex-1 h-full overflow-y-auto p-8">
+					<div className="w-full pb-10">
 						{children}
 					</div>
 				</main>
