@@ -45,6 +45,7 @@ export default function CustomSelect({value, onChange, options, disabled = false
 			<button
 				type="button"
 				disabled={disabled}
+				title={selectedOption ? selectedOption.label : placeholder}
 				onClick={() => setIsOpen(!isOpen)}
 				className={`w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-2 text-xs text-zinc-800 outline-none focus:border-[#11236a] transition-all flex items-center justify-between font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isOpen ? 'border-[#11236a] ring-2 ring-[#11236a]/5' : ''}`}
 			>
@@ -55,7 +56,7 @@ export default function CustomSelect({value, onChange, options, disabled = false
 			</button>
 
 			{isOpen && (
-				<div className="absolute left-0 mt-1 w-full bg-white border border-zinc-250 rounded-[14px] shadow-2xl z-50 py-1.5 max-h-60 overflow-y-auto animate-in fade-in duration-100 origin-top">
+				<div className="absolute left-0 mt-1 min-w-full w-max max-w-lg bg-white border border-zinc-250 rounded-[14px] shadow-2xl z-50 py-1.5 max-h-60 overflow-y-auto animate-in fade-in duration-100 origin-top">
 					{options.length === 0 ? (
 						<div className="px-3 py-2 text-xs text-zinc-700 font-bold text-center">No options available</div>
 					) : (
@@ -65,12 +66,13 @@ export default function CustomSelect({value, onChange, options, disabled = false
 								<button
 									key={opt.value}
 									type="button"
+									title={opt.label}
 									onClick={() => handleOptionSelect(opt.value)}
 									className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between cursor-pointer border-none outline-none ${isSelected ? 'bg-[#11236a]/15 text-[#11236a] font-extrabold' : 'text-zinc-800 font-bold hover:bg-zinc-50'}`}
 								>
-									<span className="truncate">{opt.label}</span>
+									<span className="whitespace-normal break-words leading-tight">{opt.label}</span>
 									{isSelected && (
-										<div className="w-1.5 h-1.5 bg-[#11236a] rounded-full shrink-0 ml-2" />
+										<div className="w-1.5 h-1.5 bg-[#11236a] rounded-full shrink-0 ml-2.5" />
 									)}
 								</button>
 							);
