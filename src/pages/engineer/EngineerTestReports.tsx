@@ -296,7 +296,21 @@ export default function EngineerTestReports({
 	const handleBeforeImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(e.target.files || []);
 		if (!files.length) return;
-		files.forEach(file => {
+
+		const currentCount = reportForm.beforeImages?.length || 0;
+		if (currentCount >= 3) {
+			toast.error('Maximum 3 "Before Test" pictures allowed.');
+			e.target.value = '';
+			return;
+		}
+
+		const availableSlots = 3 - currentCount;
+		if (files.length > availableSlots) {
+			toast.error(`You can only upload up to ${availableSlots} more "Before Test" picture(s). (Max 3 total)`);
+		}
+
+		const filesToUpload = files.slice(0, availableSlots);
+		filesToUpload.forEach(file => {
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				setReportForm(prev => ({
@@ -319,7 +333,21 @@ export default function EngineerTestReports({
 	const handleAfterImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(e.target.files || []);
 		if (!files.length) return;
-		files.forEach(file => {
+
+		const currentCount = reportForm.afterImages?.length || 0;
+		if (currentCount >= 3) {
+			toast.error('Maximum 3 "After Test" pictures allowed.');
+			e.target.value = '';
+			return;
+		}
+
+		const availableSlots = 3 - currentCount;
+		if (files.length > availableSlots) {
+			toast.error(`You can only upload up to ${availableSlots} more "After Test" picture(s). (Max 3 total)`);
+		}
+
+		const filesToUpload = files.slice(0, availableSlots);
+		filesToUpload.forEach(file => {
 			const reader = new FileReader();
 			reader.onloadend = () => {
 				setReportForm(prev => ({
@@ -643,11 +671,14 @@ export default function EngineerTestReports({
 
 								{/* Before Test Pictures */}
 								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
-									<label className="text-[10px] text-[#11236a] font-extrabold uppercase">Before Test Pictures</label>
-									{!isSubmitted && (
+									<div className="flex items-center justify-between">
+										<label className="text-[10px] text-[#11236a] font-extrabold uppercase">Before Test Pictures</label>
+										<span className="text-[9px] text-zinc-400 font-semibold">{reportForm.beforeImages.length} / 3 max</span>
+									</div>
+									{!isSubmitted && reportForm.beforeImages.length < 3 && (
 										<label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-xl p-4 cursor-pointer hover:bg-zinc-50 transition-all bg-white">
 											<Upload className="w-4 h-4 text-zinc-400" />
-											<span className="text-[10px] text-zinc-500 font-semibold">Upload before pictures</span>
+											<span className="text-[10px] text-zinc-500 font-semibold">Upload before pictures (Max 3)</span>
 											<input
 												type="file"
 												multiple
@@ -682,11 +713,14 @@ export default function EngineerTestReports({
 
 								{/* After Test Pictures */}
 								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
-									<label className="text-[10px] text-[#11236a] font-extrabold uppercase">After Test Pictures</label>
-									{!isSubmitted && (
+									<div className="flex items-center justify-between">
+										<label className="text-[10px] text-[#11236a] font-extrabold uppercase">After Test Pictures</label>
+										<span className="text-[9px] text-zinc-400 font-semibold">{reportForm.afterImages.length} / 3 max</span>
+									</div>
+									{!isSubmitted && reportForm.afterImages.length < 3 && (
 										<label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-xl p-4 cursor-pointer hover:bg-zinc-50 transition-all bg-white">
 											<Upload className="w-4 h-4 text-zinc-400" />
-											<span className="text-[10px] text-zinc-500 font-semibold">Upload after pictures</span>
+											<span className="text-[10px] text-zinc-500 font-semibold">Upload after pictures (Max 3)</span>
 											<input
 												type="file"
 												multiple
