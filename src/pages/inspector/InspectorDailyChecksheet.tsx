@@ -258,7 +258,7 @@ export default function InspectorDailyChecksheet() {
 	// Format platforms list text
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
-		return plan.platformNos.map((pNum: number) => `P${plan.stationNo}-S${pNum}`).join(', ');
+		return plan.platformNos.map((pNum: number) => `S${plan.stationNo}-P${pNum}`).join(', ');
 	};
 
 	if (loading) {

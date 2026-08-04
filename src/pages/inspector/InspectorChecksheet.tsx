@@ -483,7 +483,7 @@ export default function InspectorChecksheet() {
 			}
 		}
 		if (!Array.isArray(platforms)) return 'N/A';
-		return platforms.map((pNum: number) => `P${plan.stationNo}-S${pNum}`).join(', ');
+		return platforms.map((pNum: number) => `S${plan.stationNo}-P${pNum}`).join(', ');
 	};
 
 	// Print sheets helper
