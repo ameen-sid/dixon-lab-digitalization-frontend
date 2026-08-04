@@ -191,7 +191,7 @@ export default function ReportPreview() {
 			for (let i = 0; i < qty; i++) {
 				const samplePlans = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === i);
 				const inspectionReport = request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === i);
-				
+
 				let finalOutcome = 'PENDING';
 				let remarks = '';
 				if (inspectionReport) {
@@ -240,7 +240,7 @@ export default function ReportPreview() {
 			isOverallPassed = !hasFailure && (evaluatedCount === qty);
 			isOverallPartial = passedCount > 0 && failedCount > 0;
 			isEvaluated = evaluatedCount === qty;
-			
+
 			// Use first non-null sample's plan for metadata template fields
 			let foundPlan = null;
 			for (let i = 0; i < qty; i++) {
@@ -257,7 +257,7 @@ export default function ReportPreview() {
 	const isSampleOrPlanReport = type === 'sample' || type === 'plan';
 	const inspectionReport = (isSampleOrPlanReport && request && targetPlan)
 		? (request.sampleInspections?.find((r: any) => Number(r.testPlanId) === Number(targetPlan.id)) ||
-		   request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId))
+			request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId))
 		: ((isSampleOrPlanReport && request && sampleIndex !== null)
 			? request.sampleInspections?.find((r: any) => Number(r.sampleIndex) === sampleIndex && !r.testPlanId)
 			: null);
@@ -406,8 +406,8 @@ export default function ReportPreview() {
 	})();
 	const testItemDescription = request.sampleDescription || 'Spin Lid Switch';
 	const associateModel = request.modelNo || 'All Semi-Automatic Washing Machine';
-	const testSpecification = isAllInspectionFailed 
-		? `${request.testType?.name || ''} AS PER ${request.testMethodRef || ''}` 
+	const testSpecification = isAllInspectionFailed
+		? `${request.testType?.name || ''} AS PER ${request.testMethodRef || ''}`
 		: `${testDescription} AS PER ${request.testMethodRef || ''}`;
 	const sampleQuantity = String(request.sampleQty || 1).padStart(2, '0');
 	const startOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt));
@@ -429,8 +429,8 @@ export default function ReportPreview() {
 		}
 		// Fallback: search in all sampleInspections for this sampleIndex for any submittedByName
 		if (!engineerWhoSubmitted && request?.sampleInspections) {
-			const fallbackInsp = request.sampleInspections.find((si: any) => 
-				Number(si.sampleIndex) === sampleIndex && 
+			const fallbackInsp = request.sampleInspections.find((si: any) =>
+				Number(si.sampleIndex) === sampleIndex &&
 				parseChecksObj(si.checks).submittedByName
 			);
 			if (fallbackInsp) {
@@ -438,11 +438,11 @@ export default function ReportPreview() {
 			}
 		}
 	}
-	
+
 	// If still empty or if we are loading the full request report, collect all engineer names from inspections/plans
 	if (!engineerWhoSubmitted && request) {
 		const submittedNames = new Set<string>();
-		
+
 		// 1. Collect from test plans
 		if (request.testPlans) {
 			for (const plan of request.testPlans) {
@@ -451,7 +451,7 @@ export default function ReportPreview() {
 				}
 			}
 		}
-		
+
 		// 2. Collect from inspections
 		if (request.sampleInspections) {
 			for (const insp of request.sampleInspections) {
@@ -461,15 +461,15 @@ export default function ReportPreview() {
 				}
 			}
 		}
-		
+
 		if (submittedNames.size > 0) {
 			engineerWhoSubmitted = Array.from(submittedNames).join(' / ');
 		}
 	}
 
 	// Signatures
-	const testedBy = engineerWhoSubmitted || 
-		(request?.assignedTo && request.assignedTo.role !== 'Lab Manager' && request.assignedTo.role !== 'Head' ? request.assignedTo.name : '') || 
+	const testedBy = engineerWhoSubmitted ||
+		(request?.assignedTo && request.assignedTo.role !== 'Lab Manager' && request.assignedTo.role !== 'Head' ? request.assignedTo.name : '') ||
 		'Quality Engineer';
 	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
 	let managerWhoEvaluated = '';
@@ -498,7 +498,7 @@ export default function ReportPreview() {
 
 	const nablManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() === 'nabl');
 	const normalManager = users.find(u => u.role === 'Lab Manager' && (u.department?.name || '').toLowerCase() !== 'nabl');
-	const dbManager = isNabl 
+	const dbManager = isNabl
 		? (nablManager?.name || normalManager?.name || users.find(u => u.role === 'Head')?.name)
 		: (normalManager?.name || nablManager?.name || users.find(u => u.role === 'Head')?.name);
 
@@ -578,16 +578,16 @@ export default function ReportPreview() {
 		const imagesToRender = (hasCombined ? combinedImages : specimenImages).slice(0, 6);
 
 		// Determine grid columns dynamically based on image count to make it look premium
-		const cols = imagesToRender.length === 1 
-			? 'grid-cols-1 max-w-md mx-auto' 
-			: imagesToRender.length === 2 
-				? 'grid-cols-2 max-w-2xl mx-auto' 
+		const cols = imagesToRender.length === 1
+			? 'grid-cols-1 max-w-md mx-auto'
+			: imagesToRender.length === 2
+				? 'grid-cols-2 max-w-2xl mx-auto'
 				: 'grid-cols-3';
 
 		return (
 			<div className="border border-zinc-200 rounded-xl p-4 bg-zinc-50/50 space-y-4">
 				<h4 className="text-center font-black text-[10px] underline text-black uppercase">{titleLabel}</h4>
-				
+
 				<div className={`grid ${cols} gap-4 justify-center`}>
 					{imagesToRender.map((img, index) => (
 						<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
@@ -806,10 +806,10 @@ export default function ReportPreview() {
 								{isSampleFailedInspection ? 'Physical & Visual Inspection Report' : isNabl ? 'NABL Accredited Test Report' : 'Performance & Safety Lab Report'}
 							</span>
 							<p className="text-[10px] text-zinc-500 font-semibold">
-								{isSampleFailedInspection 
+								{isSampleFailedInspection
 									? `Inspection report for sample ${key}`
-									: (type === 'sample' || type === 'plan') 
-										? `Sample ID Allotment report for ${key}` 
+									: (type === 'sample' || type === 'plan')
+										? `Sample ID Allotment report for ${key}`
 										: `Overall Request Report for ${request.requestId || `REQ-${request.id}`}`}
 							</p>
 						</div>
@@ -923,10 +923,9 @@ export default function ReportPreview() {
 														<tr key={cp.id} className="divide-x divide-black">
 															<td className="p-1.5 text-center">{cp.id}</td>
 															<td className="p-1.5">{cp.text}</td>
-															<td className={`p-1.5 text-center font-extrabold uppercase ${
-																val === 'Yes' ? 'text-emerald-700' :
-																val === 'No' ? 'text-rose-700' : 'text-zinc-500'
-															}`}>
+															<td className={`p-1.5 text-center font-extrabold uppercase ${val === 'Yes' ? 'text-emerald-700' :
+																	val === 'No' ? 'text-rose-700' : 'text-zinc-500'
+																}`}>
 																{val || 'N/A'}
 															</td>
 														</tr>
@@ -992,9 +991,9 @@ export default function ReportPreview() {
 								<div>
 									{renderNablHeader(1)}
 									{renderNablSubHeader()}
-									
+
 									<h3 className="text-center font-black text-[13px] underline tracking-widest my-3 text-black">TEST REPORT</h3>
-									
+
 									<div className="space-y-4">
 										<div>
 											<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">1. General Information</h4>
@@ -1018,7 +1017,7 @@ export default function ReportPreview() {
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
 														<td className="p-1.5">
-															<span className="text-zinc-550 mr-2">Start of test date:</span> {startOfTestDate}
+															<span className="text-zinc-550 mr-2">Start of Test Date:</span> {startOfTestDate}
 														</td>
 														<td className="p-1.5">
 															<span className="text-zinc-550 mr-2">End of Test Date:</span> {endOfTestDate}
@@ -1094,7 +1093,7 @@ export default function ReportPreview() {
 								<div>
 									{renderNablHeader(2)}
 									{renderNablSubHeader()}
-									
+
 									<h3 className="text-center font-black text-[13px] underline tracking-widest my-3 text-black">TEST REPORT (TEST RESULTS)</h3>
 
 									<div className="my-3">
@@ -1144,7 +1143,7 @@ export default function ReportPreview() {
 															})()}
 														</td>
 														<td className="p-1.5 font-medium leading-normal">
-															{testProtocol?.judgementCriteria || 
+															{testProtocol?.judgementCriteria ||
 																'The test specimen is considered to have satisfactorily withstood the test.'}
 														</td>
 														<td className="p-1.5 uppercase">
@@ -1184,7 +1183,7 @@ export default function ReportPreview() {
 																})()}
 															</td>
 															<td className="p-1.5 font-medium leading-normal text-[9px]">
-																{testProtocol?.judgementCriteria || 
+																{testProtocol?.judgementCriteria ||
 																	'The test specimen is considered to have satisfactorily withstood the test.'}
 															</td>
 															<td className="p-1.5 uppercase text-[9px]">
@@ -1247,7 +1246,7 @@ export default function ReportPreview() {
 								<div>
 									{renderNablHeader(3)}
 									{renderNablSubHeader()}
-									
+
 									<h3 className="text-center font-black text-[13px] underline tracking-widest my-2 text-black">ANNEXURE A</h3>
 
 									<div className="space-y-4">
@@ -1355,7 +1354,7 @@ export default function ReportPreview() {
 								<div>
 									{renderNablHeader(4)}
 									{renderNablSubHeader()}
-									
+
 									<div className="space-y-4 my-2">
 										<div>
 											<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">3. Measuring Equipment / Instruments Details</h4>
@@ -1454,7 +1453,7 @@ export default function ReportPreview() {
 								<div>
 									{renderHeader(1)}
 									<h3 className="text-center font-bold text-[14px] underline tracking-widest my-5 text-black">TEST REPORT</h3>
-									
+
 									<table className="w-full border-2 border-black text-[11.5px] font-bold border-collapse text-black">
 										<tbody>
 											<tr className="border-b-2 border-black">
@@ -1503,14 +1502,14 @@ export default function ReportPreview() {
 											<tr className="border-b-2 border-black">
 												<td className="p-2.5">
 													<div className="flex">
-														<div className="w-1/2"><span className="inline-block w-48 text-zinc-650">Start of test date:</span> <span className="text-black">{startOfTestDate}</span></div>
+														<div className="w-1/2"><span className="inline-block w-48 text-zinc-650">Start of Test Date:</span> <span className="text-black">{startOfTestDate}</span></div>
 														<div className="w-1/2"><span className="inline-block w-32 text-zinc-650">End of Test Date:</span> <span className="text-black">{endOfTestDate}</span></div>
 													</div>
 												</td>
 											</tr>
 											<tr className="border-b-2 border-black">
 												<td className="p-2.5">
-													<span className="inline-block w-48 text-zinc-650">Test Result:</span> 
+													<span className="inline-block w-48 text-zinc-650">Test Result:</span>
 													<span className="text-black font-extrabold uppercase">
 														{isAllInspectionFailed ? (
 															<span className="text-[#dc2626]">FAILED</span>
@@ -1539,168 +1538,87 @@ export default function ReportPreview() {
 						</div>
 
 						{/* -------------------- PAGE 2 -------------------- */}
-				<div className="a4-page">
-					<div className="watermark">CONFIDENTIAL</div>
-					<div className="content-container flex flex-col justify-between h-full">
-						<div>
-							{renderHeader(2)}
-							<div className="my-5">
-								{isAllInspectionFailed ? (
-									<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
-										<tbody>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">S. No. / Sample No.</td>
-												<td className="p-2 font-bold">1</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Tests Name</td>
-												<td className="p-2 uppercase font-extrabold text-[10px]">Inspection</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Test Method</td>
-												<td className="p-2 font-medium leading-relaxed">Inspection Specification</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Specified Requirement</td>
-												<td className="p-2 font-medium leading-relaxed">NA</td>
-											</tr>
-											<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
-												<td className="p-2 uppercase text-rose-700 font-bold leading-relaxed text-[10px]">
-													{(type === 'sample' || type === 'plan')
-														? (request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.')
-														: (samplesList[0]?.inspectionReport?.remarks || request.remarks || 'Failed inspection.')}
-												</td>
-											</tr>
-											{!isReliability && (
-												<tr className="divide-x-2 divide-black">
-													<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Equipment</td>
-													<td className="p-2 uppercase text-zinc-650 font-bold">N/A</td>
-												</tr>
-											)}
-										</tbody>
-									</table>
-								) : (type === 'sample' || type === 'plan') ? (
-									<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
-										<tbody>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">S. No. / Sample No.</td>
-												<td className="p-2 font-bold">1</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Tests Name</td>
-												<td className="p-2 uppercase font-extrabold text-[10px]">{testDescription}</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Test Method</td>
-												<td className="p-2 font-medium leading-relaxed">
-													{(() => {
-														const proto = testProtocols.find(p => String(p.id) === String(targetPlan?.testProtocolId));
-														return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
-													})()}
-												</td>
-											</tr>
-											<tr className="border-b-2 border-black divide-x-2 divide-black">
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Specified Requirement</td>
-												<td className="p-2 font-medium leading-relaxed">
-													{testProtocol?.judgementCriteria ||
-														'The test specimen is considered to have satisfactorily withstood the test if there is no flame and no glowing of the test specimen.'}
-												</td>
-											</tr>
-											<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
-												<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
-												<td className="p-2 uppercase leading-relaxed text-[10.5px]">
-													{isReliability ? (
-														targetPlan.evaluationStatus === 'PASSED' ? (
-															<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
-														) : targetPlan.evaluationStatus === 'FAILED' ? (
-															<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
-														) : (
-															<span className="text-zinc-550 italic">Under Testing</span>
-														)
-													) : (() => {
-														const sampleInsp = findInspectionForPlan(request, targetPlan, sampleIndex);
-														const checksObj = (() => {
-															if (!sampleInsp) return {};
-															try {
-																return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
-															} catch (e) {
-																return {};
-															}
-														})();
-														const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
-														const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
-
-														const statusColorClass = targetPlan.evaluationStatus === 'PASSED'
-															? 'text-emerald-700 font-bold'
-															: targetPlan.evaluationStatus === 'FAILED'
-																? 'text-rose-700 font-bold'
-																: 'text-zinc-555 italic';
-
-														return renderObservationCell(engObs, checksObj, statusColorClass);
-													})()}
-												</td>
-											</tr>
-											{!isReliability && (
-												<tr className="divide-x-2 divide-black">
-													<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Equipment</td>
-													<td className="p-2 uppercase font-bold text-zinc-800">
-														{equipmentUsed ? equipmentUsed.name : 'Not Assigned'}
-													</td>
-												</tr>
-											)}
-										</tbody>
-									</table>
-								) : (
-									samplesList.map((sample, idx) => {
-										const samplePlanKey = `${request.id}-sample-${idx}`;
-										const planObj = plans[samplePlanKey];
-										const eq = planObj?.equipmentId
-											? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
-											: null;
-										const sampleInsp = findInspectionForPlan(request, planObj, idx);
-										const planTestTypeObj = planObj?.testTypeId && testTypes.find(t => String(t.id) === String(planObj.testTypeId));
-										const planTestTypeName = String(planTestTypeObj?.name || planObj?.testType?.name || request?.testType?.name || '').toLowerCase();
-										const isPlanReliability = planTestTypeName.includes('reliability');
-										return (
-											<table key={idx} className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
+						<div className="a4-page">
+							<div className="watermark">CONFIDENTIAL</div>
+							<div className="content-container flex flex-col justify-between h-full">
+								<div>
+									{renderHeader(2)}
+									<div className="my-5">
+										{isAllInspectionFailed ? (
+											<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
 												<tbody>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
-														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">S. No. / Sample No.</td>
-														<td className="p-2 font-bold">{idx + 1}</td>
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">S. No. / Sample No.</td>
+														<td className="p-2 font-bold">1</td>
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
-														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Tests Name</td>
-														<td className="p-2 uppercase font-extrabold text-[9px]">{getTestDescription(planObj)}</td>
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Tests Name</td>
+														<td className="p-2 uppercase font-extrabold text-[10px]">Inspection</td>
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
-														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Test Method</td>
-														<td className="p-2 font-medium leading-relaxed text-[9px]">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Test Method</td>
+														<td className="p-2 font-medium leading-relaxed">Inspection Specification</td>
+													</tr>
+													<tr className="border-b-2 border-black divide-x-2 divide-black">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Specified Requirement</td>
+														<td className="p-2 font-medium leading-relaxed">NA</td>
+													</tr>
+													<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
+														<td className="p-2 uppercase text-rose-700 font-bold leading-relaxed text-[10px]">
+															{(type === 'sample' || type === 'plan')
+																? (request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.')
+																: (samplesList[0]?.inspectionReport?.remarks || request.remarks || 'Failed inspection.')}
+														</td>
+													</tr>
+													{!isReliability && (
+														<tr className="divide-x-2 divide-black">
+															<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Equipment</td>
+															<td className="p-2 uppercase text-zinc-650 font-bold">N/A</td>
+														</tr>
+													)}
+												</tbody>
+											</table>
+										) : (type === 'sample' || type === 'plan') ? (
+											<table className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
+												<tbody>
+													<tr className="border-b-2 border-black divide-x-2 divide-black">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">S. No. / Sample No.</td>
+														<td className="p-2 font-bold">1</td>
+													</tr>
+													<tr className="border-b-2 border-black divide-x-2 divide-black">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Tests Name</td>
+														<td className="p-2 uppercase font-extrabold text-[10px]">{testDescription}</td>
+													</tr>
+													<tr className="border-b-2 border-black divide-x-2 divide-black">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Test Method</td>
+														<td className="p-2 font-medium leading-relaxed">
 															{(() => {
-																const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
+																const proto = testProtocols.find(p => String(p.id) === String(targetPlan?.testProtocolId));
 																return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
 															})()}
 														</td>
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
-														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Specified Requirement</td>
-														<td className="p-2 font-medium leading-relaxed text-[9px]">
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Specified Requirement</td>
+														<td className="p-2 font-medium leading-relaxed">
 															{testProtocol?.judgementCriteria ||
-																'The test specimen is considered to have satisfactorily withstood the test.'}
+																'The test specimen is considered to have satisfactorily withstood the test if there is no flame and no glowing of the test specimen.'}
 														</td>
 													</tr>
-													<tr className={`${!isPlanReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
-														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Observation / Results</td>
-														<td className="p-2 uppercase text-[9px] leading-relaxed">
-															{isPlanReliability ? (
-																sample.finalOutcome === 'PASSED' ? (
-																	<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
-																) : sample.finalOutcome === 'FAILED' ? (
-																	<span className="text-rose-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
+													<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
+														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
+														<td className="p-2 uppercase leading-relaxed text-[10.5px]">
+															{isReliability ? (
+																targetPlan.evaluationStatus === 'PASSED' ? (
+																	<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
+																) : targetPlan.evaluationStatus === 'FAILED' ? (
+																	<span className="text-rose-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
 																) : (
-																	<span className="text-zinc-500 italic">Under Testing</span>
+																	<span className="text-zinc-550 italic">Under Testing</span>
 																)
 															) : (() => {
+																const sampleInsp = findInspectionForPlan(request, targetPlan, sampleIndex);
 																const checksObj = (() => {
 																	if (!sampleInsp) return {};
 																	try {
@@ -1712,42 +1630,123 @@ export default function ReportPreview() {
 																const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
 																const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 
-																const statusColorClass = sample.finalOutcome === 'PASSED'
+																const statusColorClass = targetPlan.evaluationStatus === 'PASSED'
 																	? 'text-emerald-700 font-bold'
-																	: sample.finalOutcome === 'FAILED'
+																	: targetPlan.evaluationStatus === 'FAILED'
 																		? 'text-rose-700 font-bold'
-																		: 'text-zinc-500 italic';
+																		: 'text-zinc-555 italic';
 
 																return renderObservationCell(engObs, checksObj, statusColorClass);
 															})()}
 														</td>
 													</tr>
-													{!isPlanReliability && (
+													{!isReliability && (
 														<tr className="divide-x-2 divide-black">
-															<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Equipment</td>
-															<td className="p-2 uppercase font-bold text-zinc-800 text-[9px]">
-																{eq ? eq.name : 'Not Assigned'}
+															<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Equipment</td>
+															<td className="p-2 uppercase font-bold text-zinc-800">
+																{equipmentUsed ? equipmentUsed.name : 'Not Assigned'}
 															</td>
 														</tr>
 													)}
 												</tbody>
 											</table>
-										);
-									})
-								)}
-							</div>
+										) : (
+											samplesList.map((sample, idx) => {
+												const samplePlanKey = `${request.id}-sample-${idx}`;
+												const planObj = plans[samplePlanKey];
+												const eq = planObj?.equipmentId
+													? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId))
+													: null;
+												const sampleInsp = findInspectionForPlan(request, planObj, idx);
+												const planTestTypeObj = planObj?.testTypeId && testTypes.find(t => String(t.id) === String(planObj.testTypeId));
+												const planTestTypeName = String(planTestTypeObj?.name || planObj?.testType?.name || request?.testType?.name || '').toLowerCase();
+												const isPlanReliability = planTestTypeName.includes('reliability');
+												return (
+													<table key={idx} className="w-full border-2 border-black text-left border-collapse text-black text-[10px] mb-6">
+														<tbody>
+															<tr className="border-b-2 border-black divide-x-2 divide-black">
+																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">S. No. / Sample No.</td>
+																<td className="p-2 font-bold">{idx + 1}</td>
+															</tr>
+															<tr className="border-b-2 border-black divide-x-2 divide-black">
+																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Tests Name</td>
+																<td className="p-2 uppercase font-extrabold text-[9px]">{getTestDescription(planObj)}</td>
+															</tr>
+															<tr className="border-b-2 border-black divide-x-2 divide-black">
+																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Test Method</td>
+																<td className="p-2 font-medium leading-relaxed text-[9px]">
+																	{(() => {
+																		const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
+																		return proto ? proto.testMethod : (request.testMethodRef || 'IEC 60695-11-5');
+																	})()}
+																</td>
+															</tr>
+															<tr className="border-b-2 border-black divide-x-2 divide-black">
+																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Specified Requirement</td>
+																<td className="p-2 font-medium leading-relaxed text-[9px]">
+																	{testProtocol?.judgementCriteria ||
+																		'The test specimen is considered to have satisfactorily withstood the test.'}
+																</td>
+															</tr>
+															<tr className={`${!isPlanReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
+																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Observation / Results</td>
+																<td className="p-2 uppercase text-[9px] leading-relaxed">
+																	{isPlanReliability ? (
+																		sample.finalOutcome === 'PASSED' ? (
+																			<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
+																		) : sample.finalOutcome === 'FAILED' ? (
+																			<span className="text-rose-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>
+																		) : (
+																			<span className="text-zinc-500 italic">Under Testing</span>
+																		)
+																	) : (() => {
+																		const checksObj = (() => {
+																			if (!sampleInsp) return {};
+																			try {
+																				return typeof sampleInsp.checks === 'string' ? JSON.parse(sampleInsp.checks) : (sampleInsp.checks || {});
+																			} catch (e) {
+																				return {};
+																			}
+																		})();
+																		const isReportSubmitted = checksObj.specifiedRequirement !== undefined;
+																		const engObs = isReportSubmitted ? (sampleInsp?.remarks || 'N/A') : 'Under Testing';
 
-							{renderTestPicturesSection("Test Pictures:")}
+																		const statusColorClass = sample.finalOutcome === 'PASSED'
+																			? 'text-emerald-700 font-bold'
+																			: sample.finalOutcome === 'FAILED'
+																				? 'text-rose-700 font-bold'
+																				: 'text-zinc-500 italic';
 
-							<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-6 select-none">
-								***** END OF THE TEST REPORT *****
+																		return renderObservationCell(engObs, checksObj, statusColorClass);
+																	})()}
+																</td>
+															</tr>
+															{!isPlanReliability && (
+																<tr className="divide-x-2 divide-black">
+																	<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Equipment</td>
+																	<td className="p-2 uppercase font-bold text-zinc-800 text-[9px]">
+																		{eq ? eq.name : 'Not Assigned'}
+																	</td>
+																</tr>
+															)}
+														</tbody>
+													</table>
+												);
+											})
+										)}
+									</div>
+
+									{renderTestPicturesSection("Test Pictures:")}
+
+									<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-6 select-none">
+										***** END OF THE TEST REPORT *****
+									</div>
+								</div>
+								{renderFooter()}
 							</div>
 						</div>
-						{renderFooter()}
-					</div>
-				</div>
-			</>
-		)}
+					</>
+				)}
 			</div>
 		</>
 	);
