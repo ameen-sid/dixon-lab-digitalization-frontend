@@ -300,27 +300,27 @@ export default function ApprovedRequestDetails({
 							Product & Sample Details
 						</h4>
 						<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold">
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Brand Name</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.brandName}</p>
+								<p className="font-bold text-zinc-800 mt-1 break-words whitespace-pre-wrap">{request.brandName}</p>
 							</div>
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Model No</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.modelNo}</p>
+								<p className="font-bold text-zinc-800 mt-1 break-words whitespace-pre-wrap">{request.modelNo}</p>
 							</div>
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Family Model</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.familyModel || 'None'}</p>
+								<p className="font-bold text-zinc-800 mt-1 break-words whitespace-pre-wrap">{request.familyModel || 'None'}</p>
 							</div>
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Serial Number</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.serialNumber || 'None'}</p>
+								<p className="font-bold text-zinc-800 mt-1 break-words whitespace-pre-wrap">{request.serialNumber || 'None'}</p>
 							</div>
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Product Rating</p>
-								<p className="font-bold text-zinc-800 mt-1">{request.productRating || 'Not Specified'}</p>
+								<p className="font-bold text-zinc-800 mt-1 break-words whitespace-pre-wrap">{request.productRating || 'Not Specified'}</p>
 							</div>
-							<div>
+							<div className="min-w-0">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Sample Qty</p>
 								<p className="font-bold text-[#11236a] mt-1">{request.sampleQty} pcs</p>
 							</div>

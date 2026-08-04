@@ -298,8 +298,8 @@ export default function HeadSampleTests() {
 											<td className="py-4 px-6 font-bold text-zinc-800">
 												{req.requestId || `REQ-00${req.id}`}
 											</td>
-											<td className="py-4 px-6">
-												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
+											<td className="py-4 px-6 max-w-[280px]">
+												<p className="text-xs font-bold text-zinc-900 leading-tight break-words whitespace-pre-wrap">{req.brandName} - {req.modelNo}</p>
 											</td>
 											<td className="py-4 px-6 text-zinc-750 font-bold">
 												{req.testType?.name || 'N/A'}
@@ -311,7 +311,7 @@ export default function HeadSampleTests() {
 												)}
 											</td>
 											<td className="py-4 px-6">
-												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap shrink-0 ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
 													{['FAIL', 'FAILED', 'TESTING_FAILED', 'REJECTED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
 													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}

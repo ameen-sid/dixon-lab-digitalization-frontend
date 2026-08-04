@@ -6,6 +6,7 @@ import CustomSelect from '../../components/CustomSelect';
 
 interface RequestRecord {
 	id: string;
+	requestId?: string | null;
 	customerNameAddress: string;
 	manufacturerNameAddress: string;
 	customerContactDetails: string;
@@ -251,21 +252,21 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 									};
 									return (
 										<tr key={req.id} className="hover:bg-zinc-50/50 transition-all group">
-											<td className="py-4 px-6 font-bold text-zinc-800">{req.id}</td>
-											<td className="py-4 px-6">
-												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
-												{req.serialNumber && <span className="text-[9px] text-zinc-655 font-bold block">S/N: {req.serialNumber}</span>}
+											<td className="py-4 px-6 font-bold text-zinc-800">{req.requestId || `REQ-2026-${req.id}`}</td>
+											<td className="py-4 px-6 max-w-[280px]">
+												<p className="text-xs font-bold text-zinc-900 leading-tight break-words whitespace-pre-wrap">{req.brandName} - {req.modelNo}</p>
+												{req.serialNumber && <span className="text-[9px] text-zinc-655 font-bold block mt-0.5 break-words whitespace-pre-wrap">S/N: {req.serialNumber}</span>}
 											</td>
 											<td className="py-4 px-6 text-zinc-750 font-bold">{req.testType?.name || 'N/A'}</td>
-											<td className="py-4 px-6 text-zinc-700 font-medium">{req.customerNameAddress}</td>
+											<td className="py-4 px-6 text-zinc-700 font-medium max-w-[200px] break-words whitespace-pre-wrap">{req.customerNameAddress}</td>
 											<td className="py-4 px-6">
-												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(req.status)}`}>
+												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap shrink-0 ${getStatusStyle(req.status)}`}>
 													{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(req.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
-													{['FAIL', 'TESTING_FAILED', 'REJECTED', 'FAILED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
-													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
-													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
-													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
-													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
+													{['FAIL', 'TESTING_FAILED', 'REJECTED', 'FAILED', 'INSPECTION_FAILED'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />}
+													{['PARTIAL', 'TESTING_PARTIAL'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />}
+													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />}
+													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />}
+													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />}
 													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
 														? 'TESTING PASSED' 
 														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' || req.status === 'FAILED'

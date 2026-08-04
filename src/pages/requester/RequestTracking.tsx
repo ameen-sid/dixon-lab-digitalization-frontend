@@ -366,49 +366,49 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 						</div>
 
 						{/* Applicant details */}
-						<div className="bg-zinc-50/50 border border-zinc-200/50 rounded-2xl p-4 space-y-3">
+						<div className="bg-zinc-50/50 border border-zinc-200/50 rounded-2xl p-4 space-y-3 overflow-hidden">
 							<h4 className="text-[10px] font-extrabold text-indigo-955 uppercase tracking-wider">Applicant & Manufacturer Information</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Applicant Name & Address</p>
-									<p className="font-bold text-zinc-800 mt-0.5 whitespace-pre-wrap">{selectedRequest.customerNameAddress}</p>
+									<p className="font-bold text-zinc-800 mt-0.5 whitespace-pre-wrap break-words">{selectedRequest.customerNameAddress}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Contact Details</p>
-									<p className="font-bold text-zinc-855 mt-0.5">{selectedRequest.customerContactDetails}</p>
+									<p className="font-bold text-zinc-855 mt-0.5 break-words">{selectedRequest.customerContactDetails}</p>
 								</div>
-								<div className="sm:col-span-2 border-t border-zinc-200/70 pt-2.5">
+								<div className="sm:col-span-2 border-t border-zinc-200/70 pt-2.5 min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Manufacturer Name & Address</p>
-									<p className="font-bold text-zinc-800 mt-0.5 whitespace-pre-wrap">{selectedRequest.manufacturerNameAddress}</p>
+									<p className="font-bold text-zinc-800 mt-0.5 whitespace-pre-wrap break-words">{selectedRequest.manufacturerNameAddress}</p>
 								</div>
 							</div>
 						</div>
 
 						{/* Product details */}
-						<div className="border border-zinc-200/50 rounded-2xl p-4 space-y-3 bg-[#f8fafc]/30">
+						<div className="border border-zinc-200/50 rounded-2xl p-4 space-y-3 bg-[#f8fafc]/30 overflow-hidden">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">Product Specifications</h4>
 							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold">
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Trade Mark / Brand</p>
-									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.brandName}</p>
+									<p className="font-bold text-zinc-900 mt-0.5 break-words whitespace-pre-wrap">{selectedRequest.brandName}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Model Identification</p>
-									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.modelNo}</p>
+									<p className="font-bold text-zinc-900 mt-0.5 break-words whitespace-pre-wrap">{selectedRequest.modelNo}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Family Model (if any)</p>
-									<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.familyModel || 'None'}</p>
+									<p className="font-bold text-zinc-800 mt-0.5 break-words whitespace-pre-wrap">{selectedRequest.familyModel || 'None'}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Serial Number (if any)</p>
-									<p className="font-bold text-zinc-800 mt-0.5">{selectedRequest.serialNumber || 'None'}</p>
+									<p className="font-bold text-zinc-800 mt-0.5 break-words whitespace-pre-wrap">{selectedRequest.serialNumber || 'None'}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Product Rating</p>
-									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.productRating}</p>
+									<p className="font-bold text-zinc-900 mt-0.5 break-words whitespace-pre-wrap">{selectedRequest.productRating}</p>
 								</div>
-								<div>
+								<div className="min-w-0">
 									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Sample Qty</p>
 									<p className="font-bold text-zinc-900 mt-0.5">{selectedRequest.sampleQty} Pcs</p>
 								</div>

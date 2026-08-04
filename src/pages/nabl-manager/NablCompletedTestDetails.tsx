@@ -248,7 +248,7 @@ export default function NablCompletedTestDetails() {
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									5. Brand Name:
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold text-[#11236a]">
+								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold text-[#11236a] break-words whitespace-pre-wrap">
 									{request.brandName}
 								</div>
 							</div>
@@ -257,7 +257,7 @@ export default function NablCompletedTestDetails() {
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									6. Model Number:
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold">
+								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold break-words whitespace-pre-wrap">
 									{request.modelNo}
 								</div>
 							</div>
@@ -267,7 +267,7 @@ export default function NablCompletedTestDetails() {
 									<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 										7. Family / Series Model:
 									</div>
-									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold">
+									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold break-words whitespace-pre-wrap">
 										{request.familyModel}
 									</div>
 								</div>
@@ -278,7 +278,7 @@ export default function NablCompletedTestDetails() {
 									<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 										8. Serial Number / Batch No:
 									</div>
-									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold">
+									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold break-words whitespace-pre-wrap">
 										{request.serialNumber}
 									</div>
 								</div>

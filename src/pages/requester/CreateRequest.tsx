@@ -130,29 +130,29 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</div>
 							
 							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Model No. / ID</p>
-									<p className="text-xs font-bold text-zinc-955">{formInput.modelNo}</p>
+									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.modelNo}</p>
 								</div>
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Family Model</p>
-									<p className="text-xs font-bold text-zinc-955">{formInput.familyModel || 'N/A'}</p>
+									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.familyModel || 'N/A'}</p>
 								</div>
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Serial Number</p>
-									<p className="text-xs font-bold text-zinc-955">{formInput.serialNumber || 'N/A'}</p>
+									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.serialNumber || 'N/A'}</p>
 								</div>
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Product Rating</p>
-									<p className="text-xs font-bold text-zinc-955">{formInput.productRating}</p>
+									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.productRating}</p>
 								</div>
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Sample Quantity</p>
 									<p className="text-xs font-bold text-zinc-955">{formInput.sampleQty} Pcs</p>
 								</div>
-								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
+								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Trade Mark / Brand</p>
-									<p className="text-xs font-bold text-zinc-955">{formInput.brandName}</p>
+									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.brandName}</p>
 								</div>
 							</div>
 
