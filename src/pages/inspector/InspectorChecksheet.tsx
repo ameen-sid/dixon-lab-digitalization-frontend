@@ -582,7 +582,7 @@ export default function InspectorChecksheet() {
 				}
 			`}</style>
 
-			<div className="h-screen bg-[#f8fafc] text-zinc-900 p-8 flex flex-col gap-6 overflow-hidden">
+			<div className="min-h-screen bg-[#f8fafc] text-zinc-900 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto">
 
 				{/* Header back & prints bar */}
 				<div className="flex flex-row justify-between items-center no-print shrink-0">
@@ -638,7 +638,7 @@ export default function InspectorChecksheet() {
 				{/* Document checksheet frame */}
 				<div
 					id="printable-checksheet"
-					className="bg-white border border-zinc-300 rounded-[28px] p-8 shadow-xl flex-1 flex flex-col gap-6 overflow-hidden"
+					className="bg-white border border-zinc-300 rounded-[28px] p-4 sm:p-8 shadow-xl flex-1 flex flex-col gap-6"
 				>
 
 					{/* Table Header Dixon style */}
@@ -697,7 +697,7 @@ export default function InspectorChecksheet() {
 					</div>
 
 					{/* Grid Data Sheets */}
-					<div className="overflow-x-auto overflow-y-auto border border-zinc-900 flex-1 min-h-0">
+					<div className="overflow-x-auto overflow-y-auto border border-zinc-900 flex-1 min-h-[350px]">
 						<table className="min-w-full border-collapse text-left">
 							<thead className="sticky top-0 z-10 bg-zinc-100 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
 								<tr className="bg-zinc-100 border-b border-zinc-900 text-zinc-800 text-[10px] font-bold uppercase tracking-wider">
