@@ -591,7 +591,7 @@ export default function ReportPreview() {
 				<div className={`grid ${cols} gap-4 justify-center`}>
 					{imagesToRender.map((img, index) => (
 						<div key={index} className="border border-zinc-300 rounded-lg overflow-hidden bg-white aspect-[4/3] flex items-center justify-center">
-							<img src={img} alt={`Test Image ${index + 1}`} className="max-w-full max-h-full object-contain" />
+							<img src={img} alt={`Test Image ${index + 1}`} className="w-full h-full object-cover" />
 						</div>
 					))}
 				</div>
