@@ -230,7 +230,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
 											{ id: 'platform-availability', label: 'Platform Availability', icon: Server },
-											{ id: 'nabl-station-availability', label: 'NABL Station Availability', icon: Server },
 											{ id: 'equipment-availability', label: 'Equipment Availability', icon: Activity },
 										]
 									},
