@@ -300,7 +300,6 @@ export default function HeadSampleTests() {
 											</td>
 											<td className="py-4 px-6">
 												<p className="text-xs font-bold text-zinc-900 leading-tight">{req.brandName} - {req.modelNo}</p>
-												<span className="text-[9px] text-zinc-655 font-bold block mt-0.5">Qty: {req.sampleQty} Pcs • Ref: {req.testMethodRef}</span>
 											</td>
 											<td className="py-4 px-6 text-zinc-750 font-bold">
 												{req.testType?.name || 'N/A'}
