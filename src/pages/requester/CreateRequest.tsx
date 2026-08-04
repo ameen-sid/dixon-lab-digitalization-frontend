@@ -98,7 +98,7 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 					<div className="border-b border-zinc-200 pb-4">
 						<span className="text-[10px] font-extrabold px-2.5 py-1 bg-indigo-50 text-[#11236a] border border-indigo-100 rounded-md uppercase tracking-wider">Verification Step</span>
 						<h3 className="text-base font-extrabold text-zinc-955 uppercase tracking-wider mt-2.5">Confirm Testing Request Details</h3>
-						<p className="text-xs text-zinc-700 font-semibold mt-1">Please review all values carefully. Click Confirm & Submit below to dispatch samples to NABL laboratory calibration.</p>
+						<p className="text-xs text-zinc-700 font-semibold mt-1">Please review all values carefully. Click Confirm & Submit below to dispatch samples to R&D laboratory.</p>
 					</div>
 
 					<div className="space-y-6 divide-y divide-zinc-200 text-xs">
