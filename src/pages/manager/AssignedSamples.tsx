@@ -51,6 +51,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const [searchQuery, setSearchQuery] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
+	const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
 
 	// Route-based Navigation flow parameters
 	const { planId, sampleIndex } = useParams<{ planId?: string; sampleIndex?: string }>();
@@ -603,31 +604,32 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									</p>
 									<div className="grid grid-cols-3 gap-2">
 										{savedImagePaths.map((path, idx) => (
-											<div key={`saved-${idx}`} className="relative aspect-square border border-zinc-200 rounded-lg overflow-hidden group">
-												{isViewOnly ? (
-													<a href={path} target="_blank" rel="noopener noreferrer" className="block w-full h-full cursor-zoom-in">
-														<img
-															src={path}
-															alt={`saved-${idx}`}
-															className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-														/>
-													</a>
-												) : (
-													<>
-														<img
-															src={path}
-															alt={`saved-${idx}`}
-															className="w-full h-full object-cover"
-														/>
+											<div key={`saved-${idx}`} className="relative aspect-square border border-zinc-200 rounded-lg overflow-hidden group bg-zinc-900">
+												<img
+													src={path}
+													alt={`saved-${idx}`}
+													className="w-full h-full object-cover"
+												/>
+												<div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+													<button
+														type="button"
+														onClick={() => window.open(path, '_blank')}
+														title="Preview Image in New Tab"
+														className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+													>
+														<Eye className="w-4 h-4" />
+													</button>
+													{!isViewOnly && (
 														<button
 															type="button"
 															onClick={() => removeSavedImage(idx)}
-															className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
+															title="Delete Image"
+															className="w-8 h-8 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
 														>
 															<Trash2 className="w-4 h-4" />
 														</button>
-													</>
-												)}
+													)}
+												</div>
 											</div>
 										))}
 									</div>
@@ -642,19 +644,32 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									</p>
 									<div className="grid grid-cols-3 gap-2">
 										{previewUrls.map((url, idx) => (
-											<div key={`pending-${idx}`} className="relative aspect-square border-2 border-dashed border-amber-300 rounded-lg overflow-hidden group">
+											<div key={`pending-${idx}`} className="relative aspect-square border-2 border-dashed border-amber-300 rounded-lg overflow-hidden group bg-zinc-900">
 												<img
 													src={url}
 													alt={`pending-${idx}`}
-													className="w-full h-full object-cover opacity-80"
+													className="w-full h-full object-cover opacity-90"
 												/>
-												<button
-													type="button"
-													onClick={() => removePendingImage(idx)}
-													className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
-												>
-													<Trash2 className="w-4 h-4" />
-												</button>
+												<div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+													<button
+														type="button"
+														onClick={() => window.open(url, '_blank')}
+														title="Preview Image in New Tab"
+														className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+													>
+														<Eye className="w-4 h-4" />
+													</button>
+													{!isViewOnly && (
+														<button
+															type="button"
+															onClick={() => removePendingImage(idx)}
+															title="Delete Image"
+															className="w-8 h-8 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+														>
+															<Trash2 className="w-4 h-4" />
+														</button>
+													)}
+												</div>
 											</div>
 										))}
 									</div>
@@ -1057,6 +1072,29 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					</div>
 				)}
 			</div>
+
+			{/* Fullscreen Image Preview Modal */}
+			{previewModalImage && (
+				<div 
+					className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+					onClick={() => setPreviewModalImage(null)}
+				>
+					<div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-zinc-950 p-2 shadow-2xl flex flex-col items-center">
+						<button
+							onClick={() => setPreviewModalImage(null)}
+							className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer outline-none"
+						>
+							<XCircle className="w-6 h-6" />
+						</button>
+						<img
+							src={previewModalImage}
+							alt="Full Preview"
+							className="max-w-full max-h-[85vh] object-contain rounded-xl"
+							onClick={(e) => e.stopPropagation()}
+						/>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
