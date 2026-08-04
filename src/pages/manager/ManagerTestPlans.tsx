@@ -1313,6 +1313,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																const todayStr = getLocalTodayStr();
 																const isTesting = plan.startDate <= todayStr;
 																const planTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
+																const planTestCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
 
 																const hideEditTestPlanButton = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 
@@ -1323,6 +1324,11 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																				<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
 																					{planTestType?.name || 'General'}
 																				</span>
+																				{planTestCategory?.name && (
+																					<span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100">
+																						{planTestCategory.name}
+																					</span>
+																				)}
 																				<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
 																					? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
 																					: plan.evaluationStatus === 'FAILED'
