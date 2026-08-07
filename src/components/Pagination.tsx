@@ -7,41 +7,80 @@ interface PaginationProps {
 	itemNamePlural?: string;
 }
 
-export default function Pagination({ totalItems, itemsPerPage, currentPage, onPageChange, onItemsPerPageChange, itemNamePlural = 'records' }: PaginationProps) {
+export default function Pagination({
+	totalItems,
+	itemsPerPage,
+	currentPage,
+	onPageChange,
+	onItemsPerPageChange,
+	itemNamePlural = 'records'
+}: PaginationProps) {
 	const totalPages = Math.ceil(totalItems / itemsPerPage);
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 
 	const getPaginationText = () => {
-		if (totalItems <= itemsPerPage)	return `Showing all ${totalItems} ${totalItems === 1 ? itemNamePlural.replace(/s$/, '') : itemNamePlural}`;
+		if (totalItems <= itemsPerPage) return `Showing all ${totalItems} ${totalItems === 1 ? itemNamePlural.replace(/s$/, '') : itemNamePlural}`;
 		return `Showing ${startIndex + 1} to ${Math.min(endIndex, totalItems)} of ${totalItems} ${itemNamePlural}`;
+	};
+
+	const getPageNumbers = (): (number | string)[] => {
+		const pages: (number | string)[] = [];
+		if (totalPages <= 7) {
+			for (let i = 1; i <= totalPages; i++) pages.push(i);
+		} else {
+			// Always include page 1
+			pages.push(1);
+
+			if (currentPage > 3) {
+				pages.push('...');
+			}
+
+			const start = Math.max(2, currentPage - 1);
+			const end = Math.min(totalPages - 1, currentPage + 1);
+
+			for (let i = start; i <= end; i++) {
+				if (!pages.includes(i)) {
+					pages.push(i);
+				}
+			}
+
+			if (currentPage < totalPages - 2) {
+				pages.push('...');
+			}
+
+			// Always include last page
+			pages.push(totalPages);
+		}
+		return pages;
 	};
 
 	if (totalItems === 0) return null;
 
 	return (
-		<div className="bg-zinc-50 border-t border-zinc-100 px-6 py-4 flex items-center justify-between flex-col sm:flex-row gap-4">
-			<div className="flex items-center gap-2">
-				<span className="text-xs text-zinc-405 font-medium">Rows per page:</span>
-				<select
-					value={itemsPerPage}
-					onChange={(e) => {
-						onItemsPerPageChange(Number(e.target.value));
-					}}
-					className="bg-white border border-zinc-200 rounded-lg text-xs font-semibold px-2 py-1 outline-none text-zinc-650 focus:border-[#11236a] cursor-pointer"
-				>
-					<option value={5}>5</option>
-					<option value={10}>10</option>
-					<option value={20}>20</option>
-					<option value={40}>40</option>
-					<option value={50}>50</option>
-				</select>
+		<div className="bg-zinc-50 border-t border-zinc-100 px-6 py-4 flex items-center justify-between flex-wrap gap-4">
+			<div className="flex items-center gap-4 flex-wrap">
+				<div className="flex items-center gap-2">
+					<span className="text-xs text-zinc-500 font-medium whitespace-nowrap">Rows per page:</span>
+					<select
+						value={itemsPerPage}
+						onChange={(e) => {
+							onItemsPerPageChange(Number(e.target.value));
+						}}
+						className="bg-white border border-zinc-200 rounded-lg text-xs font-semibold px-2 py-1 outline-none text-zinc-700 focus:border-[#11236a] cursor-pointer"
+					>
+						<option value={5}>5</option>
+						<option value={10}>10</option>
+						<option value={20}>20</option>
+						<option value={40}>40</option>
+						<option value={50}>50</option>
+					</select>
+				</div>
+				<span className="text-xs text-zinc-500 font-medium whitespace-nowrap">{getPaginationText()}</span>
 			</div>
 
-			<span className="text-xs text-zinc-405 font-medium">{getPaginationText()}</span>
-
 			{totalPages > 1 && (
-				<div className="flex items-center gap-1.5">
+				<div className="flex items-center gap-1.5 flex-wrap">
 					<button
 						onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
 						disabled={currentPage === 1}
@@ -49,14 +88,21 @@ export default function Pagination({ totalItems, itemsPerPage, currentPage, onPa
 					>
 						Previous
 					</button>
-					{Array.from({ length: totalPages }).map((_, idx) => {
-						const pageNum = idx + 1;
+					{getPageNumbers().map((page, idx) => {
+						if (page === '...') {
+							return (
+								<span key={`ellipsis-${idx}`} className="px-2 text-xs text-zinc-400 font-bold select-none">
+									...
+								</span>
+							);
+						}
+						const pageNum = Number(page);
 						const isActive = currentPage === pageNum;
 						return (
 							<button
 								key={pageNum}
 								onClick={() => onPageChange(pageNum)}
-								className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border-none outline-none ${isActive ? 'bg-[#11236a] text-white shadow-sm shadow-[#11236a]/25' : 'bg-white hover:bg-zinc-100 text-zinc-650 hover:text-zinc-800'}`}
+								className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer border-none outline-none ${isActive ? 'bg-[#11236a] text-white shadow-sm shadow-[#11236a]/25' : 'bg-white hover:bg-zinc-100 text-zinc-700 hover:text-zinc-900'}`}
 							>
 								{pageNum}
 							</button>
