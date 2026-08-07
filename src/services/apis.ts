@@ -128,3 +128,9 @@ export const capaEndpoints = {
 export const systemLogEndpoints = {
 	GET_SYSTEM_LOGS_API: BASE_URL + '/system-logs',
 };
+
+// MIS Report Endpoints
+export const misReportEndpoints = {
+	TRIGGER_WEEKLY_REPORT_API: BASE_URL + '/ping/test-weekly-mis-report-1',
+	TRIGGER_DAILY_EXCEL_REPORT_API: BASE_URL + '/ping/test-daily-mis-report-2',
+};

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle, ClipboardList } from 'lucide-react';
+import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle, ClipboardList, Mail } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
 interface DashboardLayoutProps {
@@ -107,6 +107,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'rd-testing-equipments';
 		} else if (path.includes('/admin/system-logs')) {
 			derivedActiveTab = 'system-logs';
+		} else if (path.includes('/admin/mis-reports')) {
+			derivedActiveTab = 'mis-reports';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -144,6 +146,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'suppliers-customers') navigate('/admin/suppliers-customers');
 			else if (itemId === 'rd-testing-equipments') navigate('/admin/rd-equipment');
 			else if (itemId === 'system-logs') navigate('/admin/system-logs');
+			else if (itemId === 'mis-reports') navigate('/admin/mis-reports');
 		} else if (userRoleLower === 'lab manager') {
 			if (itemId === 'dashboard') navigate('/manager/dashboard');
 			else if (itemId === 'platform-availability') navigate('/admin/platform-availability');
@@ -239,6 +242,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 											{ id: 'departments-management', label: 'Departments Management', icon: Layers },
 											{ id: 'users-management', label: 'Users Management', icon: Users },
 											{ id: 'system-logs', label: 'System Logs', icon: FileText },
+											{ id: 'mis-reports', label: 'MIS Reports Testing', icon: Mail },
 										]
 									},
 									{

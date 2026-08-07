@@ -19,6 +19,7 @@ import ProductPartManagement from './ProductPartManagement';
 import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import SystemLogsManagement from './SystemLogsManagement';
+import MisReportDispatchManagement from './MisReportDispatchManagement';
 import { 
 	Users, ChevronRight, RotateCw, Activity,
 	Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle
@@ -70,6 +71,7 @@ export default function AdminDashboard() {
 	else if (path.includes('/admin/suppliers-customers')) activeTab = 'suppliers-customers';
 	else if (path.includes('/admin/rd-equipment')) activeTab = 'rd-testing-equipments';
 	else if (path.includes('/admin/system-logs')) activeTab = 'system-logs';
+	else if (path.includes('/admin/mis-reports')) activeTab = 'mis-reports';
 
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
@@ -224,6 +226,8 @@ export default function AdminDashboard() {
 				return { title: 'R&D Testing Equipments', desc: 'Telemetry status logs of physical stress chambers and oscilloscopes.' };
 			case 'system-logs':
 				return { title: 'System Logs', desc: 'Track and audit administrative modifications to system entities.' };
+			case 'mis-reports':
+				return { title: 'MIS Reports Testing Dispatch', desc: 'Manually trigger and test automated weekly PDF & daily Excel MIS report email delivery.' };
 			default:
 				return { title: 'Dashboard', desc: '' };
 		}
@@ -638,6 +642,9 @@ export default function AdminDashboard() {
 			case 'system-logs':
 				return <SystemLogsManagement />;
 
+			case 'mis-reports':
+				return <MisReportDispatchManagement />;
+
 			default:
 				return null;
 		}
@@ -662,6 +669,7 @@ export default function AdminDashboard() {
 				else if (tab === 'suppliers-customers') navigate('/admin/suppliers-customers');
 				else if (tab === 'rd-testing-equipments') navigate('/admin/rd-equipment');
 				else if (tab === 'system-logs') navigate('/admin/system-logs');
+				else if (tab === 'mis-reports') navigate('/admin/mis-reports');
 			}}
 		>
 			{renderContent()}
