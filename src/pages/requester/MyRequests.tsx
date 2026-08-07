@@ -252,7 +252,7 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 									};
 									return (
 										<tr key={req.id} className="hover:bg-zinc-50/50 transition-all group">
-											<td className="py-4 px-6 font-bold text-zinc-800">{req.requestId || `REQ-2026-${req.id}`}</td>
+											<td className="py-4 px-6 font-bold text-zinc-800">{req.requestId || `REQ-${req.id}`}</td>
 											<td className="py-4 px-6 max-w-[280px]">
 												<p className="text-xs font-bold text-zinc-900 leading-tight break-words whitespace-pre-wrap">{req.brandName} - {req.modelNo}</p>
 												{req.serialNumber && <span className="text-[9px] text-zinc-655 font-bold block mt-0.5 break-words whitespace-pre-wrap">S/N: {req.serialNumber}</span>}

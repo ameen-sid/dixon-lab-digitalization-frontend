@@ -444,7 +444,7 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</label>
 							<input 
 								type="text" 
-								placeholder="Mention title or drawing numbers attached, e.g. DWG-2026-REV2"
+								placeholder={`Mention title or drawing numbers attached, e.g. DWG-${new Date().getFullYear()}-REV2`}
 								value={formInput.attachmentMention}
 								onChange={(e) => setFormInput({...formInput, attachmentMention: e.target.value})}
 								className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"

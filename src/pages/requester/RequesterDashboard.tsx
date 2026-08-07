@@ -130,7 +130,7 @@ export default function RequesterDashboard() {
 		try {
 			const dbRequests = await getTestRequests()();
 			const mapped = dbRequests.map((db: any) => ({
-				id: db.requestId || `REQ-2026-${String(db.id).padStart(3, '0')}`,
+				id: db.requestId || `REQ-${String(db.id).padStart(3, '0')}`,
 				dbId: db.id,
 				customerNameAddress: db.customerNameAddress,
 				manufacturerNameAddress: db.manufacturerNameAddress,

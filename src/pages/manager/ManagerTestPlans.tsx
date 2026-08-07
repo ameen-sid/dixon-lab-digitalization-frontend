@@ -974,7 +974,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													onClick={() => navigate(`/manager/test-plans/${req.id}`)}
 												>
 													<td className="py-4 px-6 font-bold text-zinc-900 group-hover:text-[#11236a]">
-														{req.requestId || `REQ-2026-${req.id}`}
+														{req.requestId || `REQ-${req.id}`}
 													</td>
 													<td className="py-4 px-6">
 														<div className="font-bold text-zinc-900 leading-tight">{req.brandName}</div>
@@ -1107,7 +1107,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						</button>
 						<div>
 							<h3 className="text-base font-extrabold text-zinc-900 tracking-tight leading-none">
-								{selectedReq.requestId || `REQ-2026-${selectedReq.id}`} Specifications
+								{selectedReq.requestId || `REQ-${selectedReq.id}`} Specifications
 							</h3>
 							<span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
 								{selectedReq.brandName} • {selectedReq.modelNo}

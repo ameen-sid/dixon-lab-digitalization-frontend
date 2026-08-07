@@ -115,7 +115,7 @@ export default function Login() {
 			</div>
 
 			<div className="mt-8 text-center relative z-10">
-				<p className="text-zinc-500 text-[10px] font-normal tracking-wide">© 2026 Dixon Technologies</p>
+				<p className="text-zinc-500 text-[10px] font-normal tracking-wide">© {new Date().getFullYear()} Dixon Technologies</p>
 			</div>
 		</div>
 	);
