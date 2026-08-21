@@ -63,6 +63,8 @@ export default function NablManagerTestPlans() {
 	const [requests, setRequests] = useState<RequestRecord[]>([]);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [filterStartDate, setFilterStartDate] = useState('');
+	const [filterEndDate, setFilterEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 	const [selectedRequest, setSelectedRequest] = useState<RequestRecord | null>(null);
@@ -171,6 +173,24 @@ export default function NablManagerTestPlans() {
 		}
 	};
 
+	const matchesDateRange = (dateStr: string) => {
+		if (!filterStartDate && !filterEndDate) return true;
+		if (!dateStr) return false;
+		const dDate = new Date(dateStr);
+		dDate.setHours(0, 0, 0, 0);
+		if (filterStartDate) {
+			const sDate = new Date(filterStartDate);
+			sDate.setHours(0, 0, 0, 0);
+			if (dDate < sDate) return false;
+		}
+		if (filterEndDate) {
+			const eDate = new Date(filterEndDate);
+			eDate.setHours(0, 0, 0, 0);
+			if (dDate > eDate) return false;
+		}
+		return true;
+	};
+
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch = 
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -179,6 +199,7 @@ export default function NablManagerTestPlans() {
 			(r.testPlan?.reportNo || '').toLowerCase().includes(searchTerm.toLowerCase());
 
 		if (!matchesSearch) return false;
+		if (!matchesDateRange(r.createdAt)) return false;
 		if (statusFilter === 'ALL') return true;
 
 		const today = new Date();
@@ -252,9 +273,9 @@ export default function NablManagerTestPlans() {
 			activeTab="test-plans"
 		>
 			<div className="space-y-6">
-				<div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-zinc-200/60 p-4 rounded-2xl shadow-sm">
-					<div className="relative w-full sm:max-w-md">
-						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+				<div className="bg-white border border-zinc-200/60 p-4 rounded-2xl shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
+					<div className="relative w-full lg:max-w-xs">
+						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 						<input 
 							type="text" 
 							placeholder="Search by Report No, Brand, Model..." 
@@ -263,30 +284,76 @@ export default function NablManagerTestPlans() {
 								setSearchTerm(e.target.value);
 								setCurrentPage(1);
 							}}
-							className="w-full pl-10 pr-4 py-2 bg-[#f8fafc] border border-zinc-200 rounded-xl text-xs font-medium placeholder-zinc-400 focus:outline-none focus:border-[#11236a] focus:ring-1 focus:ring-[#11236a] transition-all"
+							className="w-full pl-9 pr-4 py-2 bg-[#f8fafc] border border-zinc-200 rounded-xl text-xs font-semibold text-zinc-805 placeholder-zinc-500 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 						/>
 					</div>
 
-					<div className="flex items-center gap-3 shrink-0">
-						<CustomSelect
-							value={statusFilter}
-							onChange={(val) => {
-								setStatusFilter(val);
-								setCurrentPage(1);
-							}}
-							options={[
-								{ value: 'ALL', label: 'All Statuses' },
-								{ value: 'REQUEST_GENERATED', label: 'Request Generated' },
-								{ value: 'UNDER_TESTING', label: 'Under Testing' },
-								{ value: 'COMPLETED', label: 'Completed' },
-							]}
-							className="w-48"
-						/>
+					<div className="flex flex-col sm:flex-row gap-4 items-center w-full lg:w-auto lg:justify-end">
+						<div className="flex items-center gap-2 w-full sm:w-auto">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">Status:</span>
+							<CustomSelect
+								value={statusFilter}
+								onChange={(val) => {
+									setStatusFilter(val);
+									setCurrentPage(1);
+								}}
+								options={[
+									{ value: 'ALL', label: 'All Statuses' },
+									{ value: 'REQUEST_GENERATED', label: 'Request Generated' },
+									{ value: 'UNDER_TESTING', label: 'Under Testing' },
+									{ value: 'COMPLETED', label: 'Completed' },
+								]}
+								className="w-full sm:w-44"
+							/>
+						</div>
+
+						<div className="flex items-center gap-2 w-full sm:w-auto">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">From:</span>
+							<input
+								type="date"
+								value={filterStartDate}
+								onChange={(e) => {
+									setFilterStartDate(e.target.value);
+									setCurrentPage(1);
+								}}
+								className="bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-zinc-800 outline-none focus:bg-white focus:border-[#11236a] transition-all w-full sm:w-auto"
+							/>
+						</div>
+
+						<div className="flex items-center gap-2 w-full sm:w-auto">
+							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">To:</span>
+							<input
+								type="date"
+								value={filterEndDate}
+								onChange={(e) => {
+									setFilterEndDate(e.target.value);
+									setCurrentPage(1);
+								}}
+								className="bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-zinc-800 outline-none focus:bg-white focus:border-[#11236a] transition-all w-full sm:w-auto"
+							/>
+						</div>
+
+						{(filterStartDate || filterEndDate || searchTerm || statusFilter !== 'ALL') && (
+							<button
+								onClick={() => {
+									setFilterStartDate('');
+									setFilterEndDate('');
+									setSearchTerm('');
+									setStatusFilter('ALL');
+									setCurrentPage(1);
+								}}
+								title="Reset all filters"
+								className="px-3 py-1.5 bg-rose-50 hover:bg-rose-105 text-rose-600 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none border border-rose-200 flex items-center gap-1 shrink-0 w-full sm:w-auto justify-center"
+							>
+								<X className="w-3.5 h-3.5" />
+								Clear Filters
+							</button>
+						)}
 
 						<button 
 							onClick={handleRefresh}
 							disabled={loading}
-							className="w-9 h-9 bg-[#f8fafc] hover:bg-zinc-100 border border-zinc-200 text-zinc-600 rounded-xl flex items-center justify-center transition-all cursor-pointer outline-none active:scale-95 disabled:opacity-50"
+							className="w-9 h-9 bg-[#f8fafc] hover:bg-zinc-100 border border-zinc-200 text-zinc-650 rounded-xl flex items-center justify-center transition-all cursor-pointer outline-none active:scale-95 disabled:opacity-50 shrink-0"
 						>
 							<RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
 						</button>
@@ -297,7 +364,7 @@ export default function NablManagerTestPlans() {
 						<table className="w-full text-left border-collapse">
 							<thead>
 								<tr className="bg-[#f8fafc] border-b border-zinc-150 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-									<th className="py-4 px-6">Brand / Model</th>
+									<th className="py-4 px-6">Brand / Model / S/N</th>
 									<th className="py-4 px-6">Description</th>
 									<th className="py-4 px-6">Testing Timeline</th>
 									<th className="py-4 px-6">Report details</th>
@@ -328,6 +395,9 @@ export default function NablManagerTestPlans() {
 											<td className="py-4 px-6">
 												<div className="font-extrabold text-[#11236a]">{req.brandName}</div>
 												<div className="text-[10px] text-zinc-500 font-bold mt-0.5">{req.modelNo}</div>
+												{req.serialNumber && (
+													<div className="text-[10px] text-zinc-400 font-bold mt-0.5">S/N: {req.serialNumber}</div>
+												)}
 											</td>
 											<td className="py-4 px-6 max-w-xs truncate" title={req.sampleDescription}>
 												{req.sampleDescription}
