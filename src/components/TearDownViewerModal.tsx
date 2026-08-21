@@ -46,7 +46,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 				if (!isMounted) return;
 				let wb: XLSX.WorkBook;
 				try {
-					// Step 1: Attempt full parse with cell styles, formulas, formatting
 					wb = XLSX.read(buffer, {
 						type: 'array',
 						cellStyles: true,
@@ -56,7 +55,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 					});
 				} catch (e1) {
 					console.warn('Full style parse failed, attempting standard parse:', e1);
-					// Step 2: Guaranteed fallback parse
 					wb = XLSX.read(buffer, { type: 'array' });
 				}
 
@@ -86,7 +84,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 
 	const currentSheet = worksheets[activeSheet];
 
-	// Parse sheet dimensions and range
 	const getSheetRange = (sheet: XLSX.WorkSheet | undefined) => {
 		if (!sheet || !sheet['!ref']) return { minRow: 0, maxRow: 0, minCol: 0, maxCol: 0 };
 		try {
@@ -106,7 +103,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 	const totalCols = currentSheet ? maxCol - minCol + 1 : 0;
 	const totalRows = currentSheet ? maxRow - minRow + 1 : 0;
 
-	// Column letter labels (A, B, C... Z, AA, AB...)
 	const getColumnLabel = (colIdx: number) => {
 		let label = '';
 		let n = colIdx;
@@ -117,14 +113,12 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 		return label;
 	};
 
-	// Safely parse Cell CSS styles (colors, fonts, borders, alignments)
 	const parseCellCss = (cell: XLSX.CellObject | undefined): React.CSSProperties => {
 		if (!cell || !cell.s || typeof cell.s !== 'object') return {};
 		const css: React.CSSProperties = {};
 		const s = cell.s as any;
 
 		try {
-			// 1. Background Fill Color
 			if (s.fill && typeof s.fill === 'object') {
 				if (s.fill.fgColor && typeof s.fill.fgColor === 'object') {
 					if (typeof s.fill.fgColor.rgb === 'string') {
@@ -140,7 +134,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 				}
 			}
 
-			// 2. Font Styles & Colors
 			if (s.font && typeof s.font === 'object') {
 				if (s.font.bold) css.fontWeight = 'bold';
 				if (s.font.italic) css.fontStyle = 'italic';
@@ -158,10 +151,9 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 				}
 			}
 
-			// 3. Text Alignment & Wrapping
 			if (s.alignment && typeof s.alignment === 'object') {
 				if (typeof s.alignment.horizontal === 'string') {
-					css.textAlign = s.alignment.horizontal as any;
+					css.textAlign = s.alignment.horizontal as React.CSSProperties['textAlign'];
 				}
 				if (typeof s.alignment.vertical === 'string') {
 					const v = s.alignment.vertical;
@@ -173,7 +165,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 				}
 			}
 
-			// 4. Cell Borders
 			if (s.border && typeof s.border === 'object') {
 				const b = s.border;
 				if (b.top) css.borderTop = '1px solid #cbd5e1';
@@ -184,32 +175,27 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 		} catch {
 			// Suppress style parsing errors gracefully
 		}
-
 		return css;
 	};
 
-	// Check if cell (r, c) is merged or covered by a merge
 	const merges = currentSheet ? (currentSheet['!merges'] || []) : [];
 
 	const getMergeInfo = (r: number, c: number) => {
 		for (const range of merges) {
 			if (r >= range.s.r && r <= range.e.r && c >= range.s.c && c <= range.e.c) {
 				if (r === range.s.r && c === range.s.c) {
-					// Top-left cell of merge range -> return rowSpan & colSpan
 					return {
 						isOrigin: true,
 						rowSpan: range.e.r - range.s.r + 1,
 						colSpan: range.e.c - range.s.c + 1
 					};
 				}
-				// Covered cell inside merge range -> should be skipped
 				return { isOrigin: false, covered: true };
 			}
 		}
 		return null;
 	};
 
-	// Get Column Widths
 	const colsSpec = currentSheet ? (currentSheet['!cols'] || []) : [];
 
 	const getColWidth = (cIdx: number) => {
@@ -221,7 +207,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 		return '130px';
 	};
 
-	// Filter rows by search query
 	const rowIndices = Array.from({ length: totalRows }, (_, idx) => minRow + idx);
 	const filteredRowIndices = rowIndices.filter((r) => {
 		if (!filterText.trim()) return true;
@@ -241,8 +226,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 	return (
 		<div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
 			<div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden border border-slate-200 animate-scale-up">
-				
-				{/* Modal Header */}
 				<div className="px-5 py-3.5 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shrink-0">
 					<div className="flex items-center gap-3">
 						<div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
@@ -260,8 +243,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 							</p>
 						</div>
 					</div>
-
-					{/* Actions Header */}
 					<div className="flex items-center gap-2.5 flex-wrap">
 						{!isPdf && (
 							<div className="flex items-center bg-slate-800 p-1 rounded-xl text-xs font-bold border border-slate-700">
@@ -291,7 +272,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 								</button>
 							</div>
 						)}
-
 						<a
 							href={absoluteFileUrl}
 							download={fileName || 'Tear_Down_Report.xlsx'}
@@ -300,7 +280,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 							<Download className="w-3.5 h-3.5" />
 							<span>Download File</span>
 						</a>
-
 						<button
 							onClick={onClose}
 							className="p-1.5 bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white rounded-xl transition-all border-none cursor-pointer"
@@ -309,11 +288,8 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 						</button>
 					</div>
 				</div>
-
-				{/* Secondary Excel Bar: Sheet Tabs & Search */}
 				{!isPdf && viewMode === 'excel' && !loading && !error && (
 					<div className="px-5 py-2.5 bg-slate-100 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-						{/* Sheet Tabs */}
 						<div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-0.5">
 							<span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Worksheets:</span>
 							{sheetNames.map((name) => (
@@ -330,8 +306,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 								</button>
 							))}
 						</div>
-
-						{/* Quick Filter */}
 						<div className="relative shrink-0">
 							<Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" />
 							<input
@@ -344,8 +318,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 						</div>
 					</div>
 				)}
-
-				{/* Modal Content */}
 				<div className="flex-1 bg-slate-200 relative overflow-hidden flex flex-col">
 					{loading ? (
 						<div className="flex flex-col items-center justify-center h-full gap-3 text-slate-600 bg-white">
@@ -396,7 +368,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 							<p className="text-xs font-bold">This worksheet contains no printable rows.</p>
 						</div>
 					) : (
-						/* Fully Styled Excel Spreadsheet Grid with Cell Formatting & Merged Cells */
 						<div className="flex-1 overflow-auto p-4 bg-slate-300">
 							<div className="inline-block min-w-full bg-white rounded-xl shadow-md border border-slate-400 overflow-hidden">
 								<table className="w-full text-left border-collapse text-xs font-medium border-slate-300">
@@ -429,17 +400,12 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 													{Array.from({ length: totalCols }).map((_, colOffset) => {
 														const c = minCol + colOffset;
 														const mergeInfo = getMergeInfo(r, c);
-
 														if (mergeInfo && mergeInfo.covered) {
-															// Skip rendering covered cells inside a merge block
 															return null;
 														}
-
 														const cellRef = XLSX.utils.encode_cell({ r, c });
 														const cell = currentSheet ? currentSheet[cellRef] : undefined;
 														const cellCss = parseCellCss(cell);
-
-														// Display formatted string (cell.w) or raw value (cell.v)
 														const formattedVal = cell
 															? (cell.w !== undefined && cell.w !== null
 																	? String(cell.w)
@@ -447,7 +413,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 																		? String(cell.v)
 																		: '')
 															: '';
-
 														return (
 															<td
 																key={c}
@@ -458,7 +423,7 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 																	minWidth: getColWidth(c)
 																}}
 																className={`py-2 px-3 border-r border-slate-200 text-slate-800 ${
-																	!cellCss.whiteSpace ? 'whitespace-pre-wrap break-words' : ''
+																	!cellCss.whiteSpace ? 'whitespace-pre-wrap wrap-break-word' : ''
 																}`}
 															>
 																{formattedVal}
@@ -474,8 +439,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 						</div>
 					)}
 				</div>
-
-				{/* Bottom Bar Footer Info */}
 				<div className="px-5 py-2.5 bg-slate-900 text-slate-300 text-xs flex items-center justify-between border-t border-slate-800 shrink-0">
 					<div className="flex items-center gap-2 font-semibold text-[11px]">
 						<Eye className="w-3.5 h-3.5 text-emerald-400" />
@@ -487,7 +450,6 @@ export const TearDownViewerModal: React.FC<TearDownViewerModalProps> = ({ fileUr
 						Viewing Tear Down Report with cell colors, fonts, borders, and merges.
 					</div>
 				</div>
-
 			</div>
 		</div>
 	);

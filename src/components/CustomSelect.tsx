@@ -18,10 +18,8 @@ interface CustomSelectProps {
 export default function CustomSelect({value, onChange, options, disabled = false, placeholder = 'Select option...', className = ''}: CustomSelectProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
-
 	const selectedOption = options.find((opt) => opt.value === value);
 
-	// Close on click outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -70,7 +68,7 @@ export default function CustomSelect({value, onChange, options, disabled = false
 									onClick={() => handleOptionSelect(opt.value)}
 									className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between cursor-pointer border-none outline-none ${isSelected ? 'bg-[#11236a]/15 text-[#11236a] font-extrabold' : 'text-zinc-800 font-bold hover:bg-zinc-50'}`}
 								>
-									<span className="whitespace-normal break-words leading-tight">{opt.label}</span>
+									<span className="whitespace-normal break-wrap-break-word leading-tight">{opt.label}</span>
 									{isSelected && (
 										<div className="w-1.5 h-1.5 bg-[#11236a] rounded-full shrink-0 ml-2.5" />
 									)}
