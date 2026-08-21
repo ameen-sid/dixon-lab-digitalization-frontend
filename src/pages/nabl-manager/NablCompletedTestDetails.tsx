@@ -180,8 +180,8 @@ export default function NablCompletedTestDetails() {
 					</h3>
 					<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs">
 						<div className="grid grid-cols-12">
-							<div className="col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
-								<div className="flex flex-col items-start pl-6">
+							<div className="col-span-12 md:col-span-8 border-r border-zinc-400 p-6 flex flex-col justify-center items-center bg-white">
+								<div className="flex flex-col items-center">
 									<span className="text-5xl font-black text-[#121c60] tracking-tight relative leading-none select-none font-sans">
 										D<span className="relative inline-block text-5xl">ı<span className="absolute top-[6px] left-[1px] w-[8px] h-[8px] bg-[#df1d24] rounded-none"></span></span>xon
 									</span>
@@ -190,188 +190,263 @@ export default function NablCompletedTestDetails() {
 									</span>
 								</div>
 							</div>
-							<div className="col-span-6 p-4 flex flex-col justify-center text-[#11236a] font-extrabold bg-[#f8fafc]">
-								<h2 className="text-base font-black uppercase text-center leading-tight">
-									Test Request Form (TRF)
-								</h2>
-								<p className="text-[11px] text-center text-zinc-600 font-bold mt-1">
-									(As per NABL ISO/IEC 17025 Requirement)
-								</p>
+							<div className="col-span-12 md:col-span-4 p-6 flex flex-col justify-center items-start text-left pl-6 md:pl-10 bg-white font-extrabold text-[#121c60] leading-tight select-none">
+								<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
+								<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 							</div>
 						</div>
-						<div className="border-t border-zinc-400 divide-y divide-zinc-400">
+						<div className="bg-[#11236a] text-white text-center py-2.5 font-extrabold uppercase tracking-widest text-[10px] border-t border-zinc-400">
+							TEST REQUEST FORM
+						</div>
+						<div className="border-t border-zinc-400 divide-y divide-zinc-400 bg-white">
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									1. Customer Name & Address:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Name and Address of Customer / Applicant
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold leading-relaxed whitespace-pre-wrap">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 whitespace-pre-wrap leading-relaxed">
 									{request.customerNameAddress}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									2. Manufacturer Name & Address:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Manufacturer Name and address
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold leading-relaxed whitespace-pre-wrap">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 whitespace-pre-wrap leading-relaxed">
 									{request.manufacturerNameAddress}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									3. Customer Contact Details:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Contact Details of Customer / Applicant
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold leading-relaxed whitespace-pre-wrap">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 whitespace-pre-wrap leading-relaxed">
 									{request.customerContactDetails}
 								</div>
 							</div>
+
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									4. Sample Description:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Sample Description
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold leading-relaxed whitespace-pre-wrap">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 whitespace-pre-wrap leading-relaxed">
 									{request.sampleDescription}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									5. Brand Name:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Model No. / Identification
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold text-[#11236a] break-words whitespace-pre-wrap">
-									{request.brandName}
-								</div>
-							</div>
-
-							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									6. Model Number:
-								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold break-words whitespace-pre-wrap">
+								<div className="col-span-12 md:col-span-8 p-3 font-extrabold text-zinc-900">
 									{request.modelNo}
 								</div>
 							</div>
 
-							{request.familyModel && (
-								<div className="grid grid-cols-12">
-									<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-										7. Family / Series Model:
-									</div>
-									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold break-words whitespace-pre-wrap">
-										{request.familyModel}
-									</div>
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Family Model (If Any)
 								</div>
-							)}
-
-							{request.serialNumber && (
-								<div className="grid grid-cols-12">
-									<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-										8. Serial Number / Batch No:
-									</div>
-									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold break-words whitespace-pre-wrap">
-										{request.serialNumber}
-									</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.familyModel || 'NA'}
 								</div>
-							)}
+							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									9. Product Rating:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Product Serial Number (If any)
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.serialNumber || 'NA'}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Product Rating
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 whitespace-pre-wrap leading-relaxed">
 									{request.productRating}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									10. Sample Quantity:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Sample Qty.
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-extrabold">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
 									{request.sampleQty}
-								</div>
-							</div>
-							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									11. Test Standard / Protocol:
-								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
-									{request.testStandard || request.testType?.name || 'N/A'}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									12. Clause / Sub-Clause:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Trade Mark / Brand
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.brandName}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Drawing / Specification /any attachment (Please mention)
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.attachmentMention || 'User manual provided'}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Witness Required
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 bg-white flex items-center gap-6 font-bold">
+									<div className="flex items-center gap-2">
+										<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.witnessRequired === 'Yes' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+											{request.witnessRequired === 'Yes' && '✓'}
+										</span>
+										Yes
+									</div>
+									<div className="flex items-center gap-2">
+										<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.witnessRequired === 'No' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+											{request.witnessRequired === 'No' && '✓'}
+										</span>
+										No
+									</div>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Name and designation of person who will witness the test
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.witnessRequired === 'Yes' ? request.witnessPersonDetails : 'NA'}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Ref. Test Method/ Specification’s
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900 leading-relaxed">
+									{request.testMethodRef || request.testStandard || 'N/A'}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Test Type
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
+									{request.testType?.name || 'N/A'}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Clause / Sub clause to be tested (if applicable)
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
 									{request.clauseSubClause || 'N/A'}
 								</div>
 							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									13. Sample Condition on Receipt:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Sample Condition
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold">
+								<div className="col-span-12 md:col-span-8 p-3 font-bold text-zinc-900">
 									{request.sampleCondition || 'Satisfactory'}
 								</div>
 							</div>
-							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									14. Witness Required:
-								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
-									{request.witnessRequired ? 'Yes' : 'No'}
-								</div>
-							</div>
 
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									15. Display NABL Logo on Report:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Statement of conformity:
 								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
-									{request.reportNablLogo ? 'Yes' : 'No'}
-								</div>
-							</div>
-
-							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									16. Return / Collect Back Sample:
-								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
-									{request.collectBackSample ? 'Yes' : 'No'}
-								</div>
-							</div>
-
-							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									17. Statement of Conformity:
-								</div>
-								<div className="col-span-8 p-3 bg-white text-zinc-800 font-bold">
-									{request.conformityStatement ? 'Required' : 'Not Required'}
-								</div>
-							</div>
-
-							{request.decisionRule && (
-								<div className="grid grid-cols-12">
-									<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-										18. Decision Rule Applied:
+								<div className="col-span-12 md:col-span-8 p-3 space-y-2 font-bold">
+									<div className="flex items-center gap-6">
+										<div className="flex items-center gap-2">
+											<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.conformityStatement === 'Required' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+												{request.conformityStatement === 'Required' && '✓'}
+											</span>
+											Required
+										</div>
+										<div className="flex items-center gap-2">
+											<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.conformityStatement === 'not Required' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+												{request.conformityStatement === 'not Required' && '✓'}
+											</span>
+											Not-Required
+										</div>
 									</div>
-									<div className="col-span-8 p-3 bg-white text-zinc-800 font-semibold">
-										{request.decisionRule}
+
+									{request.conformityStatement === 'Required' && request.decisionRule && (
+										<div className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 space-y-1.5 font-bold">
+											<p className="text-[10px] text-zinc-450 uppercase">Decision Rule choice:</p>
+											<div className="text-zinc-900 leading-relaxed text-[11px] font-bold">
+												{request.decisionRule === 'Measurement of uncertainty' && '(A) Measurement of uncertainty'}
+												{request.decisionRule === 'As per standard' && '(B) As per standard'}
+												{request.decisionRule === 'As per customer specification, if better than standards' && '(C) As per customer specification, if better than standards'}
+											</div>
+										</div>
+									)}
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Report Required with NABL symbol
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 bg-white flex items-center gap-6 font-bold">
+									<div className="flex items-center gap-2">
+										<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.reportNablLogo === 'Yes' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+											{request.reportNablLogo === 'Yes' && '✓'}
+										</span>
+										Yes
+									</div>
+									<div className="flex items-center gap-2">
+										<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.reportNablLogo === 'No' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+											{request.reportNablLogo === 'No' && '✓'}
+										</span>
+										No
 									</div>
 								</div>
-							)}
+							</div>
+
 							<div className="grid grid-cols-12">
-								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									19. Customer Name:
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Whether sample will be collected back (not applicable for destructive test)
 								</div>
-								<div className="col-span-8 p-3 bg-white flex items-center">
-									<span className="font-extrabold text-[#11236a] italic text-xs tracking-wide">
-										{request.customerSignName || '—'}
-									</span>
+								<div className="col-span-12 md:col-span-8 p-3 space-y-2 font-bold">
+									<div className="flex items-center gap-6">
+										<div className="flex items-center gap-2">
+											<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.collectBack === 'Yes' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+												{request.collectBack === 'Yes' && '✓'}
+											</span>
+											Yes
+										</div>
+										<div className="flex items-center gap-2">
+											<span className={`w-3.5 h-3.5 border border-zinc-550 flex items-center justify-center font-black ${request.collectBack === 'No' ? 'bg-[#11236a] text-white text-[8px]' : ''}`}>
+												{request.collectBack === 'No' && '✓'}
+											</span>
+											No
+										</div>
+									</div>
+									<p className="text-[10px] text-zinc-500 font-bold leading-normal">
+										If yes, please collect within 15 days from the date of issuing the test report. After this period, the sample will be destroyed.
+									</p>
+								</div>
+							</div>
+
+							<div className="grid grid-cols-12">
+								<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+									Customer Name:
+								</div>
+								<div className="col-span-12 md:col-span-8 p-3 bg-white flex items-center font-extrabold text-[#11236a] italic text-xs tracking-wide">
+									{request.customerSignName || '—'}
 								</div>
 							</div>
 						</div>

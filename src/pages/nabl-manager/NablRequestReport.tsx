@@ -136,8 +136,8 @@ export default function NablRequestReport() {
 				<div className="bg-white border border-zinc-300 rounded-[32px] shadow-md p-6 max-w-4xl mx-auto space-y-6">
 					<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs">
 						<div className="grid grid-cols-12">
-							<div className="col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
-								<div className="flex flex-col items-start pl-6">
+							<div className="col-span-12 md:col-span-8 border-r border-zinc-400 p-6 flex flex-col justify-center items-center bg-white">
+								<div className="flex flex-col items-center">
 									<span className="text-5xl font-black text-[#121c60] tracking-tight relative leading-none select-none font-sans">
 										D<span className="relative inline-block text-5xl">ı<span className="absolute top-[6px] left-[1px] w-[8px] h-[8px] bg-[#df1d24] rounded-none"></span></span>xon
 									</span>
@@ -146,14 +146,12 @@ export default function NablRequestReport() {
 									</span>
 								</div>
 							</div>
-
-							<div className="col-span-6 p-6 flex flex-col justify-center items-center text-center bg-white font-extrabold text-[#121c60] leading-tight select-none">
+							<div className="col-span-12 md:col-span-4 p-6 flex flex-col justify-center items-start text-left pl-6 md:pl-10 bg-white font-extrabold text-[#121c60] leading-tight select-none">
 								<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
 								<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 							</div>
 						</div>
-
-						<div className="bg-[#11236a] text-center py-2 text-white font-extrabold tracking-widest uppercase text-[10px] border-t border-zinc-400">
+						<div className="bg-[#11236a] text-center py-2.5 text-white font-extrabold tracking-widest uppercase text-[10px] border-t border-zinc-400">
 							TEST REQUEST FORM — REPORT VIEW
 						</div>
 					</div>

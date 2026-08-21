@@ -173,7 +173,7 @@ export default function NablManagerTestPlans() {
 		}
 	};
 
-	const matchesDateRange = (dateStr: string) => {
+	const matchesDateRange = (dateStr: string | null | undefined) => {
 		if (!filterStartDate && !filterEndDate) return true;
 		if (!dateStr) return false;
 		const dDate = new Date(dateStr);
@@ -199,7 +199,7 @@ export default function NablManagerTestPlans() {
 			(r.testPlan?.reportNo || '').toLowerCase().includes(searchTerm.toLowerCase());
 
 		if (!matchesSearch) return false;
-		if (!matchesDateRange(r.createdAt)) return false;
+		if (!matchesDateRange(r.testPlan?.issueDate)) return false;
 		if (statusFilter === 'ALL') return true;
 
 		const today = new Date();
