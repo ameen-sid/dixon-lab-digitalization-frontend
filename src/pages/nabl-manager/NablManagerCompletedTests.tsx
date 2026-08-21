@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import DashboardLayout from '../layouts/DashboardLayout';
-import Pagination from '../../components/Pagination';
-import CustomSelect from '../../components/CustomSelect';
-import { getNablRequests } from '../../services/operations/nablRequestService';
 import { 
 	RotateCw, FileText, Search, Eye, CheckCircle, XCircle
 } from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
+
+import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
+
+import { getNablRequests } from '../../services/operations/nablRequestService';
 
 interface Attachment {
 	id: number;
@@ -80,13 +82,11 @@ export default function NablManagerCompletedTests() {
 			const today = new Date();
 			today.setHours(0, 0, 0, 0);
 
-			// Filter requests whose test end date has strictly passed
 			const completed = (allReqs || []).filter((req: RequestRecord) => {
 				if (!req.testPlan?.endDate) return false;
 
 				const end = new Date(req.testPlan.endDate);
 				end.setHours(23, 59, 59, 999);
-
 				return today > end;
 			});
 
@@ -109,7 +109,6 @@ export default function NablManagerCompletedTests() {
 		toast.success('Completed tests queue synchronized.');
 	};
 
-	// Search, Evaluation Filter & Pagination
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch = 
 			(r.customerSignName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,7 +125,6 @@ export default function NablManagerCompletedTests() {
 
 		if (evalFilter === 'PASS') return !isFail;
 		if (evalFilter === 'FAIL') return isFail;
-
 		return true;
 	});
 
@@ -154,7 +152,6 @@ export default function NablManagerCompletedTests() {
 	return (
 		<DashboardLayout title="Completed Tests Registry">
 			<div className="space-y-6">
-				{/* Top Controls */}
 				<div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-zinc-200/60 p-4 rounded-2xl shadow-sm">
 					<div className="relative w-full sm:max-w-md">
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -195,8 +192,6 @@ export default function NablManagerCompletedTests() {
 						</button>
 					</div>
 				</div>
-
-				{/* Table Card */}
 				<div className="bg-white border border-zinc-200/60 rounded-[24px] overflow-hidden shadow-sm p-6">
 					{loading ? (
 						<div className="flex flex-col items-center justify-center py-20 gap-3">

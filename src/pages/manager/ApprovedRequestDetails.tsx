@@ -217,18 +217,16 @@ export default function ApprovedRequestDetails({
 
 	const activeIdx = timelineSteps.findIndex(s => !s.completed);
 
-	// Fetch current logged-in manager info
 	const userStr = localStorage.getItem('user');
 	const currentUser = userStr ? JSON.parse(userStr) : null;
-	const managerId = currentUser ? String(currentUser.id) : '4'; // Falls back to default manager ID '4' from NABL DB
+	const managerId = currentUser ? String(currentUser.id) : '4'; 
 	const managerName = currentUser ? currentUser.name : 'Lab Manager One';
 
 	const activeEngineers = engineers || [];
 
-	// Build dropdown options containing ONLY dynamic database staff and "Self" option
 	const selectOptions = [
 		...activeEngineers
-			.filter(eng => String(eng.id) !== managerId) // Avoid listing manager twice
+			.filter(eng => String(eng.id) !== managerId) 
 			.map(eng => ({
 				value: String(eng.id),
 				label: `${eng.name} (${eng.role})`
@@ -253,7 +251,6 @@ export default function ApprovedRequestDetails({
 
 	return (
 		<div className="space-y-6">
-			{/* Back bar */}
 			<div className="flex items-center gap-3">
 				<button
 					onClick={() => navigate('/manager/approved-requests')}
@@ -270,10 +267,7 @@ export default function ApprovedRequestDetails({
 			</div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Details Panel */}
 				<div className="lg:col-span-2 space-y-6">
-
-					{/* Applicant Details */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
 							Applicant & Manufacturer Profile
@@ -293,8 +287,6 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					</div>
-
-					{/* Product Specifications */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
 							Product & Sample Details
@@ -326,8 +318,6 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					</div>
-
-					{/* Test Configuration */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
 							Test Protocol Configuration
@@ -373,18 +363,12 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					</div>
-
-
-
-					{/* Sample Description */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-2">
 						<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Detailed Sample Description</p>
 						<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-zinc-50 rounded-xl p-3 border border-zinc-200/60">
 							{request.sampleDescription}
 						</p>
 					</div>
-
-					{/* Attachment Mentions */}
 					{request.attachmentMention && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-2">
 							<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Attachments Mentioned / Remarks</p>
@@ -393,8 +377,6 @@ export default function ApprovedRequestDetails({
 							</p>
 						</div>
 					)}
-
-					{/* File Attachments */}
 					{request.attachments && request.attachments.length > 0 && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-3">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
@@ -425,8 +407,6 @@ export default function ApprovedRequestDetails({
 							</div>
 						</div>
 					)}
-
-					{/* Remarks from Head of Lab */}
 					{request.remarks && request.remarks.trim() !== '' && (
 						<div className="bg-amber-50/60 border border-amber-200/60 rounded-2xl p-5 shadow-sm space-y-2">
 							<p className="text-[9px] text-amber-700 font-extrabold uppercase tracking-wider">Remarks from Head of Lab</p>
@@ -435,14 +415,12 @@ export default function ApprovedRequestDetails({
 							</p>
 						</div>
 					)}
-				</div>				{/* Assignment Actions Panel */}
+				</div>	
 				<div className="space-y-6">
-					{/* Assignment Box */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm">
 						<h4 className="text-sm font-bold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center gap-1.5">
 							<User className="w-4 h-4 text-[#11236a]" /> Engineer Assignment
 						</h4>
-
 						{isAllocated ? (
 							<div className="mt-4 space-y-4">
 								<div className="bg-blue-50 border border-blue-100 text-blue-900 rounded-2xl p-4 text-xs font-semibold">
@@ -475,14 +453,11 @@ export default function ApprovedRequestDetails({
 							</form>
 						)}
 					</div>
-
-					{/* Individual Sample Inspection Results */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 						<h4 className="text-sm font-bold text-zinc-955 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
 							<span>Sample Results</span>
 							<span className="text-xs font-bold text-zinc-400">Total: {request.sampleQty || 1}</span>
 						</h4>
-
 						<div className="divide-y divide-zinc-150/70">
 							{(() => {
 								const qty = request.sampleQty || 1;
@@ -574,7 +549,7 @@ export default function ApprovedRequestDetails({
 						</div>
 					</div>
 				</div>
-			</div>			{/* Sample Progression Timeline Modal */}
+			</div>
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
 					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
@@ -584,7 +559,6 @@ export default function ApprovedRequestDetails({
 						>
 							<X className="w-4 h-4" />
 						</button>
-
 						<div className="space-y-5">
 							<div>
 								<span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
@@ -597,8 +571,6 @@ export default function ApprovedRequestDetails({
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
 								</p>
 							</div>
-
-							{/* Steps progression */}
 							<div className="space-y-6 relative pl-6 border-l border-zinc-200 ml-2 pt-1">
 								{timelineSteps.map((item, idx) => {
 									const isActive = idx === activeIdx;
@@ -624,8 +596,6 @@ export default function ApprovedRequestDetails({
 									);
 								})}
 							</div>
-
-							{/* Plan specifications */}
 							{testPlan && (
 								<div className="bg-[#f8fafc] border border-zinc-200/50 rounded-2xl p-5 space-y-3 mt-2">
 									<p className="text-xs text-zinc-400 font-extrabold uppercase tracking-wider mb-2">Test Plan Configuration</p>

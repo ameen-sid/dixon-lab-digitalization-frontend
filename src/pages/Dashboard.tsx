@@ -7,7 +7,6 @@ export default function Dashboard() {
 	useEffect(() => {
 		const token = localStorage.getItem('token');
 		const userStr = localStorage.getItem('user');
-
 		if (!token || !userStr) {
 			localStorage.clear();
 			navigate('/');
@@ -16,7 +15,6 @@ export default function Dashboard() {
 
 		const user = JSON.parse(userStr);
 		const role = user.role ? user.role.toLowerCase() : 'requester';
-
 		switch (role) {
 			case 'admin':
 				navigate('/admin/dashboard', { replace: true });

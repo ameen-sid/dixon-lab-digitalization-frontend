@@ -62,7 +62,6 @@ export default function HeadCapaReports() {
 		catch { return d; }
 	};
 
-	// Pagination Math
 	const maxPage = Math.ceil(filtered.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	
@@ -127,7 +126,6 @@ export default function HeadCapaReports() {
 
 	return (
 		<div className="space-y-5">
-			{/* Toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
 				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
 					<div className="relative min-w-[200px] flex-1">
@@ -221,8 +219,6 @@ export default function HeadCapaReports() {
 					<span className="text-[10px] font-bold text-zinc-400 uppercase shrink-0">{filtered.length} records</span>
 				</div>
 			</div>
-
-			{/* Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl shadow-sm overflow-hidden">
 				{loading ? (
 					<div className="flex flex-col items-center justify-center py-20 gap-3">

@@ -4,8 +4,10 @@ import {
 	RotateCw, FileText, Search, Send, Upload, X, Edit3, Calendar, Clipboard, UserCheck, CheckCircle
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
+
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
+
 import { getNablRequests, saveNablTestPlan } from '../../services/operations/nablRequestService';
 
 interface Attachment {
@@ -66,7 +68,6 @@ export default function NablManagerTestPlans() {
 	const [selectedRequest, setSelectedRequest] = useState<RequestRecord | null>(null);
 	const [showConfigModal, setShowConfigModal] = useState(false);
 
-	// Helper to check if test plan end date has passed
 	const isEndDatePassed = (req: RequestRecord) => {
 		if (!req.testPlan?.endDate) return false;
 		const today = new Date();
@@ -76,7 +77,6 @@ export default function NablManagerTestPlans() {
 		return today > end;
 	};
 
-	// Form execution states
 	const [formInput, setFormInput] = useState({
 		startDate: '',
 		endDate: '',
@@ -112,7 +112,6 @@ export default function NablManagerTestPlans() {
 		toast.success('Execution queue synchronized successfully.');
 	};
 
-	// Open config drawer/modal
 	const openConfig = (req: RequestRecord) => {
 		setSelectedRequest(req);
 		const plan = req.testPlan;
@@ -132,7 +131,6 @@ export default function NablManagerTestPlans() {
 		setShowConfigModal(true);
 	};
 
-	// Drag & Drop handlers
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files) {
 			const filesArray = Array.from(e.target.files);
@@ -147,7 +145,6 @@ export default function NablManagerTestPlans() {
 	const handleFormSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedRequest) return;
-
 		setIsSubmitting(true);
 		try {
 			const formData = new FormData();
@@ -174,7 +171,6 @@ export default function NablManagerTestPlans() {
 		}
 	};
 
-	// Filtered & Paginated requests based on search and status filter
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch = 
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -193,7 +189,6 @@ export default function NablManagerTestPlans() {
 		if (statusFilter === 'REQUEST_GENERATED') return !r.testPlan?.startDate;
 		if (statusFilter === 'UNDER_TESTING') return isTesting;
 		if (statusFilter === 'COMPLETED') return isEnded;
-
 		return true;
 	});
 
@@ -202,7 +197,6 @@ export default function NablManagerTestPlans() {
 		currentPage * itemsPerPage
 	);
 
-	// Status badge mapping with dynamic timeline checking
 	const getStatusBadge = (req: RequestRecord) => {
 		const plan = req.testPlan;
 		const rawStatus = req.status || plan?.status || 'REQUEST_GENERATED';
@@ -258,7 +252,6 @@ export default function NablManagerTestPlans() {
 			activeTab="test-plans"
 		>
 			<div className="space-y-6">
-				{/* Top Actions */}
 				<div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-zinc-200/60 p-4 rounded-2xl shadow-sm">
 					<div className="relative w-full sm:max-w-md">
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -299,8 +292,6 @@ export default function NablManagerTestPlans() {
 						</button>
 					</div>
 				</div>
-
-				{/* Table Grid Card */}
 				<div className="bg-white border border-zinc-200/60 rounded-[24px] overflow-hidden shadow-sm">
 					<div className="overflow-x-auto">
 						<table className="w-full text-left border-collapse">
@@ -426,11 +417,9 @@ export default function NablManagerTestPlans() {
 				</div>
 			</div>
 
-			{/* Configuration Modal */}
 			{showConfigModal && selectedRequest && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm animate-fade-in">
 					<div className="bg-white border border-zinc-200 w-full max-w-2xl rounded-3xl shadow-xl overflow-hidden animate-scale-up flex flex-col max-h-[90vh]">
-						{/* Header */}
 						<div className="bg-[#11236a] px-6 py-4 flex items-center justify-between text-white shrink-0">
 							<div>
 								<span className="text-[10px] uppercase font-bold tracking-widest text-white/60">Execution Planning</span>
@@ -443,10 +432,7 @@ export default function NablManagerTestPlans() {
 								<X className="w-5 h-5" />
 							</button>
 						</div>
-
-						{/* Form */}
 						<form onSubmit={handleFormSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
-							{/* Mini Information Panel */}
 							<div className="bg-zinc-50 border border-zinc-200 p-4 rounded-xl space-y-1">
 								<div className="text-[10px] font-bold text-zinc-400 uppercase">Product Information</div>
 								<div className="grid grid-cols-2 gap-2 text-xs font-medium text-zinc-700">
@@ -457,7 +443,6 @@ export default function NablManagerTestPlans() {
 							</div>
 
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								{/* Start Date */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Start Date
@@ -470,8 +455,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* End Date */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> End Date
@@ -484,8 +467,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* Issue Date */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Issue Date
@@ -497,8 +478,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* Report No */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<Clipboard className="w-3.5 h-3.5 text-zinc-400" /> Report Number
@@ -511,8 +490,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* Tested By */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Tested By (String)
@@ -526,8 +503,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* Reviewed & Approved By */}
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
 										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Approved By (String)
@@ -541,8 +516,6 @@ export default function NablManagerTestPlans() {
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
 									/>
 								</div>
-
-								{/* Evaluation Result Two-Button Toggle */}
 								<div className="col-span-1 sm:col-span-2 space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider block">Evaluation Result</label>
 									<div className="grid grid-cols-2 gap-3 max-w-xs">
@@ -557,7 +530,6 @@ export default function NablManagerTestPlans() {
 										>
 											<CheckCircle className="w-4 h-4" /> PASS
 										</button>
-
 										<button
 											type="button"
 											onClick={() => setFormInput(prev => ({ ...prev, status: 'FAIL' }))}
@@ -570,7 +542,6 @@ export default function NablManagerTestPlans() {
 											<X className="w-4 h-4" /> FAIL
 										</button>
 									</div>
-
 									<div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-start gap-2.5 mt-2">
 										<span className="text-amber-600 text-sm font-bold shrink-0 mt-0.5">💡</span>
 										<p className="text-[11px] text-amber-900 font-medium leading-relaxed">
@@ -579,8 +550,6 @@ export default function NablManagerTestPlans() {
 									</div>
 								</div>
 							</div>
-
-							{/* Test Plan Attachments */}
 							<div className="space-y-2">
 								<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider">Plan Attachments (Multiple / Multi-Type)</label>
 								<div className="border-2 border-dashed border-zinc-200 rounded-2xl p-6 flex flex-col items-center justify-center bg-[#f8fafc]/50 hover:bg-[#f8fafc] transition-all relative">
@@ -594,8 +563,6 @@ export default function NablManagerTestPlans() {
 									<p className="text-zinc-650 text-xs font-extrabold">Drag & Drop files or click to upload</p>
 									<p className="text-[10px] text-zinc-400 font-bold mt-1">Supports PDF, Doc, Excel, Images (Max 15MB each)</p>
 								</div>
-
-								{/* Selected files preview */}
 								{selectedFiles.length > 0 && (
 									<div className="bg-[#f8fafc] border border-zinc-150 p-4 rounded-2xl space-y-2.5">
 										<p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Selected Documents ({selectedFiles.length})</p>
@@ -619,8 +586,6 @@ export default function NablManagerTestPlans() {
 										</div>
 									</div>
 								)}
-
-								{/* Existing Attachments from test plan */}
 								{selectedRequest.testPlan?.attachments && selectedRequest.testPlan.attachments.length > 0 && (
 									<div className="bg-[#f0fdf4] border border-[#dcfce7] p-4 rounded-2xl space-y-2.5">
 										<p className="text-[10px] font-bold text-[#16a34a] uppercase tracking-wide">Existing Documents ({selectedRequest.testPlan.attachments.length})</p>
@@ -644,8 +609,6 @@ export default function NablManagerTestPlans() {
 									</div>
 								)}
 							</div>
-
-							{/* Actions */}
 							<div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
 								<button 
 									type="button"

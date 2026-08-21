@@ -36,14 +36,12 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 
 	const filteredRequests = requests.filter(r => {
-		// 1. Search Query Match
 		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
 			   r.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			   (r.sampleDescription && r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
 			   (r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-		// 2. Status Match
 		const statusUpper = (r.status || '').toUpperCase();
 		const isCompleted = ['COMPLETED', 'TESTING_PASSED', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'INSPECTION_COMPLETED', 'PASS', 'PARTIAL', 'FAILED', 'TESTING_FAILED', 'FAIL'].includes(statusUpper);
 		const isFailed = statusUpper === 'INSPECTION_FAILED';
@@ -57,7 +55,6 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 			matchStatus = isCompleted || isFailed;
 		}
 
-		// 3. Date Range Match
 		let matchDate = true;
 		const reqDate = r.approvedDate;
 		if (startDate) {
@@ -83,11 +80,8 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 
 	return (
 		<div className="space-y-6">
-			{/* Top Search & Advanced Filters Toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm space-y-4">
 				<div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
-					
-					{/* Search field */}
 					<div className="relative flex-1">
 						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 						<input 
@@ -112,8 +106,6 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 							</button>
 						)}
 					</div>
-
-					{/* Filters row */}
 					<div className="flex flex-wrap items-center gap-3">
 						<CustomSelect
 							value={statusFilter}
@@ -129,8 +121,6 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 							]}
 							className="w-48 shrink-0"
 						/>
-
-						{/* Date range inputs */}
 						<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1 shrink-0">
 							<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
 							<input
@@ -181,8 +171,6 @@ export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 					</div>
 				</div>
 			</div>
-
-			{/* List Container */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{paginatedRequests.length === 0 ? (
 					<div className="text-center py-16">

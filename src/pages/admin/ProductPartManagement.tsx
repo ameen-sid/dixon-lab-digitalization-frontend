@@ -22,7 +22,6 @@ export default function ProductPartManagement() {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [recordToDelete, setRecordToDelete] = useState<ProductPartRecord | null>(null);
 
-	// Form states
 	const [name, setName] = useState("");
 	const [partNo, setPartNo] = useState("");
 	const [editingId, setEditingId] = useState<number | null>(null);
@@ -50,7 +49,6 @@ export default function ProductPartManagement() {
 	const handleAdd = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!name.trim()) return showNotification('Product part name cannot be empty', 'error');
-
 		try {
 			await productPartService.createProductPart(name, partNo)();
 			showNotification(`Product part "${name.trim()}" created successfully!`, 'success');
@@ -71,7 +69,6 @@ export default function ProductPartManagement() {
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!name.trim() || editingId === null) return;
-
 		try {
 			await productPartService.updateProductPart(editingId, name, partNo)();
 			showNotification(`Product part updated successfully!`, 'success');

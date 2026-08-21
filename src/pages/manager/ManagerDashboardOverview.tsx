@@ -14,42 +14,29 @@ interface ManagerDashboardOverviewProps {
 }
 
 export default function ManagerDashboardOverview({ navigate, requests, capas, engineers: _engineers }: ManagerDashboardOverviewProps) {
-	// Retrieve manager user details
+
 	const userStr = localStorage.getItem('user');
 	const managerUser = userStr ? JSON.parse(userStr) : null;
 	const managerId = managerUser ? String(managerUser.id) : '';
 
-	// Active tab for the test plans breakdown
 	const [activePlanTab, setActivePlanTab] = useState<'pending' | 'active' | 'completed' | 'failed'>('active');
-
-	// 1. Approved Sample Requests Summary (not assigned to any engineer)
 	const approvedRequests = requests.filter(r => !r.engineerId);
-
-	// 2. Test Plans Categorization
 	const pendingTestPlans = requests.filter(r => ['UNDER_INSPECTION', 'INSPECTION_COMPLETED', 'PENDING_TEST_PLAN', 'RETEST'].includes((r.status || '').toUpperCase()));
 	const activeTestPlans = requests.filter(r => ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase()));
 	const completedTestPlans = requests.filter(r => ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase()));
 	const failedTestPlans = requests.filter(r => ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase()));
 
-	// Calculate sum of sample quantities for active test plans
 	const activeTestPlansSamplesCount = activeTestPlans.reduce((acc, r) => acc + (r.sampleQty || 1), 0);
-
-	// 4. Samples inspected by Lab Manager
 	const inspectedByManager = requests.filter(r => r.engineerId === managerId && ['UNDER_TEST', 'UNDER_TESTING', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'PASS', 'FAIL', 'PARTIAL', 'COMPLETED', 'FAILED', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase()));
-
-	// 5. Samples assigned to Engineers
 	const assignedToEngineers = requests.filter(r => !!r.engineerId && r.engineerId !== managerId);
-
-	// 6. Pending CAPA Reports
 	const pendingCapas = capas.filter(c => (c.status || '').toUpperCase() !== 'COMPLETED');
 
-	// 7. Pending Reports to Evaluate (submitted by engineer but not yet evaluated)
 	const pendingEvaluations = useMemo(() => {
 		const list: any[] = [];
 		requests.forEach(req => {
 			const testTypeName = String(req.testType?.name || '').toLowerCase();
 			const isReliability = testTypeName.includes('reliability');
-			if (isReliability) return; // Only non-reliability has reports submitted by engineer
+			if (isReliability) return; 
 
 			const requestPlans = Array.isArray(req.testPlans) ? req.testPlans : [];
 			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
@@ -80,9 +67,7 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 
 	return (
 		<div className="space-y-8">
-			{/* Metric Cards Grid */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				{/* Approved Requests Card */}
 				<div 
 					onClick={() => navigate('/manager/approved-requests')}
 					className="bg-white border border-zinc-200 hover:border-[#11236a]/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
@@ -98,8 +83,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 						<ClipboardList className="w-5.5 h-5.5" />
 					</div>
 				</div>
-
-				{/* Active Test Plans Card */}
 				<div 
 					onClick={() => navigate('/manager/test-plans')}
 					className="bg-white border border-zinc-200 hover:border-violet-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
@@ -115,8 +98,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 						<Cpu className="w-5.5 h-5.5" />
 					</div>
 				</div>
-
-				{/* Inspected by Manager Card */}
 				<div 
 					onClick={() => navigate('/manager/assigned-samples')}
 					className="bg-white border border-zinc-200 hover:border-emerald-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
@@ -132,8 +113,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 						<ShieldCheck className="w-5.5 h-5.5" />
 					</div>
 				</div>
-
-				{/* Total CAPA Reports Card */}
 				<div 
 					onClick={() => navigate('/manager/capa-management')}
 					className="bg-white border border-zinc-200 hover:border-amber-500/30 rounded-2xl p-6 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
@@ -151,13 +130,8 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 				</div>
 			</div>
 
-			{/* Main Grid Content */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				
-				{/* Left Columns (Col Span 2) */}
 				<div className="lg:col-span-2 space-y-6">
-					
-					{/* 1. Approved Sample Requests Summary */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between">
 							<div>
@@ -209,8 +183,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 							</table>
 						</div>
 					</div>
-
-					{/* Test Reports Pending Evaluation */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between">
 							<div>
@@ -273,15 +245,12 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 							</table>
 						</div>
 					</div>
-
-					{/* 2. Test Plans breakdown grid */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 							<div>
 								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Test Plans Monitoring Registry</h3>
 								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Track samples through their physical station testing and evaluations.</p>
 							</div>
-							{/* Tab Selection */}
 							<div className="flex bg-zinc-100 p-1 rounded-xl gap-1 shrink-0">
 								{[
 									{ key: 'pending', label: 'Pending', count: pendingTestPlans.length },
@@ -310,8 +279,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								))}
 							</div>
 						</div>
-
-						{/* Tab Results View */}
 						<div className="border border-zinc-100 rounded-xl overflow-hidden bg-zinc-50/20">
 							<table className="w-full text-xs">
 								<thead>
@@ -383,8 +350,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 											</td>
 										</tr>
 									))}
-
-									{/* Empty States */}
 									{activePlanTab === 'pending' && pendingTestPlans.length === 0 && (
 										<tr><td colSpan={4} className="py-8 text-center text-zinc-400 font-semibold bg-white">No pending test plan configurations.</td></tr>
 									)}
@@ -402,16 +367,10 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 						</div>
 					</div>
 				</div>
-
-				{/* Right Column (Col Span 1) */}
 				<div className="space-y-6">
-					
-					{/* 4. Assigned, Inspected, and Allocated workloads */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Duty Allocation Registry</h3>
-						
 						<div className="space-y-3">
-							{/* Approved requests pending engineer allocation */}
 							<div className="p-3 bg-indigo-50/30 border border-indigo-100 rounded-xl flex items-center justify-between">
 								<div>
 									<h4 className="text-xs font-bold text-[#11236a]">Pending for Assignment</h4>
@@ -419,8 +378,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								</div>
 								<span className="text-base font-extrabold text-[#11236a]">{approvedRequests.length}</span>
 							</div>
-
-							{/* Reports Pending Evaluation */}
 							<div 
 								onClick={() => navigate('/manager/test-plans')}
 								className="p-3 bg-amber-50/30 border border-amber-100 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-50/50 transition-all"
@@ -431,8 +388,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								</div>
 								<span className="text-base font-extrabold text-amber-700">{pendingEvaluations.length}</span>
 							</div>
-
-							{/* Inspected by Lab Manager */}
 							<div className="p-3 bg-emerald-50/30 border border-emerald-100 rounded-xl flex items-center justify-between">
 								<div>
 									<h4 className="text-xs font-bold text-emerald-700">Inspected by Me</h4>
@@ -440,8 +395,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								</div>
 								<span className="text-base font-extrabold text-emerald-700">{inspectedByManager.length}</span>
 							</div>
-
-							{/* Samples Assigned to Engineers */}
 							<div className="p-3 bg-violet-50/30 border border-violet-100 rounded-xl flex items-center justify-between">
 								<div>
 									<h4 className="text-xs font-bold text-violet-700">Engineer Allocated</h4>
@@ -451,8 +404,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 							</div>
 						</div>
 					</div>
-
-					{/* 5. Pending CAPA reports */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 						<div className="flex items-center justify-between">
 							<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Pending CAPA Reports</h3>

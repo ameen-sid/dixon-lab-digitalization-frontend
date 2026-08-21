@@ -40,7 +40,6 @@ export default function HeadFailureDecision() {
 		if (!isSubmittedToHead && !isAlreadyFailedDecided) return false;
 		if (isAlreadyFailedDecided) return true;
 
-		// Calculate passedCount and failedCount
 		let passedCount = 0;
 		let failedCount = 0;
 
@@ -64,7 +63,6 @@ export default function HeadFailureDecision() {
 		return failedCount > passedCount;
 	});
 
-	// Filter based on search and status filter dropdown (Pending Decision vs Decision Taken)
 	const filtered = failedRequests.filter((r: any) => {
 		const q = search.toLowerCase();
 		const matchesSearch = (
@@ -111,7 +109,6 @@ export default function HeadFailureDecision() {
 		return `${day}/${month}/${year}`;
 	};
 
-	// Pagination Math
 	const maxPage = Math.ceil(filtered.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	
@@ -121,7 +118,6 @@ export default function HeadFailureDecision() {
 
 	return (
 		<div className="space-y-5">
-			{/* Warning Banner */}
 			<div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-between gap-3">
 				<div className="flex items-center gap-3">
 					<div className="w-9 h-9 bg-rose-100 rounded-xl flex items-center justify-center shrink-0">
@@ -140,8 +136,6 @@ export default function HeadFailureDecision() {
 					<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
 				</button>
 			</div>
-
-			{/* Search & Filters */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
 				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
 					<div className="relative min-w-[200px] flex-1">
@@ -171,8 +165,6 @@ export default function HeadFailureDecision() {
 						]}
 						className="w-44 shrink-0"
 					/>
-
-					{/* Date filters */}
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
 						<input 
@@ -218,8 +210,6 @@ export default function HeadFailureDecision() {
 					<span className="text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} requests found</span>
 				</div>
 			</div>
-
-			{/* Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl shadow-sm overflow-hidden">
 				{loading ? (
 					<div className="flex flex-col items-center justify-center py-20 gap-3">

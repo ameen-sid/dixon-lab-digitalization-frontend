@@ -19,7 +19,6 @@ import { getTestCategories } from '../../services/operations/testCategoryService
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
 
-// Helper to check if a checksheet database entry has actual parameter inputs (ignoring auto-calculated fields)
 const isMeaningfulChecksheetEntry = (entry: any): boolean => {
 	if (!entry || !entry.data) return false;
 	let parsedData = entry.data;
@@ -43,7 +42,7 @@ const isMeaningfulChecksheetEntry = (entry: any): boolean => {
 	return meaningfulEntries.length > 0;
 };
 
-// Returns previous working day YYYY-MM-DD string, skipping Sundays (getDay() === 0)
+
 const getPreviousWorkingDayStr = (baseDate: Date = new Date()): string => {
 	const d = new Date(baseDate);
 	d.setHours(0, 0, 0, 0);
@@ -99,7 +98,7 @@ export default function InspectorDashboard() {
 					}
 				}
 
-				// Concurrently fetch database checksheet entries for all test plans
+				
 				const entriesMap: { [key: string]: any[] } = {};
 				await Promise.all(
 					Object.keys(parsedPlans).map(async (key) => {
@@ -133,7 +132,7 @@ export default function InspectorDashboard() {
 		};
 	}, []);
 
-	// Filter active test plans to Reliability tests
+	
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
 		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
@@ -159,7 +158,7 @@ export default function InspectorDashboard() {
 			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
 	);
 
-	// Date generator helper
+	
 	const getDatesArray = (startStr: string, endStr: string) => {
 		if (!startStr || !endStr) return [];
 		const dates: string[] = [];
@@ -177,7 +176,7 @@ export default function InspectorDashboard() {
 		return dates;
 	};
 
-	// Compute statistics and lists
+	
 	let todayPendingCount = 0;
 	let completedCount = 0;
 	let missedCount = 0;
@@ -221,12 +220,12 @@ export default function InspectorDashboard() {
 					todayPendingCount++;
 				}
 			} else {
-				// Past date within active range
+				
 				if (hasEntry) {
 					completedCount++;
 					completedForThisPlan++;
 				} else if (isSunday) {
-					// Skip Sunday for missed log count/alerts
+					
 				} else {
 					missedCount++;
 					missedForThisPlan++;
@@ -266,7 +265,7 @@ export default function InspectorDashboard() {
 		});
 	});
 
-	// Sort alerts by date descending
+	
 	alerts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
 
@@ -288,9 +287,7 @@ export default function InspectorDashboard() {
 			description="Log batch visual parameters, audit dimensional reports, and file daily life test checksheets."
 		>
 			<div className="space-y-6">
-				{/* Stat Cards Row */}
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-					{/* Today Pending */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 						<div>
 							<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Today Pending</span>
@@ -301,8 +298,6 @@ export default function InspectorDashboard() {
 							<Clock className="w-5 h-5" />
 						</div>
 					</div>
-
-					{/* Completed Checksheets */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 						<div>
 							<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Completed Days</span>
@@ -313,8 +308,6 @@ export default function InspectorDashboard() {
 							<FileCheck className="w-5 h-5" />
 						</div>
 					</div>
-
-					{/* Missed Checksheets */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
 						<div>
 							<span className="text-zinc-550 text-[10px] font-extrabold uppercase tracking-wider block">Missed Days</span>
@@ -326,14 +319,8 @@ export default function InspectorDashboard() {
 						</div>
 					</div>
 				</div>
-
-				{/* Dashboard Main layout splits */}
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					
-					{/* Left 2 Columns: Today's pending checksheets & summaries */}
 					<div className="lg:col-span-2 space-y-6">
-						
-						{/* Today Pending Checksheets Section */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 							<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
 								<div className="flex items-center gap-2">
@@ -384,12 +371,10 @@ export default function InspectorDashboard() {
 											</div>
 
 											<div className="flex items-center gap-4">
-												{/* Progress */}
 												<div className="text-right hidden sm:block">
 													<span className="text-[9px] text-zinc-400 block font-semibold">Total Progress</span>
 													<span className="text-xs font-extrabold text-indigo-700">{item.progress}%</span>
 												</div>
-												
 												<button
 													onClick={() => navigate(`/inspector/checksheet/${item.planKey}`)}
 													className={`px-3.5 py-2 rounded-xl font-bold text-[11px] transition-all cursor-pointer outline-none active:scale-[0.98] ${
@@ -406,8 +391,6 @@ export default function InspectorDashboard() {
 								</div>
 							)}
 						</div>
-
-						{/* Daily Inspection Summary & Progress */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 							<div className="border-b border-zinc-100 pb-3">
 								<h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider">All Active Reliability Plans</h3>
@@ -438,8 +421,6 @@ export default function InspectorDashboard() {
 													</span>
 												</div>
 											</div>
-											
-											{/* Progress Bar */}
 											<div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden flex">
 												<div 
 													className="bg-emerald-500 h-full transition-all duration-300"
@@ -453,8 +434,6 @@ export default function InspectorDashboard() {
 													/>
 												)}
 											</div>
-
-											{/* Metadata row details */}
 											<div className="flex items-center gap-4 text-[9px] font-bold text-zinc-500">
 												<span className="flex items-center gap-1 text-emerald-600">
 													<CheckCircle2 className="w-3 h-3" />
@@ -479,11 +458,7 @@ export default function InspectorDashboard() {
 							)}
 						</div>
 					</div>
-
-					{/* Right 1 Column: Daily inspection summary and alerts */}
 					<div className="space-y-6">
-						
-						{/* Daily alerts and exceptions */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-4">
 							<div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
 								<AlertTriangle className="w-5 h-5 text-rose-600" />
@@ -523,8 +498,6 @@ export default function InspectorDashboard() {
 								</div>
 							)}
 						</div>
-
-						{/* Static NABL Compliance Guidelines Card */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-3">
 							<div className="flex items-center gap-2 border-b border-[#f4f4f5] pb-2">
 								<Sliders className="w-4 h-4 text-indigo-700" />
@@ -543,8 +516,6 @@ export default function InspectorDashboard() {
 								</div>
 							</div>
 						</div>
-
-						{/* Clean Workspace Card */}
 						<div className="bg-gradient-to-tr from-[#11236a] to-[#253e9a] rounded-3xl p-5 text-white shadow-md space-y-3">
 							<div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
 								<SearchCode className="w-4 h-4 text-white" />

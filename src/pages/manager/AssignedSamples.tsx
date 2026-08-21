@@ -6,14 +6,14 @@ import CustomSelect from '../../components/CustomSelect';
 import toast from 'react-hot-toast';
 
 interface InspectionTask {
-	id: string; // Dynamic DB request ID
-	requestId: string; // Formal REQ-2026-X format
+	id: string; 
+	requestId: string; 
 	brandName: string;
 	modelNo: string;
 	testMethodRef: string;
 	sampleDescription: string;
 	sampleQty: number;
-	status: string; // 'PENDING' | 'PASSED' | 'FAILED' | 'COMPLETED'
+	status: string; 
 	assignedDate: string;
 	engineerId?: string;
 	engineerName?: string;
@@ -24,7 +24,7 @@ interface InspectionTask {
 interface SampleReport {
 	allottedId: string;
 	remarks: string;
-	images: string[]; // Server file paths e.g. /uploads/inspection_results/...
+	images: string[]; 
 	checks: { [key: number]: 'Yes' | 'No' | 'N.A' | undefined };
 	status: 'PASSED' | 'FAILED';
 }
@@ -53,7 +53,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 	const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
 
-	// Route-based Navigation flow parameters
+	
 	const { planId, sampleIndex } = useParams<{ planId?: string; sampleIndex?: string }>();
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -78,10 +78,8 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 	const isViewOnly = new URLSearchParams(location.search).get('view') === 'true' || isPlanCompleted;
 
-	// Dictionary mapping unique key `${planId}-sample-${sampleIndex}` to SampleReport
 	const [sampleInspections, setSampleInspections] = useState<{ [key: string]: SampleReport }>({});
 
-	// Fetch and populate sample inspections from DB when activePlanId is set
 	useEffect(() => {
 		if (!activePlanId) return;
 
@@ -112,7 +110,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 							remarks: insp.remarks || '',
 							status: insp.status as 'PASSED' | 'FAILED',
 							checks: checksObj,
-							images: imagesArr  // server file paths
+							images: imagesArr  
 						};
 					});
 
@@ -129,24 +127,17 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		fetchDbInspections();
 	}, [activePlanId]);
 
-	// Inspection Form states
 	const [checks, setChecks] = useState<{ [key: number]: 'Yes' | 'No' | 'N.A' | undefined }>({});
 	const [allottedId, setAllottedId] = useState('');
 	const [remarks, setRemarks] = useState('');
-	// pendingFiles: actual File objects to be uploaded on save
 	const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-	// previewUrls: local object URLs for preview before save
 	const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-	// savedImagePaths: server paths already persisted in the DB
 	const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]);
 
-	// Filter state
 	const [statusFilter, setStatusFilter] = useState('All');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
 
-	// Dictionary/cache of inspections compiled for statistics and list badges
-	// Compute merged reports dynamically from tasks prop database relations and state
 	const mergedReports = useMemo(() => {
 		const reportsMap: { [key: string]: any } = {};
 
@@ -257,7 +248,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		return true;
 	};
 
-	// Filter tasks dynamically
 	const filteredTasks = tasks.filter(t => {
 		const q = searchQuery.toLowerCase();
 		const matchesSearch = t.brandName.toLowerCase().includes(q) ||
@@ -281,7 +271,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedTasks = filteredTasks.slice(startIndex, endIndex);
 
-	// Handler to start inspecting a specific sample
 	const handleStartSampleInspection = (sampleIdx: number, readOnly = false) => {
 		if (!activePlanId) return;
 		navigate(`${basePath}/assigned-samples/${activePlanId}/sample/${sampleIdx}${readOnly ? '?view=true' : ''}`);
@@ -310,7 +299,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		}
 	}, [activePlanId, activeSampleIndex, activePlan, sampleInspections]);
 
-	// Image loader: store File objects + generate preview URLs
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
 		if (!files) return;
@@ -320,19 +308,16 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		setPreviewUrls(prev => [...prev, ...newPreviews]);
 	};
 
-	// Remove a pending (not-yet-saved) file
 	const removePendingImage = (idxToRemove: number) => {
 		URL.revokeObjectURL(previewUrls[idxToRemove]);
 		setPendingFiles(prev => prev.filter((_, idx) => idx !== idxToRemove));
 		setPreviewUrls(prev => prev.filter((_, idx) => idx !== idxToRemove));
 	};
 
-	// Remove an already-saved server image path
 	const removeSavedImage = (idxToRemove: number) => {
 		setSavedImagePaths(prev => prev.filter((_, idx) => idx !== idxToRemove));
 	};
 
-	// Save individual sample inspection result
 	const handleSaveSampleReport = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!activePlanId || activeSampleIndex === null) return;
@@ -342,7 +327,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			return;
 		}
 
-		// Validation: check if all 9 checkpoints are answered
 		for (let i = 1; i <= 9; i++) {
 			if (!checks[i]) {
 				toast.error(`Please provide an observation for checkpoint ${i} before saving.`);
@@ -350,7 +334,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			}
 		}
 
-		// Outcome rule: if ANY checkpoint is answered 'No', the sample FAILS; 'Yes' and 'N.A' both pass
 		const hasNonCompliance = CHECKPOINTS.some(cp => checks[cp.id] === 'No');
 		const status: 'PASSED' | 'FAILED' = hasNonCompliance ? 'FAILED' : 'PASSED';
 
@@ -358,7 +341,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 		try {
 			const { saveSampleInspection } = await import('../../services/operations/testRequestService');
-			// Build FormData — send real files to backend
 			const formData = new FormData();
 			formData.append('sampleIndex', String(activeSampleIndex));
 			formData.append('allottedId', allottedId);
@@ -369,7 +351,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			pendingFiles.forEach(file => formData.append('images', file));
 			const savedRecord = await saveSampleInspection(activePlanId, formData)();
 
-			// Parse server paths back from the saved record
 			let serverPaths: string[] = [];
 			try {
 				serverPaths = savedRecord?.images ? JSON.parse(savedRecord.images) : [];
@@ -383,7 +364,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				status
 			};
 			setSampleInspections(prev => ({ ...prev, [cacheKey]: newReport }));
-			// Clear pending files after successful save
 			previewUrls.forEach(url => URL.revokeObjectURL(url));
 			setPendingFiles([]);
 			setPreviewUrls([]);
@@ -396,7 +376,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		navigate(`${basePath}/assigned-samples/${activePlanId}`);
 	};
 
-	// Compile and submit all sample reports to complete final plan
 	const handleSubmitFinalInspectionPlan = async () => {
 		if (!activePlanId || !activePlan) return;
 
@@ -413,11 +392,9 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 			compiledReports.push(report);
 		}
 
-		// Calculate overall result: if any sample failed, the overall outcome is FAILED
 		const overallFailed = compiledReports.some(r => r.status === 'FAILED');
 		const result: 'PASSED' | 'FAILED' = overallFailed ? 'FAILED' : 'PASSED';
 
-		// Construct compiled remarks
 		const finalRemarks = `Integrated Calibration Report: Completed visual checklist checks for all ${qty} samples. ` +
 			`Overall outcome: ${result}. Details of sample allotments: ${compiledReports.map(r => r.allottedId).join(', ')}.`;
 
@@ -428,11 +405,8 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				finalRemarks,
 				{ compiledReports }
 			);
-
-			// Save completed reports in DB via onCompleteInspection
-
-			// Clear local storage cache for this plan
-			setSampleInspections(prev => {
+			
+		setSampleInspections(prev => {
 				const updated = { ...prev };
 				for (let i = 0; i < qty; i++) {
 					delete updated[`${activePlanId}-sample-${i}`];
@@ -447,13 +421,9 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		}
 	};
 
-	// ==========================================
-	// SCREEN 3: DYNAMIC SAMPLE INSPECTION FORM
-	// ==========================================
 	if (activePlan && activeSampleIndex !== null) {
 		return (
 			<div className="space-y-6">
-				{/* Top Bar Navigation */}
 				<div className="flex items-center gap-3">
 					<button
 						onClick={() => navigate(`${basePath}/assigned-samples/${activePlanId}`)}
@@ -472,8 +442,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 				</div>
 
 				<form onSubmit={handleSaveSampleReport} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-					{/* Left: The Checklist Table */}
 					<div className="lg:col-span-2 bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1.5">
 						<div className="overflow-x-auto">
 							<table className="w-full text-left border-collapse min-w-[600px]">
@@ -528,10 +496,7 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						</div>
 					</div>
 
-					{/* Right: Telemetry metadata and uploads */}
 					<div className="space-y-6">
-
-						{/* Identification and remarks */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2">
 								Sample Identification
@@ -565,14 +530,10 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 								</div>
 							</div>
 						</div>
-
-						{/* Pictures upload zone */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-955 uppercase tracking-wider border-b border-zinc-100 pb-2">
 								12. Sample Picture Upload
 							</h4>
-
-							{/* Drag and Drop box */}
 							{!isViewOnly && (
 								<div
 									onClick={() => fileInputRef.current?.click()}
@@ -595,8 +556,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									</div>
 								</div>
 							)}
-
-							{/* Already-saved server images */}
 							{savedImagePaths.length > 0 && (
 								<div className="space-y-2 border-t border-zinc-100 pt-3">
 									<p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider">
@@ -635,8 +594,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									</div>
 								</div>
 							)}
-
-							{/* Pending (not yet saved) previews */}
 							{previewUrls.length > 0 && (
 								<div className="space-y-2 border-t border-zinc-100 pt-3">
 									<p className="text-[9px] text-amber-600 font-extrabold uppercase tracking-wider">
@@ -676,8 +633,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 								</div>
 							)}
 						</div>
-
-						{/* Form submission controls + Live Result Evaluator */}
 						{(() => {
 							const answeredCount = CHECKPOINTS.filter(cp => checks[cp.id] !== undefined).length;
 							const hasAnyNo = CHECKPOINTS.some(cp => checks[cp.id] === 'No');
@@ -713,9 +668,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		);
 	}
 
-	// ==========================================
-	// SCREEN 2: DYNAMIC SAMPLES CHECKLIST GRID
-	// ==========================================
 	if (activePlan) {
 		const qty = activePlan.sampleQty || 1;
 		const samples = Array.from({ length: qty }, (_, idx) => {
@@ -733,7 +685,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 		return (
 			<div className="space-y-6">
-				{/* Top bar */}
 				<div className="flex items-center justify-between gap-4">
 					<div className="flex items-center gap-3">
 						<button
@@ -787,8 +738,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						return null;
 					})()}
 				</div>
-
-				{/* Parent specs details header */}
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-5">
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Standard Reference Protocol</span>
@@ -803,8 +752,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						<p className="text-zinc-650 font-medium text-[11px] leading-relaxed mt-1">{activePlan.sampleDescription}</p>
 					</div>
 				</div>
-
-				{/* Samples Registry Table - Tabular row wise layout */}
 				<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 					<div className="overflow-x-auto">
 						<table className="w-full text-left border-collapse min-w-[700px]">
@@ -884,14 +831,9 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 		);
 	}
 
-	// ==========================================
-	// SCREEN 1: THE ACTIVE PLANS REGISTRY TABLE
-	// ==========================================
 	return (
 		<div className="space-y-6">
-			{/* Filters toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
-				{/* Search input (Left side) */}
 				<div className="relative w-full lg:max-w-xs">
 					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-555" />
 					<input
@@ -905,8 +847,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-805 placeholder-zinc-500 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 					/>
 				</div>
-
-				{/* Other filters (Right side) */}
 				<div className="flex flex-col sm:flex-row gap-4 items-center w-full lg:w-auto lg:justify-end">
 					<div className="flex items-center gap-2 w-full sm:w-auto">
 						<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider whitespace-nowrap">Status:</span>
@@ -969,8 +909,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					)}
 				</div>
 			</div>
-
-			{/* Task table list */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{paginatedTasks.length === 0 ? (
 					<div className="text-center py-16">
@@ -1072,8 +1010,6 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					</div>
 				)}
 			</div>
-
-			{/* Fullscreen Image Preview Modal */}
 			{previewModalImage && (
 				<div 
 					className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"

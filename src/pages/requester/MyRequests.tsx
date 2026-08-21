@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, X, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
+
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
 
@@ -59,10 +60,10 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 
 	const filteredRequests = requests.filter(req => {
 		const matchesSearch = req.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-							  req.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
-							  req.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-							  req.customerNameAddress.toLowerCase().includes(searchQuery.toLowerCase());
-		
+							req.modelNo.toLowerCase().includes(searchQuery.toLowerCase()) || 
+							req.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+							req.customerNameAddress.toLowerCase().includes(searchQuery.toLowerCase());
+
 		const matchesStatus = 
 			statusFilter === 'ALL' || 
 			req.status === statusFilter || 
@@ -70,7 +71,7 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 			(statusFilter === 'UNDER_TESTING' && ['UNDER_TEST', 'UNDER_TESTING', 'RETEST'].includes(req.status)) ||
 			(statusFilter === 'COMPLETED' && ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(req.status)) ||
 			(statusFilter === 'TESTING_FAILED' && ['TESTING_FAILED', 'FAILED', 'FAIL'].includes(req.status));
-		
+
 		let matchesDate = true;
 		if (startDate) {
 			matchesDate = matchesDate && req.createdDate >= startDate;
@@ -94,7 +95,6 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 
 	return (
 		<div className="space-y-6">
-			{/* Filters Dashboard Toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
 				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
 					<div className="relative min-w-[200px] flex-1">
@@ -121,7 +121,7 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 							</button>
 						)}
 					</div>
-					
+
 					<CustomSelect
 						value={statusFilter}
 						onChange={(val) => {
@@ -195,8 +195,6 @@ export default function MyRequests({ requests, setActiveTab, setSelectedRequest 
 					<Plus className="w-4 h-4" /> New Test Request
 				</button>
 			</div>
-
-			{/* Requests Registers Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{filteredRequests.length === 0 ? (
 					<div className="text-center py-16">

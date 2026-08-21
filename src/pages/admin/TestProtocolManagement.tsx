@@ -47,7 +47,6 @@ export default function TestProtocolManagement() {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [recordToDelete, setRecordToDelete] = useState<TestProtocolRecord | null>(null);
 
-	// Form states
 	const [name, setName] = useState("");
 	const [productType, setProductType] = useState("SATL");
 	const [testMethod, setTestMethod] = useState("");
@@ -85,7 +84,6 @@ export default function TestProtocolManagement() {
 		fetchData();
 	}, []);
 
-	// Filter categories based on selected test type
 	const filteredCategoriesDropdown = categories.filter(
 		(cat) => cat.testTypeId === (selectedTestTypeId ? Number(selectedTestTypeId) : null)
 	);
@@ -188,7 +186,6 @@ export default function TestProtocolManagement() {
 		setShowEditModal(false);
 	};
 
-	// Filter categories for the page filter dropdown based on selected filterTestTypeId
 	const filteredCategoriesForFilter = categories.filter(
 		(cat) => filterTestTypeId === "all" || cat.testTypeId === Number(filterTestTypeId)
 	);
@@ -271,7 +268,7 @@ export default function TestProtocolManagement() {
 							value={filterTestTypeId}
 							onChange={(val) => {
 								setFilterTestTypeId(val);
-								setFilterTestCategoryId("all"); // Reset category filter when type changes
+								setFilterTestCategoryId("all"); 
 								setCurrentPage(1);
 							}}
 							options={[
@@ -460,7 +457,7 @@ export default function TestProtocolManagement() {
 										value={selectedTestTypeId}
 										onChange={(val) => {
 											setSelectedTestTypeId(val);
-											setSelectedTestCategoryId(""); // Reset category when type changes
+											setSelectedTestCategoryId(""); 
 										}}
 										options={testTypes.map((type) => ({ value: type.id.toString(), label: type.name }))}
 										placeholder="-- Select Test Type --"
@@ -572,7 +569,7 @@ export default function TestProtocolManagement() {
 										value={selectedTestTypeId}
 										onChange={(val) => {
 											setSelectedTestTypeId(val);
-											setSelectedTestCategoryId(""); // Reset category when type changes
+											setSelectedTestCategoryId(""); 
 										}}
 										options={testTypes.map((type) => ({ value: type.id.toString(), label: type.name }))}
 										placeholder="-- Select Test Type --"
@@ -674,7 +671,6 @@ export default function TestProtocolManagement() {
 						</div>
 
 						<div className="mt-6 space-y-5 border-t border-zinc-100 pt-5">
-							{/* Badges/Classifications */}
 							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 								<div className="bg-zinc-50 border border-zinc-150 rounded-2xl p-3 shadow-sm">
 									<p className="text-[9px] text-zinc-700 font-bold uppercase tracking-wider">Parent Test Type</p>
@@ -697,8 +693,6 @@ export default function TestProtocolManagement() {
 									</div>
 								</div>
 							</div>
-
-							{/* Details Text Boxes */}
 							<div className="space-y-4">
 								<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 shadow-sm space-y-2">
 									<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider flex items-center gap-1.5">
@@ -720,8 +714,6 @@ export default function TestProtocolManagement() {
 									</div>
 								</div>
 							</div>
-
-							{/* Meta timestamps */}
 							<div className="flex flex-row items-center gap-2 text-[10px] text-zinc-700 font-semibold bg-zinc-50/50 border border-zinc-150 rounded-xl p-3">
 								<Calendar className="w-3.5 h-3.5 text-zinc-650 shrink-0" />
 								<span>

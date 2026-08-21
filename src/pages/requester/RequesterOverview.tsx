@@ -1,5 +1,5 @@
-import { CheckCircle, Clipboard, Plus, FileText, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Clipboard, Plus, FileText, ArrowRight } from 'lucide-react';
 
 interface RequestRecord {
 	id: string;
@@ -50,8 +50,8 @@ interface RequesterOverviewProps {
 }
 
 export default function RequesterOverview({ requests, capas, setActiveTab, setSelectedRequest }: RequesterOverviewProps) {
-	const navigate = useNavigate();
 
+	const navigate = useNavigate();
 	const handleStatusCardClick = (status: string) => {
 		navigate(`/requester/my-requests?status=${status}`);
 	};
@@ -72,11 +72,9 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 
 	return (
 		<div className="space-y-6">
-			{/* Requests Status Overview */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-4">Requests Status Overview</h3>
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
-					{/* Total */}
 					<div 
 						onClick={() => handleStatusCardClick('ALL')}
 						className="cursor-pointer bg-zinc-50 border border-zinc-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-zinc-300 transition-all active:scale-[0.98]"
@@ -84,8 +82,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider">Total</span>
 						<span className="text-xl font-black text-zinc-900 mt-1">{totalCount}</span>
 					</div>
-					
-					{/* Pending */}
 					<div 
 						onClick={() => handleStatusCardClick('PENDING_APPROVAL')}
 						className="cursor-pointer bg-amber-50/50 border border-amber-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-amber-200 transition-all active:scale-[0.98]"
@@ -93,8 +89,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider">Pending</span>
 						<span className="text-xl font-black text-amber-700 mt-1">{pendingCount}</span>
 					</div>
-
-					{/* Rejected */}
 					<div 
 						onClick={() => handleStatusCardClick('REJECTED')}
 						className="cursor-pointer bg-rose-50/50 border border-rose-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-rose-200 transition-all active:scale-[0.98]"
@@ -102,8 +96,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider">Rejected</span>
 						<span className="text-xl font-black text-rose-700 mt-1">{rejectedCount}</span>
 					</div>
-
-					{/* Under Inspection */}
 					<div 
 						onClick={() => handleStatusCardClick('UNDER_INSPECTION')}
 						className="cursor-pointer bg-blue-50/50 border border-blue-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-blue-200 transition-all active:scale-[0.98]"
@@ -111,8 +103,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-blue-600 font-extrabold uppercase tracking-wider">Under Inspection</span>
 						<span className="text-xl font-black text-blue-700 mt-1">{underInspectionCount}</span>
 					</div>
-
-					{/* Inspection Completed */}
 					<div 
 						onClick={() => handleStatusCardClick('INSPECTION_COMPLETED')}
 						className="cursor-pointer bg-emerald-50/50 border border-emerald-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-emerald-200 transition-all active:scale-[0.98]"
@@ -120,8 +110,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider">Inspection Completed</span>
 						<span className="text-xl font-black text-emerald-700 mt-1">{inspectionCompletedCount}</span>
 					</div>
-
-					{/* Inspection Failed */}
 					<div 
 						onClick={() => handleStatusCardClick('INSPECTION_FAILED')}
 						className="cursor-pointer bg-rose-50/50 border border-rose-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-rose-200 transition-all active:scale-[0.98]"
@@ -129,8 +117,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-rose-650 font-extrabold uppercase tracking-wider">Inspection Failed</span>
 						<span className="text-xl font-black text-rose-700 mt-1">{inspectionFailedCount}</span>
 					</div>
-
-					{/* Under Testing */}
 					<div 
 						onClick={() => handleStatusCardClick('UNDER_TESTING')}
 						className="cursor-pointer bg-indigo-50/50 border border-indigo-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-indigo-200 transition-all active:scale-[0.98]"
@@ -138,8 +124,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider">Under Testing</span>
 						<span className="text-xl font-black text-indigo-700 mt-1">{underTestingCount}</span>
 					</div>
-
-					{/* Completed */}
 					<div 
 						onClick={() => handleStatusCardClick('COMPLETED')}
 						className="cursor-pointer bg-teal-50/50 border border-teal-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-teal-200 transition-all active:scale-[0.98]"
@@ -147,8 +131,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						<span className="text-[10px] text-teal-600 font-extrabold uppercase tracking-wider">Completed</span>
 						<span className="text-xl font-black text-teal-700 mt-1">{completedCount}</span>
 					</div>
-
-					{/* Failed */}
 					<div 
 						onClick={() => handleStatusCardClick('TESTING_FAILED')}
 						className="cursor-pointer bg-red-50/50 border border-red-100 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-red-200 transition-all active:scale-[0.98]"
@@ -158,8 +140,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					</div>
 				</div>
 			</div>
-
-			{/* CAPA Reports Summary */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<div className="flex items-center justify-between mb-4">
 					<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-2">
@@ -203,8 +183,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					</div>
 				</div>
 			</div>
-
-			{/* Quick Access Actions */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-3.5">Quick Actions</h3>
 				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -221,7 +199,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						</div>
 						<ArrowRight className="w-4 h-4 shrink-0 opacity-80 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
 					</button>
-
 					<button 
 						onClick={() => setActiveTab('my-requests')}
 						className="flex items-center justify-between p-4 bg-zinc-50 border border-zinc-200 text-zinc-800 rounded-xl hover:bg-zinc-100/70 transition-all cursor-pointer outline-none group active:scale-[0.98]"
@@ -235,7 +212,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 						</div>
 						<ArrowRight className="w-4 h-4 shrink-0 opacity-80 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
 					</button>
-
 					<button 
 						onClick={() => setActiveTab('capa-management')}
 						className="flex items-center justify-between p-4 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all cursor-pointer border-none outline-none group active:scale-[0.98]"
@@ -251,8 +227,6 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					</button>
 				</div>
 			</div>
-
-			{/* Recent Submissions Feed */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<div className="flex items-center justify-between border-b border-zinc-100 pb-3.5 mb-4">
 					<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider">Recent Test Requests</h3>

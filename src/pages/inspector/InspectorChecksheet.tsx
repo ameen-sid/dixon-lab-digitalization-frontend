@@ -9,13 +9,11 @@ import { getTestProtocols } from '../../services/operations/testProtocolService'
 import { getChecksheetEntries, upsertChecksheetEntry } from '../../services/operations/reliabilityChecksheetService';
 import toast from 'react-hot-toast';
 
-// Column definition types
 interface ColumnDef {
 	id: string;
 	label: string;
 }
 
-// Columns for Semi-automatic Washing Machine Life Test (SATL)
 const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
 	{ id: 'washCycles', label: 'NO. OF CYCLE-wash' },
@@ -34,7 +32,6 @@ const SATL_COLUMNS: ColumnDef[] = [
 	{ id: 'remarks', label: 'Remarks' },
 ];
 
-// Columns for Fully automatic Washing Machine Life Test (FATL)
 const FATL_COLUMNS: ColumnDef[] = [
 	{ id: 'loadCondition', label: 'Load Condition' },
 	{ id: 'noOfCycle', label: 'NO. OF CYCLE' },
@@ -55,23 +52,18 @@ export default function InspectorChecksheet() {
 	const navigate = useNavigate();
 	const { planKey } = useParams<{ planKey: string }>();
 
-	// Data stores
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 
-	// Checksheet values cache: map of "dateStr_colId" -> value
 	const [cellData, setCellData] = useState<{ [key: string]: string }>({});
 
-	// Temporary typing values to prevent re-render lag
 	const [tempValues, setTempValues] = useState<{ [key: string]: string }>({});
 
-	// Loading state
 	const [loading, setLoading] = useState(true);
 
-	// Test outcome decision & photo upload states
 	const [isRecommendationModalOpen, setIsRecommendationModalOpen] = useState(false);
 	const [modalDecision, setModalDecision] = useState<'PASSED' | 'FAILED' | ''>('');
 	const [inspectorStatus, setInspectorStatus] = useState<'PASSED' | 'FAILED' | ''>('');
@@ -81,7 +73,6 @@ export default function InspectorChecksheet() {
 	const [isSavingRecommendation, setIsSavingRecommendation] = useState(false);
 	const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null);
 
-	// Fetch all parameters and backend database entries on mount
 	useEffect(() => {
 		let isMounted = true;
 		const loadData = async () => {
@@ -113,7 +104,6 @@ export default function InspectorChecksheet() {
 					});
 				}
 
-				// Fetch entries from backend database
 				const dbEntries = await getChecksheetEntries(planKey)();
 
 				if (isMounted) {
@@ -123,7 +113,6 @@ export default function InspectorChecksheet() {
 					setTestProtocols(protocols || []);
 					setPlans(plansMap);
 
-					// Map database entries to cellData state
 					const mappedData: { [key: string]: string } = {};
 					dbEntries.forEach((entry: any) => {
 						if (entry.date && entry.data) {
@@ -158,7 +147,6 @@ export default function InspectorChecksheet() {
 		};
 	}, [planKey]);
 
-	// Get select plan info
 	const planInfo = useMemo(() => {
 		if (!planKey || !plans[planKey]) return null;
 		const plan = plans[planKey];
@@ -177,7 +165,6 @@ export default function InspectorChecksheet() {
 		};
 	}, [planKey, plans, requests, testTypes, testCategories, testProtocols]);
 
-	// Populate existing inspection decision & photos if available
 	const targetPlanId = planInfo?.plan?.id;
 	useEffect(() => {
 		if (!planInfo || !targetPlanId) return;
@@ -266,9 +253,7 @@ export default function InspectorChecksheet() {
 					if (Array.isArray(updatedImgs)) {
 						setUploadedPhotos(updatedImgs);
 					}
-				} catch (e) {
-					// fallback keep local
-				}
+				} catch (e) {}
 			}
 
 			setInspectorStatus(targetStatus);
@@ -283,11 +268,9 @@ export default function InspectorChecksheet() {
 		}
 	};
 
-	// Determine column layout strictly from productType
 	const productType = (planInfo?.plan?.productType || planInfo?.protocol?.productType || 'SATL').toUpperCase();
 	const columns = productType === 'FATL' ? FATL_COLUMNS : SATL_COLUMNS;
 
-	// Date generator helper
 	const getDatesArray = (startStr: string, endStr: string) => {
 		if (!startStr || !endStr) return [];
 		const dates: string[] = [];
@@ -309,7 +292,6 @@ export default function InspectorChecksheet() {
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
 
-	// Pre-calculate cumulative totals for FATL and SATL
 	const calculatedTotals = useMemo(() => {
 		const totals: {
 			[dateStr: string]: {
@@ -348,7 +330,6 @@ export default function InspectorChecksheet() {
 		return totals;
 	}, [datesList, cellData, tempValues]);
 
-	// Local temporary value synchronize
 	const getCellValue = (dateStr: string, colId: string) => {
 		if (productType === 'FATL' && colId === 'totalCycles') {
 			return calculatedTotals[dateStr]?.totalCycles !== undefined ? String(calculatedTotals[dateStr].totalCycles) : '';
@@ -377,16 +358,13 @@ export default function InspectorChecksheet() {
 		setTempValues(prev => ({ ...prev, [cellKey]: val.toUpperCase() }));
 	};
 
-	// Save entry row to database on cell blur
 	const handleCellBlur = async (dateStr: string, colId: string, val: string) => {
 		if (!planKey) return;
 		const cellKey = `${dateStr}_${colId}`;
 		const upperVal = val.toUpperCase();
 
-		// Update cache state locally
 		const updatedCellData = { ...cellData, [cellKey]: upperVal };
 
-		// Auto-calculate and update totals before saving
 		if (productType === 'FATL') {
 			const totalVal = calculatedTotals[dateStr]?.totalCycles;
 			if (totalVal !== undefined) {
@@ -405,7 +383,6 @@ export default function InspectorChecksheet() {
 
 		setCellData(updatedCellData);
 
-		// Aggregate all entries for this specific date
 		const dateData: { [key: string]: string } = {};
 		columns.forEach(col => {
 			const k = `${dateStr}_${col.id}`;
@@ -416,14 +393,12 @@ export default function InspectorChecksheet() {
 		});
 
 		try {
-			// Save in backend database
 			await upsertChecksheetEntry(planKey, dateStr, dateData)();
 		} catch (error) {
 			console.error('Failed to sync checksheet entry with database:', error);
 		}
 	};
 
-	// Keyboard arrow navigation helper
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, dateIndex: number, colIndex: number) => {
 		let targetDateIndex = dateIndex;
 		let targetColIndex = colIndex;
@@ -437,17 +412,16 @@ export default function InspectorChecksheet() {
 		} else if (e.key === 'ArrowDown') {
 			targetDateIndex = dateIndex + 1;
 		} else {
-			return; // Not an arrow key
+			return; 
 		}
 
-		// Prevent browser scroll or standard cursor movements on arrow keys
 		e.preventDefault();
 
 		let safety = 0;
 		while (safety < 20) {
 			safety++;
 			if (targetDateIndex < 0 || targetDateIndex >= datesList.length || targetColIndex < 0 || targetColIndex >= columns.length) {
-				break; // Out of bounds
+				break; 
 			}
 
 			const targetId = `cell-${targetDateIndex}-${targetColIndex}`;
@@ -458,7 +432,6 @@ export default function InspectorChecksheet() {
 				break;
 			}
 
-			// If disabled/unavailable, keep walking in that direction
 			if (e.key === 'ArrowLeft') {
 				targetColIndex--;
 			} else if (e.key === 'ArrowRight') {
@@ -471,7 +444,6 @@ export default function InspectorChecksheet() {
 		}
 	};
 
-	// Format platforms list text
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
 		let platforms = plan.platformNos;
@@ -486,7 +458,6 @@ export default function InspectorChecksheet() {
 		return platforms.map((pNum: number) => `S${plan.stationNo}-P${pNum}`).join(', ');
 	};
 
-	// Print sheets helper
 	const triggerPrint = () => {
 		window.print();
 	};
@@ -524,7 +495,6 @@ export default function InspectorChecksheet() {
 
 	return (
 		<>
-			{/* Print layout override styles */}
 			<style>{`
 				@media print {
 					@page {
@@ -583,8 +553,6 @@ export default function InspectorChecksheet() {
 			`}</style>
 
 			<div className="min-h-screen bg-[#f8fafc] text-zinc-900 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto">
-
-				{/* Header back & prints bar */}
 				<div className="flex flex-row justify-between items-center no-print shrink-0">
 					<button
 						onClick={() => navigate('/inspector/daily-checksheet')}
@@ -598,8 +566,6 @@ export default function InspectorChecksheet() {
 						<span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
 							Tip: Cell inputs save to database on blur
 						</span>
-
-						{/* Pass Test Button */}
 						<button
 							type="button"
 							onClick={() => handleOpenRecommendationModal('PASSED')}
@@ -611,8 +577,6 @@ export default function InspectorChecksheet() {
 							<CheckCircle2 className="w-4 h-4" />
 							<span>{inspectorStatus === 'PASSED' ? 'Passed (Edit)' : 'Pass Test'}</span>
 						</button>
-
-						{/* Fail Test Button */}
 						<button
 							type="button"
 							onClick={() => handleOpenRecommendationModal('FAILED')}
@@ -634,14 +598,10 @@ export default function InspectorChecksheet() {
 						</button>
 					</div>
 				</div>
-
-				{/* Document checksheet frame */}
 				<div
 					id="printable-checksheet"
 					className="bg-white border border-zinc-300 rounded-[28px] p-4 sm:p-8 shadow-xl flex-1 flex flex-col gap-6"
 				>
-
-					{/* Table Header Dixon style */}
 					<div className="border border-zinc-900 grid grid-cols-4 text-zinc-900 shrink-0">
 						<div className="col-span-1 border-r border-zinc-900 p-3.5 flex items-center justify-center text-[10px] font-bold tracking-widest uppercase">
 							R&D Test Lab
@@ -657,8 +617,6 @@ export default function InspectorChecksheet() {
 							Plan #{planInfo.plan.stationNo}
 						</div>
 					</div>
-
-					{/* Metadata table grid */}
 					<div className="border-x border-b border-zinc-900 -mt-6 grid grid-cols-3 text-zinc-900 text-xs font-bold shrink-0">
 						<div className="col-span-2 divide-y divide-zinc-900">
 							<div className="grid grid-cols-3 divide-x divide-zinc-900">
@@ -695,8 +653,6 @@ export default function InspectorChecksheet() {
 							<span className="text-[8px] font-extrabold uppercase tracking-widest mt-1 text-zinc-555">Reliability Lab</span>
 						</div>
 					</div>
-
-					{/* Grid Data Sheets */}
 					<div className="overflow-x-auto overflow-y-auto border border-zinc-900 flex-1 min-h-[350px]">
 						<table className="min-w-full border-collapse text-left">
 							<thead className="sticky top-0 z-10 bg-zinc-100 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
@@ -711,7 +667,6 @@ export default function InspectorChecksheet() {
 							</thead>
 							<tbody className="divide-y divide-zinc-900">
 								{datesList.map((dateStr, dateIndex) => {
-									// Format date to show like 14-04-2026
 									const [y, m, d] = dateStr.split('-');
 									const formattedDate = `${d}-${m}-${y}`;
 
@@ -749,8 +704,6 @@ export default function InspectorChecksheet() {
 							</tbody>
 						</table>
 					</div>
-
-					{/* Document signature footnotes */}
 					<div className="grid grid-cols-2 gap-8 text-[10px] font-bold text-zinc-500 mt-6 pt-4 border-t border-zinc-200">
 						<div>
 							<span>Prepared By: Quality Inspector</span>
@@ -762,8 +715,6 @@ export default function InspectorChecksheet() {
 
 				</div>
 			</div>
-
-			{/* Recommendation & Photos Modal */}
 			{isRecommendationModalOpen && (
 				<div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsRecommendationModalOpen(false)}>
 					<div
@@ -787,8 +738,6 @@ export default function InspectorChecksheet() {
 								<X className="w-5 h-5" />
 							</button>
 						</div>
-
-						{/* Selected Outcome Badge Indicator */}
 						<div className="flex items-center justify-between bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200/60">
 							<span className="text-xs font-bold text-zinc-600 uppercase tracking-wider">Outcome Recommendation:</span>
 							<div className="flex items-center gap-2">
@@ -817,8 +766,6 @@ export default function InspectorChecksheet() {
 								</button>
 							</div>
 						</div>
-
-						{/* Inspector Observations Input */}
 						<div className="space-y-1.5">
 							<label className="text-xs font-bold text-zinc-700">Inspector Observations / Remarks</label>
 							<textarea
@@ -829,8 +776,6 @@ export default function InspectorChecksheet() {
 								className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 outline-none focus:border-indigo-600 transition-all resize-none"
 							/>
 						</div>
-
-						{/* Evidence Photo Upload */}
 						<div className="space-y-2">
 							<label className="text-xs font-bold text-zinc-700 flex items-center gap-1.5">
 								<Upload className="w-3.5 h-3.5 text-indigo-600" />
@@ -848,8 +793,6 @@ export default function InspectorChecksheet() {
 									className="hidden"
 								/>
 							</label>
-
-							{/* Uploaded Photos Preview Grid */}
 							{uploadedPhotos.length > 0 && (
 								<div className="flex flex-wrap items-center gap-2.5 pt-1 max-h-32 overflow-y-auto">
 									{uploadedPhotos.map((imgSrc, idx) => (
@@ -867,8 +810,6 @@ export default function InspectorChecksheet() {
 								</div>
 							)}
 						</div>
-
-						{/* Modal Action Buttons */}
 						<div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-100">
 							<button
 								type="button"
@@ -890,8 +831,6 @@ export default function InspectorChecksheet() {
 					</div>
 				</div>
 			)}
-
-			{/* Photo Preview Modal */}
 			{previewPhotoModal && (
 				<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewPhotoModal(null)}>
 					<div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2" onClick={e => e.stopPropagation()}>

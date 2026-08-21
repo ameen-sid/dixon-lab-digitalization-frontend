@@ -50,7 +50,6 @@ export default function HeadDashboard() {
 
 	const pathSegment = location.pathname.replace('/head/', '') || 'dashboard';
 	
-	// Check if this is a sub-page details route
 	const isDetailsPage = pathSegment.startsWith('sample-tests/') && pathSegment !== 'sample-tests';
 	const isReportDetailsPage = pathSegment.startsWith('completed-reports/') && pathSegment !== 'completed-reports';
 	const isFailureDetailsPage = pathSegment.startsWith('failure-decision/') && pathSegment !== 'failure-decision';
@@ -88,10 +87,8 @@ export default function HeadDashboard() {
 
 	return (
 		<div className="h-screen w-screen overflow-hidden bg-[#eef2f6] text-zinc-800 flex flex-row">
-			{/* Sidebar */}
 			<aside className={`h-full bg-white shrink-0 flex flex-col justify-between z-20 shadow-sm border-r border-zinc-200 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-20 p-4' : 'w-64 p-5'}`}>
 				<div className="flex flex-col gap-6 min-h-0 flex-1">
-					{/* Logo + collapse */}
 					<div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
 						{!isCollapsed && <img src="/logo.png" alt="Dixon Logo" className="h-14 object-contain" />}
 						<button
@@ -104,8 +101,6 @@ export default function HeadDashboard() {
 							</svg>
 						</button>
 					</div>
-
-					{/* Nav */}
 					<nav className="flex flex-col gap-1 overflow-y-auto flex-1 pr-1">
 						{!isCollapsed && (
 							<div className="px-3.5 mb-2 text-[9px] text-zinc-400 font-bold uppercase tracking-widest">Head Panel</div>
@@ -127,8 +122,6 @@ export default function HeadDashboard() {
 						})}
 					</nav>
 				</div>
-
-				{/* User + Logout */}
 				<div className="border-t border-zinc-200/80 pt-4 flex flex-col gap-3 shrink-0">
 					<div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
 						<div className="w-9 h-9 bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-center shrink-0">
@@ -150,8 +143,6 @@ export default function HeadDashboard() {
 					</button>
 				</div>
 			</aside>
-
-			{/* Main content */}
 			<main className="flex-1 h-full overflow-y-auto flex flex-col gap-6 p-8 pr-6">
 				{activeId !== 'ceo-dashboard' && (
 					<div className="flex flex-col gap-1 pb-2">

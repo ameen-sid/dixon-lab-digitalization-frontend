@@ -51,12 +51,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 	const loadData = async () => {
 		setLoading(true);
 		try {
-			// Fetch Test Requests
 			const fetchOp = getTestRequests();
 			const testRequestsData = await fetchOp();
 			setRequests(testRequestsData || []);
 
-			// Fetch CAPA reports
 			const capasData = await getCapas()();
 			setCapas(capasData || []);
 		} catch (error) {
@@ -70,13 +68,11 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		loadData();
 	}, []);
 
-	// Group/Filter Calculations
 	const totalRequests = requests.length;
 	const pendingApprovalsCount = requests.filter(r => r.status === 'PENDING_APPROVAL').length;
 	const approvedRequestsCount = requests.filter(r => !['PENDING_APPROVAL', 'REJECTED'].includes(r.status)).length;
 	const rejectedRequestsCount = requests.filter(r => r.status === 'REJECTED').length;
 
-	// Completed Tests Pending Approval (PASS, FAIL, PARTIAL representing completed tests needing Lab Head certification/approval)
 	const completedPendingApprovalCount = requests.filter(r => {
 		const statusLower = (r.status || '').toLowerCase();
 		if (statusLower === 'testing_completed') {
@@ -87,7 +83,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		return ['pass', 'testing_passed', 'partial', 'testing_partial'].includes(statusLower);
 	}).length;
 
-	// Failed tests pending decision (FAIL, TESTING_FAILED, or all samples failed AND status is NOT actioned/finalized)
 	const failedTestsPendingDecisionCount = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
 		
@@ -118,12 +113,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		return isFailedStatus || isFullyFailed;
 	}).length;
 
-	// CAPA reports pending review (status is NOT COMPLETED or DONE case-insensitively)
 	const capasPendingReviewCount = capas.filter(c => 
 		!['completed', 'done'].includes((c.status || '').toLowerCase())
 	).length;
 
-	// Department-wise request summary
 	const departmentSummary: Record<string, { total: number; pending: number; completed: number }> = {};
 	requests.forEach(req => {
 		const deptName = req.requester?.department?.name || 'General / Unknown';
@@ -138,14 +131,12 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		}
 	});
 
-	// Get 5 most recent requests
 	const recentActivity = [...requests]
 		.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 		.slice(0, 5);
 
 	return (
 		<div className="space-y-6">
-			{/* Refresh Header widget */}
 			<div className="flex items-center justify-between bg-white border border-zinc-200/50 rounded-2xl px-5 py-3 shadow-sm">
 				<div>
 					<p className="text-[#11236a] font-extrabold text-[11px] uppercase tracking-wider">Directorate Console</p>
@@ -160,10 +151,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<span>Sync Console</span>
 				</button>
 			</div>
-
-			{/* Primary Metrics Grid (Total, Pending, Approved, Rejected) */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				{/* Total Requests */}
 				<div 
 					onClick={() => navigate('/head/sample-tests?status=ALL')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
@@ -178,8 +166,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<FolderOpen className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Pending Approvals */}
 				<div 
 					onClick={() => navigate('/head/sample-tests?status=PENDING_APPROVAL')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
@@ -194,8 +180,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<ClipboardList className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Approved Requests */}
 				<div 
 					onClick={() => navigate('/head/sample-tests?status=APPROVED')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
@@ -210,8 +194,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<CheckCircle className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Rejected Requests */}
 				<div 
 					onClick={() => navigate('/head/sample-tests?status=REJECTED')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
@@ -227,10 +209,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					</div>
 				</div>
 			</div>
-
-			{/* Review Pipelines Grid (Completed Tests Pending Approval, Failed Tests Pending Decision, CAPA Pending Review) */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				{/* Pipeline 1: Completed Tests Pending Approval */}
 				<div 
 					onClick={() => navigate('/head/completed-reports')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
@@ -250,8 +229,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						</span>
 					</div>
 				</div>
-
-				{/* Pipeline 2: Failed Tests Pending Decision */}
 				<div 
 					onClick={() => navigate('/head/failure-decision')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
@@ -271,8 +248,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						</span>
 					</div>
 				</div>
-
-				{/* Pipeline 3: CAPA Reports Pending Review */}
 				<div 
 					onClick={() => navigate('/head/capa-reports')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
@@ -293,8 +268,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					</div>
 				</div>
 			</div>
-
-			{/* Department-wise Request Summary Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
 					<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-2">
@@ -347,8 +320,6 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					</table>
 				</div>
 			</div>
-
-			{/* Recent Submissions Queue Activity (recent 5 requests) */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<div className="flex items-center justify-between border-b border-zinc-100 pb-3.5 mb-4">
 					<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider flex items-center gap-2">

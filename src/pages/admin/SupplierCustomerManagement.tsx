@@ -21,7 +21,6 @@ export default function SupplierCustomerManagement() {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [recordToDelete, setRecordToDelete] = useState<SupplierCustomerRecord | null>(null);
 
-	// Form states
 	const [name, setName] = useState("");
 	const [editingId, setEditingId] = useState<number | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -68,7 +67,6 @@ export default function SupplierCustomerManagement() {
 	const handleUpdate = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!name.trim() || editingId === null) return;
-
 		try {
 			await supplierCustomerService.updateSupplierCustomer(editingId, name)();
 			showNotification(`Supplier / Customer updated successfully!`, 'success');

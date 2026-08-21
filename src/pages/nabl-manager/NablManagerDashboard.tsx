@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import DashboardLayout from '../layouts/DashboardLayout';
-import Pagination from '../../components/Pagination';
-import CustomSelect from '../../components/CustomSelect';
-import { getNablRequests } from '../../services/operations/nablRequestService';
 import { 
 	Activity, FileText, CheckCircle2, AlertCircle, RotateCw, ClipboardList, TrendingUp, PieChart as PieIcon, BarChart2, Layers
 } from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
 
-// Monthly Trend Stacked Bar Chart Component
+import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
+
+import { getNablRequests } from '../../services/operations/nablRequestService';
+
 function MonthlyTrendChart({ data }: { data: { month: string; generated: number; testing: number; pass: number; fail: number }[] }) {
 	const [hoveredMonth, setHoveredMonth] = useState<any | null>(null);
 
@@ -28,7 +29,6 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 	return (
 		<div className="relative w-full overflow-x-auto">
 			<svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[500px]" style={{ height: 210 }}>
-				{/* Grid lines */}
 				{yTicks.map((tick) => {
 					const y = padding.top + chartHeight - (tick / yMax) * chartHeight;
 					return (
@@ -53,8 +53,6 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 						</g>
 					);
 				})}
-
-				{/* Stacked Bars */}
 				{data.map((d, i) => {
 					const colWidth = chartWidth / Math.max(data.length, 1);
 					const xCenter = padding.left + i * colWidth + colWidth / 2;
@@ -66,16 +64,12 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 					const hGen = (d.generated / yMax) * chartHeight;
 
 					let currentY = padding.top + chartHeight;
-
 					const yPass = currentY - hPass;
 					currentY -= hPass;
-
 					const yFail = currentY - hFail;
 					currentY -= hFail;
-
 					const yTesting = currentY - hTesting;
 					currentY -= hTesting;
-
 					const yGen = currentY - hGen;
 
 					return (
@@ -85,7 +79,6 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 							onMouseLeave={() => setHoveredMonth(null)} 
 							className="cursor-pointer"
 						>
-							{/* Track */}
 							<rect
 								x={xCenter - barWidth / 2}
 								y={padding.top}
@@ -95,19 +88,15 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 								rx="6"
 							/>
 
-							{/* Pass (Emerald) */}
 							{d.pass > 0 && (
 								<rect x={xCenter - barWidth / 2} y={yPass} width={barWidth} height={hPass} fill="#10b981" rx="4" />
 							)}
-							{/* Fail (Rose) */}
 							{d.fail > 0 && (
 								<rect x={xCenter - barWidth / 2} y={yFail} width={barWidth} height={hFail} fill="#f43f5e" rx="4" />
 							)}
-							{/* Testing (Amber) */}
 							{d.testing > 0 && (
 								<rect x={xCenter - barWidth / 2} y={yTesting} width={barWidth} height={hTesting} fill="#f59e0b" rx="4" />
 							)}
-							{/* Generated (Blue) */}
 							{d.generated > 0 && (
 								<rect x={xCenter - barWidth / 2} y={yGen} width={barWidth} height={hGen} fill="#3b82f6" rx="4" />
 							)}
@@ -140,7 +129,6 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 	);
 }
 
-// Evaluation Status Donut Chart Component
 function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; testing: number; generated: number } }) {
 	const total = stats.pass + stats.fail + stats.testing + stats.generated || 1;
 	const passPct = Math.round((stats.pass / total) * 100);
@@ -232,7 +220,6 @@ function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; test
 					<span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Requests</span>
 				</div>
 			</div>
-
 			<div className="space-y-2.5 w-full">
 				<div className="flex items-center justify-between text-xs bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl font-bold">
 					<div className="flex items-center gap-2 text-emerald-900">
@@ -241,7 +228,6 @@ function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; test
 					</div>
 					<span className="text-emerald-700 font-extrabold">{stats.pass} ({passPct}%)</span>
 				</div>
-
 				<div className="flex items-center justify-between text-xs bg-rose-50/60 border border-rose-100 p-2.5 rounded-xl font-bold">
 					<div className="flex items-center gap-2 text-rose-900">
 						<span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
@@ -249,7 +235,6 @@ function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; test
 					</div>
 					<span className="text-rose-700 font-extrabold">{stats.fail} ({failPct}%)</span>
 				</div>
-
 				<div className="flex items-center justify-between text-xs bg-amber-50/60 border border-amber-100 p-2.5 rounded-xl font-bold">
 					<div className="flex items-center gap-2 text-amber-900">
 						<span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
@@ -257,7 +242,6 @@ function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; test
 					</div>
 					<span className="text-amber-700 font-extrabold">{stats.testing} ({testingPct}%)</span>
 				</div>
-
 				<div className="flex items-center justify-between text-xs bg-blue-50/60 border border-blue-100 p-2.5 rounded-xl font-bold">
 					<div className="flex items-center gap-2 text-blue-900">
 						<span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
@@ -270,7 +254,6 @@ function StatusDonutChart({ stats }: { stats: { pass: number; fail: number; test
 	);
 }
 
-// Top Brands Horizontal Bar Chart Component
 function TopBrandsChart({ brandCounts }: { brandCounts: { name: string; count: number }[] }) {
 	const maxCount = Math.max(...brandCounts.map(b => b.count), 1);
 
@@ -304,7 +287,6 @@ function TopBrandsChart({ brandCounts }: { brandCounts: { name: string; count: n
 export default function NablManagerDashboard() {
 	const navigate = useNavigate();
 
-	// Authentication validation
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
 
@@ -321,7 +303,6 @@ export default function NablManagerDashboard() {
 		}
 	}, [token, userStr, navigate]);
 
-	// Component States
 	const [requests, setRequests] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [statusFilter, setStatusFilter] = useState('ALL');
@@ -351,7 +332,6 @@ export default function NablManagerDashboard() {
 		toast.success('NABL Dashboard data synchronized successfully.');
 	};
 
-	// Helper to check end date passed
 	const isEndDatePassed = (req: any) => {
 		if (!req.testPlan?.endDate) return false;
 		const today = new Date();
@@ -361,7 +341,6 @@ export default function NablManagerDashboard() {
 		return today > end;
 	};
 
-	// Metrics Calculation
 	const totalRequestsCount = requests.length;
 
 	let countGenerated = 0;
@@ -385,7 +364,6 @@ export default function NablManagerDashboard() {
 		}
 	});
 
-	// Monthly Trend Data Calculation (Last 6 Months)
 	const monthlyTrendData = (() => {
 		const monthsMap: { [key: string]: { month: string; generated: number; testing: number; pass: number; fail: number } } = {};
 		const now = new Date();
@@ -417,11 +395,9 @@ export default function NablManagerDashboard() {
 				}
 			}
 		});
-
 		return Object.values(monthsMap);
 	})();
 
-	// Top Brands Calculation
 	const topBrandsData = (() => {
 		const brandMap: { [key: string]: number } = {};
 		requests.forEach((r) => {
@@ -434,7 +410,6 @@ export default function NablManagerDashboard() {
 			.slice(0, 5);
 	})();
 
-	// Filtering for Table
 	const filteredRequests = requests.filter((r) => {
 		if (statusFilter === 'ALL') return true;
 
@@ -446,7 +421,6 @@ export default function NablManagerDashboard() {
 		if (statusFilter === 'UNDER_TESTING') return r.testPlan?.startDate && !isEnded;
 		if (statusFilter === 'PASS') return isEnded && !isFail;
 		if (statusFilter === 'FAIL') return isEnded && isFail;
-
 		return true;
 	});
 
@@ -455,7 +429,6 @@ export default function NablManagerDashboard() {
 		currentPage * itemsPerPage
 	);
 
-	// Status Badge rendering
 	const getStatusBadge = (req: any) => {
 		const isEnded = isEndDatePassed(req);
 		const planEval = (req.testPlan?.status || req.status || '').toUpperCase();
@@ -486,7 +459,6 @@ export default function NablManagerDashboard() {
 				</div>
 			) : (
 				<div className="space-y-7">
-					{/* Header Banner */}
 					<div className="relative bg-[#11236a] rounded-[24px] px-8 py-6 flex items-center justify-between overflow-hidden shadow-lg">
 						<div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #6366f1 0%, transparent 60%)' }} />
 						<div className="relative z-10">
@@ -504,8 +476,6 @@ export default function NablManagerDashboard() {
 							<RotateCw className="w-4 h-4" />
 						</button>
 					</div>
-
-					{/* 5 Key Metric KPI Cards */}
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 						<div className="bg-white border border-zinc-200/60 rounded-2xl p-4 shadow-sm flex items-center justify-between">
 							<div>
@@ -557,10 +527,7 @@ export default function NablManagerDashboard() {
 							</div>
 						</div>
 					</div>
-
-					{/* GRAPHS SECTION */}
 					<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-						{/* Chart 1: Monthly Trend Stacked Bar Chart */}
 						<div className="lg:col-span-7 bg-white border border-zinc-200/60 rounded-[28px] p-6 shadow-sm space-y-4">
 							<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
 								<div>
@@ -577,11 +544,8 @@ export default function NablManagerDashboard() {
 									<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Fail</span>
 								</div>
 							</div>
-
 							<MonthlyTrendChart data={monthlyTrendData} />
 						</div>
-
-						{/* Chart 2: Status Donut Chart & Distribution */}
 						<div className="lg:col-span-5 bg-white border border-zinc-200/60 rounded-[28px] p-6 shadow-sm space-y-4">
 							<div className="border-b border-zinc-100 pb-4">
 								<h2 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
@@ -590,14 +554,10 @@ export default function NablManagerDashboard() {
 								</h2>
 								<p className="text-[11px] text-zinc-500 font-medium">Proportional distribution of current NABL testing evaluation statuses</p>
 							</div>
-
 							<StatusDonutChart stats={{ pass: countPass, fail: countFail, testing: countTesting, generated: countGenerated }} />
 						</div>
 					</div>
-
-					{/* Top Brands & Registry Summary Section */}
 					<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-						{/* Top Brands Card */}
 						<div className="lg:col-span-4 bg-white border border-zinc-200/60 rounded-[28px] p-6 shadow-sm space-y-4">
 							<div className="border-b border-zinc-100 pb-3">
 								<h2 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
@@ -606,11 +566,8 @@ export default function NablManagerDashboard() {
 								</h2>
 								<p className="text-[11px] text-zinc-500 font-medium">Brands with highest volume of NABL test requests</p>
 							</div>
-
 							<TopBrandsChart brandCounts={topBrandsData} />
 						</div>
-
-						{/* NABL Testing Registry List */}
 						<div className="lg:col-span-8 bg-white border border-zinc-200/60 rounded-[28px] p-6 shadow-sm space-y-4">
 							<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-4">
 								<div>

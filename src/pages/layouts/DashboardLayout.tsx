@@ -180,7 +180,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	if (user.role?.toLowerCase() === 'ceo') {
 		return (
 			<div className="h-screen w-screen overflow-hidden bg-[#f8fafc] text-zinc-800 flex flex-col relative">
-				{/* Top Header Bar for CEO */}
 				<header className="h-16 bg-white border-b border-zinc-200/80 flex items-center justify-between px-8 shrink-0 shadow-sm">
 					<img src="/logo.png" alt="Dixon Logo" className="h-10 object-contain" />
 					<div className="flex items-center gap-4">
@@ -197,7 +196,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 						</button>
 					</div>
 				</header>
-				{/* Main Content Area */}
 				<main className="flex-1 h-full overflow-y-auto p-8">
 					<div className="w-full pb-10">
 						{children}
@@ -223,7 +221,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 							</svg>
 						</button>
 					</div>
-					
 					<nav className="flex flex-col gap-4 overflow-y-auto flex-1 pr-1 no-scrollbar">
 						{user.role === 'Admin' ? (
 							<>
@@ -497,7 +494,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 					</nav>
 				</div>
 
-				{/* Bottom Section: User profile */}
 				<div className="flex flex-col gap-4 mt-6 shrink-0">
 					<div className="border-t border-zinc-200/80 pt-4 flex flex-col gap-3">
 						<div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
@@ -523,8 +519,6 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 					</div>
 				</div>
 			</aside>
-
-			{/* Main Content Area */}
 			<main className="flex-1 h-full overflow-y-auto flex flex-col gap-6 p-8 pr-6">
 				<div className="flex flex-col gap-6 pb-6 pt-1">
 					<div className="flex flex-row justify-between items-center gap-4">

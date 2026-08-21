@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer, Upload, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
 import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
-// Import operations
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
@@ -25,7 +25,7 @@ interface TestPlanForm {
 	id?: number;
 	testTypeId: string;
 	testCategoryId: string;
-	productType: string; // 'SATL' | 'FATL' | 'FAFL' | 'WASH'
+	productType: string;
 	stationNo: number;
 	platformNos: number[];
 	testProtocolId: string;
@@ -59,7 +59,6 @@ const getLocalTodayStr = () => {
 	return `${year}-${month}-${day}`;
 };
 
-// Helper to normalize any date format (YYYY-MM-DD, DD-MM-YYYY, ISO string) to YYYY-MM-DD for HTML5 date inputs
 const toYYYYMMDD = (dateVal: any): string => {
 	if (!dateVal) return '';
 	if (typeof dateVal === 'string') {
@@ -86,7 +85,6 @@ const toYYYYMMDD = (dateVal: any): string => {
 	return `${y}-${m}-${day}`;
 };
 
-// Calculates End Date = Start Date + (Number of Days - 1)
 const calculateEndDate = (startDateStr: string, numDays: number | string): string => {
 	const formattedStart = toYYYYMMDD(startDateStr);
 	const days = Number(numDays);
@@ -104,7 +102,6 @@ const calculateEndDate = (startDateStr: string, numDays: number | string): strin
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus, onRefreshRequests }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
 
-	// Resolve selected request from dynamic route parameter prop
 	const selectedReq = selectedRequestId
 		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
@@ -122,7 +119,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		return failedCount === qty;
 	})();
 
-	// Filter requests to those inspected (status INSPECTION_COMPLETED, UNDER_TESTING, or other testing states)
 	const inspectedRequests = requests.filter((r: any) =>
 		[
 			'INSPECTION_COMPLETED',
@@ -142,12 +138,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		].includes((r.status || '').toUpperCase())
 	);
 
-	// Component states
 	const [activeSampleIndex, setActiveSampleIndex] = useState<number | null>(null);
 	const [activeInspectionReport, setActiveInspectionReport] = useState<any | null>(null);
 	const [activeInspectionSampleIndex, setActiveInspectionSampleIndex] = useState<number | null>(null);
 
-	// Search & Pagination states
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [startDate, setStartDate] = useState('');
@@ -155,7 +149,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 
-	// Database options states
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
@@ -203,7 +196,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	}, [requests]);
 
 	const isSubmittedToHead = selectedReq ? (selectedReq.remarks || '').includes('Submitted to Head') : false;
-
 	const canSubmitToHead = (() => {
 		if (!selectedReq) return false;
 		if (isAllInspectionFailed) return false;
@@ -220,7 +212,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		return true;
 	})();
 
-	// Active planning form state
 	const [form, setForm] = useState<TestPlanForm>({
 		testTypeId: '',
 		testCategoryId: '',
@@ -265,7 +256,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	};
 
-	// Tear Down upload & viewer states
 	const [isUploadingTearDown, setIsUploadingTearDown] = useState<number | null>(null);
 	const [viewTearDownFile, setViewTearDownFile] = useState<{ url: string; filename?: string } | null>(null);
 
@@ -322,7 +312,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	};
 
-	// Helpers to determine test type context
 	const isNabl = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
 	const isReliability = testTypes.find(t => String(t.id) === String(form.testTypeId))?.name?.toLowerCase().includes('reliability') || false;
 
@@ -333,10 +322,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					if (currentPlanId && String(p.id) === String(currentPlanId)) continue;
 					if (p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED') continue;
 
-					// Determine if this test plan is NABL
 					const pIsNabl = testTypes.find(t => String(t.id) === String(p.testTypeId))?.name?.toLowerCase().includes('nabl') || false;
 					if (pIsNabl !== checkNabl) continue;
-
 					let platformNosParsed: number[] = [];
 					if (p.platformNos) {
 						try {
@@ -346,7 +333,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							platformNosParsed = [];
 						}
 					}
-
 					if (Number(p.stationNo) === stationNo && platformNosParsed.includes(platformNo)) {
 						return true;
 					}
@@ -356,7 +342,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		return false;
 	};
 
-	// Fetch dynamic data parameters
 	const loadDbOptions = async () => {
 		try {
 			const types = await getTestTypes()();
@@ -372,19 +357,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			setNormalPlatforms(normalPlts || []);
 			setNablPlatforms(nablPlts || []);
 			setEquipments(eqps || []);
-
-			// Do not auto-prefill equipment so it remains optional unless explicitly chosen
 		} catch (err) {
 			console.error('Failed to load test planning database parameters:', err);
 		}
 	};
 
-	// Load options from database on mount
 	useEffect(() => {
 		loadDbOptions();
 	}, []);
 
-	// Date format helpers
 	const formatDateToDMY = (dateStr: string) => {
 		if (!dateStr) return '';
 		const ymd = toYYYYMMDD(dateStr);
@@ -393,7 +374,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		return `${day}-${month}-${year}`;
 	};
 
-	// Auto-calculation of End Date: StartDate + NumberOfDays - 1
 	useEffect(() => {
 		if (!form.startDate || !form.numberOfDays) {
 			setForm(prev => (prev.endDate ? { ...prev, endDate: '' } : prev));
@@ -403,7 +383,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		setForm(prev => (prev.endDate !== calculatedStr ? { ...prev, endDate: calculatedStr } : prev));
 	}, [form.startDate, form.numberOfDays]);
 
-	// Dependent dropdown change handlers
 	const handleTestTypeChange = (typeId: string) => {
 		const filteredCats = testCategories.filter(c => String(c.testTypeId) === String(typeId));
 		const firstCat = filteredCats[0] || null;
@@ -454,7 +433,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}));
 	};
 
-	// Open test plan modal for a passed sample
 	const handleOpenPlanForm = async (sampleIndex: number, planToEdit?: any) => {
 		if (!selectedReq) return;
 		setActiveSampleIndex(sampleIndex);
@@ -506,7 +484,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			});
 		}
 
-		// Synchronize fresh real-time platform & equipment bookings
 		try {
 			const normalPlts = await getNormalPlatforms()();
 			setNormalPlatforms(normalPlts || []);
@@ -519,7 +496,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	};
 
-	// Delete test plan from database and release resources
 	const handleDeletePlan = async (planId: number, stationNo?: number, platformNos?: number[], equipmentId?: string, planTestTypeId?: string) => {
 		if (!selectedReq) return;
 		if (!window.confirm('Are you sure you want to delete this test plan?')) return;
@@ -560,7 +536,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		}
 	};
 
-	// Save test plan to local cache & reserve in database
 	const handleSaveTestPlan = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedReq || activeSampleIndex === null) return;
@@ -585,7 +560,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			return;
 		}
 
-		// Validation checks based on Test Type
 		if (isReliability) {
 			if (form.platformNos.length === 0) {
 				toast.error('Platform selection is mandatory for Reliability test plans.');
@@ -605,7 +579,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				return;
 			}
 		} else {
-			// Other test types (e.g. Performance)
 			if (form.platformNos.length > 1) {
 				toast.error('Only one platform selection is allowed for this test type.');
 				return;
@@ -632,14 +605,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				? selectedReq.requestId
 				: `REQ-${selectedReq.requestId || selectedReq.id}`;
 
-			// Compute endDate on-the-fly if it's empty (can happen if useEffect hasn't fired yet)
 			let finalEndDate = form.endDate || calculateEndDate(form.startDate, form.numberOfDays);
 			if (!finalEndDate) {
 				toast.error('Could not compute end date. Please check start date and number of days.');
 				return;
 			}
 
-			// Release any previously reserved platforms/equipments for this specific test plan first
 			const existing = form.id ? (savedPlans[`${selectedReq.id}-sample-${activeSampleIndex}`] || []).find((p: any) => String(p.id) === String(form.id)) : null;
 			if (existing) {
 				if (existing.platformNos && existing.platformNos.length > 0) {
@@ -655,7 +626,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				}
 			}
 
-			// 1. Reserve platform channels in database for this sample if assigned
 			if (form.platformNos.length > 0) {
 				const resOp = isNabl
 					? reserveNablPlatforms(
@@ -677,7 +647,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				await resOp();
 			}
 
-			// 2. Reserve physical R&D Equipment in database if selected and permitted (not reliability)
 			if (form.equipmentId && !isReliability) {
 				const eqResOp = reserveEquipment(
 					Number(form.equipmentId),
@@ -689,7 +658,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				await eqResOp();
 			}
 
-			// 3. Save to database
 			const testPlanData = {
 				id: form.id ? Number(form.id) : undefined,
 				sampleIndex: activeSampleIndex,
@@ -719,7 +687,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				throw new Error('Failed to save test plan to database');
 			}
 
-			// 4. Perform parent status sync if callback is provided
 			if (onUpdateStatus) {
 				await onUpdateStatus(
 					selectedReq.id,
@@ -741,9 +708,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	};
 
 
-	// Search and Paginate filters
 	const filteredRequests = inspectedRequests.filter(r => {
-		// 1. Search Match
 		const idStr = String(r.id).toLowerCase();
 		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			idStr.includes(searchQuery.toLowerCase()) ||
@@ -752,7 +717,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			(r.sampleDescription && r.sampleDescription.toLowerCase().includes(searchQuery.toLowerCase())) ||
 			(r.testType?.name && r.testType.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-		// 2. Status Match
 		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase());
 		const isFailed = ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase());
 		const isTesting = ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase());
@@ -773,7 +737,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			matchStatus = isInspectionFailed;
 		}
 
-		// 3. Date Range Match
 		let matchDate = true;
 		const reqDate = r.approvedDate;
 		if (startDate) {
@@ -795,13 +758,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 	return (
 		<div className="space-y-6">
-			{/* Grid list of Inspected Requests */}
 			{!selectedReq ? (
 				<div className="space-y-6">
-					{/* Top Search & Advanced Filters Toolbar */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm space-y-4">
 						<div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
-							{/* Search input */}
 							<div className="relative flex-1">
 								<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 								<input
@@ -826,8 +786,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</button>
 								)}
 							</div>
-
-							{/* Advanced status & date filters */}
 							<div className="flex flex-wrap items-center gap-3">
 								<CustomSelect
 									value={statusFilter}
@@ -896,8 +854,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 						</div>
 					</div>
-
-					{/* List Container Card */}
 					<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 						{paginatedRequests.length === 0 ? (
 							<div className="text-center py-16">
@@ -1095,9 +1051,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					</div>
 				</div>
 			) : (
-				/* Request Details & Sample Checklist View (Matches ApprovedRequestDetails.tsx standard perfectly) */
 				<div className="space-y-6 animate-fade-in">
-					{/* Back Navigation Bar */}
 					<div className="flex items-center gap-3">
 						<button
 							onClick={() => navigate('/manager/test-plans')}
@@ -1116,7 +1070,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					</div>
 
 					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-						{/* Left: Request Details Card */}
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1 flex flex-col justify-between">
 							<div className="space-y-4">
 								{selectedReq.status === 'RETEST' && (
@@ -1224,8 +1177,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								)}
 							</div>
 						</div>
-
-						{/* Right: Samples checklist and plan creation */}
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-6 lg:col-span-2">
 							<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 								<h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider">
@@ -1257,7 +1208,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 										return (
 											<div key={index} className="py-4 first:pt-0 last:pb-0 flex flex-col gap-4">
-												{/* Sample Header & Inspection Status */}
 												<div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
 													<div className="flex items-center gap-2">
 														<span className="text-xs font-bold text-zinc-855">Sample #{sampleNo}</span>
@@ -1288,8 +1238,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														</p>
 													)}
 												</div>
-
-												{/* Test Plans List */}
 												{isFailed ? (
 													<div className="flex items-center gap-2">
 														<span className="text-[10px] font-extrabold px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl flex items-center gap-1.5 shrink-0 border border-rose-150">
@@ -1486,7 +1434,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															<p className="text-[10px] text-zinc-400 italic">No active test plans configured for this sample.</p>
 														)}
 
-														{/* "+ Add Test Plan" button */}
 														{isPassed && (
 															<button
 																onClick={() => handleOpenPlanForm(index)}
@@ -1502,8 +1449,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									});
 								})()}
 							</div>
-
-							{/* Activation Footer */}
 							<div className="border-t border-zinc-150 pt-5 flex items-center justify-end gap-3">
 								{isAllInspectionFailed && ['INSPECTION_COMPLETED', 'INSPECTION_FAILED'].includes(selectedReq.status) && (
 									(selectedReq.status === 'INSPECTION_COMPLETED' ||
@@ -1566,8 +1511,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									)
 								)}
 
-
-
 								<button
 									onClick={() => navigate('/manager/test-plans')}
 									className="px-4 py-2 border border-zinc-200 text-zinc-650 hover:bg-zinc-50 rounded-xl text-xs font-bold transition-all cursor-pointer outline-none shadow-sm active:scale-95"
@@ -1579,15 +1522,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 					</div>
 				</div>
 			)}
-
-			{/* ========================================================================= */}
-			{/* DYNAMIC HIGH-FIDELITY TEST PLAN MODAL FORM */}
-			{/* ========================================================================= */}
 			{activeSampleIndex !== null && (
 				<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center animate-fade-in backdrop-blur-xs">
 					<div className="bg-white rounded-3xl shadow-2xl p-6 max-w-2xl w-full mx-4 space-y-6 border border-zinc-200 max-h-[90vh] overflow-y-auto no-scrollbar animate-scale-up">
-
-						{/* Header */}
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3 shrink-0">
 							<div className="flex items-center gap-2.5 text-[#11236a]">
 								<Clipboard className="w-5 h-5 shrink-0" />
@@ -1605,11 +1542,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								<X className="w-4 h-4" />
 							</button>
 						</div>
-
-						{/* Form */}
 						<form onSubmit={handleSaveTestPlan} className="space-y-5 text-xs text-zinc-700 font-bold uppercase tracking-wider">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-								{/* Test Type Select */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="testType" className="text-[10px] text-zinc-500 font-extrabold">Test Type</label>
 									<select
@@ -1624,8 +1558,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										))}
 									</select>
 								</div>
-
-								{/* Test Category Select */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="testCategory" className="text-[10px] text-zinc-500 font-extrabold">Test Category</label>
 									<select
@@ -1644,8 +1576,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</select>
 								</div>
 							</div>
-
-							{/* Product Type (For Reliability) selectable pills */}
 							<div className="flex flex-col gap-2">
 								<label className="text-[10px] text-zinc-500 font-extrabold">Product Type (For Reliability)</label>
 								<div className="grid grid-cols-3 gap-3">
@@ -1667,7 +1597,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									})}
 								</div>
 							</div>
-							{/* R&D Equipment selection */}
 							<div className="flex flex-col gap-1.5">
 								<label htmlFor="equipmentSelect" className="text-[10px] text-zinc-500 font-extrabold">
 									Assign R&D Equipment {isReliability ? '(Not permitted)' : (isNabl || (!isReliability && !isNabl)) ? '(Mandatory)' : '(Optional)'}
@@ -1712,8 +1641,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									)}
 								</select>
 							</div>
-
-							{/* Dynamic Platform Telemetry grid for Stations */}
 							<div className="flex flex-col gap-3">
 								<label className="text-[10px] text-zinc-500 font-extrabold">
 									{isNabl
@@ -1723,7 +1650,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								</label>
 								<div className="space-y-4 max-h-[350px] overflow-y-auto p-3 bg-[#f8fafc] rounded-2xl border border-zinc-150">
 									{isNabl ? (
-										// Only render NABL Station 1
 										(() => {
 											const sNum = 1;
 											const isStationActive = form.stationNo === sNum;
@@ -1749,7 +1675,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																? (!slot.isAvailable &&
 																	(
 																		isPlatformReservedByOtherPlan(sNum, pNum, form.id, true) ||
-																		// In create mode only: treat same-request-same-sample as occupied
 																		(!form.id && (
 																			slot.testRequestId !== Number(selectedReq.id) ||
 																			slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
@@ -1803,7 +1728,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											);
 										})()
 									) : (
-										// Render normal Stations 1 to 14
 										Array.from({ length: 14 }, (_, stationIdx) => {
 											const sNum = stationIdx + 1;
 											const isStationActive = form.stationNo === sNum;
@@ -1830,7 +1754,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																? (!slot.isAvailable &&
 																	(
 																		isPlatformReservedByOtherPlan(sNum, pNum, form.id, false) ||
-																		// In create mode only: treat same-request-same-sample as occupied
 																		(!form.id && (
 																			slot.testRequestId !== Number(selectedReq.id) ||
 																			slot.occupiedBy?.includes(`(Sample #${activeSampleIndex + 1})`)
@@ -1838,8 +1761,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																	)
 																)
 																: false;
-
-
 
 															return (
 																<button
@@ -1897,8 +1818,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									)}
 								</div>
 							</div>
-
-							{/* Test Protocol select (Dependent on Category) */}
 							<div className="flex flex-col gap-1.5">
 								<label htmlFor="testProtocol" className="text-[10px] text-zinc-500 font-extrabold">Test Protocol</label>
 								<select
@@ -1921,7 +1840,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-								{/* Reference Standard input */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="refStandard" className="text-[10px] text-zinc-500 font-extrabold">Reference Standard</label>
 									<input
@@ -1933,8 +1851,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all h-[42px]"
 									/>
 								</div>
-
-								{/* Number of Days input */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="numDays" className="text-[10px] text-zinc-500 font-extrabold">Number of Days</label>
 									<input
@@ -1952,7 +1868,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							</div>
 
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-								{/* Start Date selection */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="startDate" className="text-[10px] text-zinc-500 font-extrabold">Start Date</label>
 									<div className="relative">
@@ -1965,8 +1880,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										/>
 									</div>
 								</div>
-
-								{/* End Date (Auto-Calculated) disabled input */}
 								<div className="flex flex-col gap-1.5">
 									<label htmlFor="endDate" className="text-[10px] text-zinc-500 font-extrabold">End Date (Auto-Calculated)</label>
 									<input
@@ -1978,8 +1891,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									/>
 								</div>
 							</div>
-
-							{/* Remarks optional textarea */}
 							<div className="flex flex-col gap-1.5">
 								<label htmlFor="remarks" className="text-[10px] text-zinc-500 font-extrabold">Remarks (Optional)</label>
 								<textarea
@@ -1991,8 +1902,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									className="bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-zinc-800 text-xs font-semibold outline-none focus:border-[#11236a] transition-all resize-none"
 								/>
 							</div>
-
-							{/* Action buttons */}
 							<div className="border-t border-zinc-100 pt-5 flex items-center justify-end gap-3 shrink-0">
 								<button
 									type="button"
@@ -2018,7 +1927,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			{activeInspectionReport && activeInspectionSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
 					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-2xl w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
-						{/* Close button */}
 						<button
 							onClick={() => {
 								setActiveInspectionReport(null);
@@ -2030,7 +1938,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						</button>
 
 						<div className="space-y-5">
-							{/* Header */}
 							<div>
 								<div className="flex items-center justify-between">
 									<span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${activeInspectionReport.status === 'PASSED'
@@ -2054,8 +1961,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{activeInspectionReport.allottedId || 'N/A'}</span>
 								</p>
 							</div>
-
-							{/* Checklist */}
 							<div className="border border-zinc-200 rounded-2xl overflow-hidden">
 								<table className="w-full text-left border-collapse text-xs font-semibold text-zinc-700">
 									<thead>
@@ -2095,16 +2000,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									</tbody>
 								</table>
 							</div>
-
-							{/* Remarks */}
 							<div className="bg-zinc-50 border border-zinc-200/60 rounded-2xl p-4 space-y-1.5">
 								<span className="text-[9px] text-zinc-450 font-extrabold uppercase tracking-wider block">Inspector Remarks</span>
 								<p className="text-xs text-zinc-800 font-semibold leading-relaxed whitespace-pre-wrap">
 									{activeInspectionReport.remarks || 'No remarks provided.'}
 								</p>
 							</div>
-
-							{/* Images */}
 							{(() => {
 								let imagesArr: string[] = [];
 								try {
@@ -2146,7 +2047,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				</div>
 			)}
 
-			{/* Tear Down Viewer Modal */}
 			{viewTearDownFile && (
 				<TearDownViewerModal
 					fileUrl={viewTearDownFile.url}

@@ -86,7 +86,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		}
 	};
 
-	// Filtering and UI states
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [startDate, setStartDate] = useState('');
@@ -94,7 +93,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 
-	// Resolve the selected request for details view
 	const selectedReq = selectedRequestId
 		? requests.find(r => String(r.id) === String(selectedRequestId))
 		: null;
@@ -115,9 +113,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		return false;
 	});
 
-	// Apply search and filter criteria
 	const filteredRequests = evaluatedRequests.filter((r: any) => {
-		// 1. Search filter
 		const idStr = String(r.id).toLowerCase();
 		const matchesSearch =
 			(r.requestId || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -127,7 +123,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 			(r.customerNameAddress || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
 			(r.sampleDescription || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-		// 2. Status filter
 		const statusUpper = (r.status || '').toUpperCase();
 		const isPassed = ['COMPLETED', 'TESTING_PASSED'].includes(statusUpper);
 		const isFailed = ['FAILED', 'TESTING_FAILED', 'INSPECTION_FAILED'].includes(statusUpper);
@@ -142,7 +137,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 			matchesStatus = isPartial;
 		}
 
-		// 3. Date range filter
 		let matchesDate = true;
 		const reqDate = r.approvedDate || r.updatedAt?.split('T')[0] || r.createdAt?.split('T')[0] || '';
 		if (startDate) {
@@ -155,7 +149,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		return matchesSearch && matchesStatus && matchesDate;
 	});
 
-	// Status badge helper
 	const getStatusBadge = (status: string) => {
 		const s = (status || '').toUpperCase();
 		if (s === 'COMPLETED' || s === 'TESTING_PASSED') {
@@ -181,14 +174,12 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		}
 	};
 
-	// Pagination parameters
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	const startIndex = (activePage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
 
-	// Render details view
 	if (selectedRequestId) {
 		if (!selectedReq) {
 			return (
@@ -203,7 +194,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 
 		return (
 			<div className="space-y-6 animate-fade-in">
-				{/* Top Back Nav bar */}
 				<div className="flex items-center gap-3">
 					<button
 						onClick={() => navigate('/manager/completed-requests')}
@@ -222,7 +212,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 				</div>
 
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-					{/* Left Column: Request Profile Details Card */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4 lg:col-span-1">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-2">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
@@ -270,8 +259,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 							)}
 						</div>
 					</div>
-
-					{/* Right Column: Samples details grid */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-6 lg:col-span-2">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider">
@@ -302,7 +289,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 
 									return (
 										<div key={index} className="py-5 first:pt-0 last:pb-0 space-y-4">
-											{/* Sample Header */}
 											<div className="flex items-center justify-between border-b border-zinc-100 pb-2 flex-wrap gap-2">
 												<div className="flex items-center gap-2">
 													<span className="text-sm font-extrabold text-zinc-900">Sample #{sampleNo}</span>
@@ -326,8 +312,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 													</p>
 												)}
 											</div>
-
-											{/* Inspection Failed Details / Report */}
 											{isInspectionFailed && (
 												<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-rose-50/10 border border-rose-100 p-3.5 rounded-xl">
 													<div className="space-y-1">
@@ -351,8 +335,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 													</div>
 												</div>
 											)}
-
-											{/* Test Plans List */}
 											{!isInspectionFailed && plans.length > 0 && (
 												<div className="space-y-3 pl-3 border-l-2 border-zinc-200">
 													{plans.map((plan: any) => {
@@ -448,10 +430,8 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		);
 	}
 
-	// Render list view
 	return (
 		<div className="space-y-6">
-			{/* Summary Banner */}
 			<div className="bg-indigo-900 border border-indigo-950 rounded-2xl p-4 flex items-center justify-between gap-3 text-white">
 				<div className="flex items-center gap-3">
 					<div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
@@ -465,11 +445,8 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 					</div>
 				</div>
 			</div>
-
-			{/* Search and Filters Toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm space-y-4">
 				<div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
-					{/* Search field */}
 					<div className="relative flex-1">
 						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 						<input
@@ -483,8 +460,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 							className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 						/>
 					</div>
-
-					{/* Dropdowns & Date filters */}
 					<div className="flex flex-wrap items-center gap-3">
 						<CustomSelect
 							value={statusFilter}
@@ -544,8 +519,6 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 					</div>
 				</div>
 			</div>
-
-			{/* List Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{filteredRequests.length === 0 ? (
 					<div className="text-center py-16">

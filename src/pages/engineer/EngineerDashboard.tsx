@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { getTestRequests, updateTestRequestStatus } from '../../services/operations/testRequestService';
 
-// Import sub-pages
 import EngineerDashboardOverview from './EngineerDashboardOverview';
 import EngineerAssignedSamples from './EngineerAssignedSamples';
 import EngineerTestReports from './EngineerTestReports';
@@ -49,7 +48,6 @@ export default function EngineerDashboard() {
 	const navigate = useNavigate();
 	const location = useLocation();
 
-	// Validate Authentication and Role
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
 	const loggedInUser = userStr ? JSON.parse(userStr) : null;
@@ -85,13 +83,10 @@ export default function EngineerDashboard() {
 		}
 	}, [token, userStr, navigate]);
 
-	// allRequests = for Test Reports page
-	// approvedRequests = only assigned inspections for Assigned Samples / Dashboard
 	const [allRequests, setAllRequests] = useState<ApprovedRequest[]>([]);
 	const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
 	const [loading, setLoading] = useState(false);
 
-	// Load all requests from backend
 	const loadRequests = async () => {
 		if (!currentEngineerId) return;
 
@@ -127,7 +122,6 @@ export default function EngineerDashboard() {
 				testPlans: Array.isArray(req.testPlans) ? req.testPlans : [],
 			}));
 
-			// Test Reports page should receive all valid requests, not only assigned engineer requests
 			const reportVisibleRequests = mapped.filter((r: any) => {
 				const requestStatus = (r.status || '').toUpperCase();
 
@@ -138,8 +132,6 @@ export default function EngineerDashboard() {
 			});
 
 			setAllRequests(reportVisibleRequests);
-
-			// Assigned Samples / Dashboard should show only assigned inspections
 			const assignedInspectionRequests = mapped.filter((r: any) => {
 				const requestStatus = (r.status || '').toUpperCase();
 
@@ -169,7 +161,6 @@ export default function EngineerDashboard() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [token, userStr]);
 
-	// Handler to sync finished inspection with backend server
 	const handleCompleteInspectionForm = async (
 		taskId: string,
 		_result: 'PASSED' | 'FAILED',
@@ -193,7 +184,6 @@ export default function EngineerDashboard() {
 		}
 	};
 
-	// Determine active path/tab
 	const pathSegment = location.pathname.replace('/engineer/', '') || 'dashboard';
 
 	let activeTab = 'dashboard';

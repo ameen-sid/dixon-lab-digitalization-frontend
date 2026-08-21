@@ -20,10 +20,7 @@ import SupplierCustomerManagement from './SupplierCustomerManagement';
 import TestingEquipmentManagement from './TestingEquipmentManagement';
 import SystemLogsManagement from './SystemLogsManagement';
 import MisReportDispatchManagement from './MisReportDispatchManagement';
-import { 
-	Users, ChevronRight, RotateCw, Activity,
-	Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle
-} from 'lucide-react';
+import { Users, ChevronRight, RotateCw, Activity, Building2, FlaskConical, Tag, BookOpen, Server, Cpu, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const getFormattedRequestId = (occupiedBy: string, testRequestId: any) => {
 	if (!occupiedBy) return `#${testRequestId || 'N/A'}`;
@@ -38,14 +35,14 @@ const formatOccupiedUntil = (dateStr: string) => {
 	if (!dateStr) return 'N/A';
 	const d = new Date(dateStr);
 	if (isNaN(d.getTime())) return dateStr;
-	
+
 	const day = d.getUTCDate();
 	const month = d.getUTCMonth() + 1;
 	const year = d.getUTCFullYear();
-	
+
 	const hours = d.getUTCHours();
 	const minutes = d.getUTCMinutes();
-	
+
 	if (hours === 0 && minutes === 0) {
 		return `${month}/${day}/${year}, 12:00:00 AM`;
 	}
@@ -57,7 +54,7 @@ export default function AdminDashboard() {
 	const navigate = useNavigate();
 	const path = location.pathname;
 
-	let activeTab = 'departments-management'; // Set default to Departments Management
+	let activeTab = 'departments-management';
 	if (path.includes('/admin/dashboard')) activeTab = 'dashboard';
 	else if (path.includes('/admin/platform-availability')) activeTab = 'platform-availability';
 	else if (path.includes('/admin/nabl-station-availability')) activeTab = 'nabl-station-availability';
@@ -99,7 +96,6 @@ export default function AdminDashboard() {
 	const [nablPlatformOccupancies, setNablPlatformOccupancies] = useState<any[]>([]);
 	const [selectedNablPlatformModal, setSelectedNablPlatformModal] = useState<{ stationNo: number; platformNo: number } | null>(null);
 
-	// Dashboard summary stats
 	const [dashUsers, setDashUsers] = useState<any[]>([]);
 	const [dashDepts, setDashDepts] = useState<any[]>([]);
 	const [dashTestTypes, setDashTestTypes] = useState<any[]>([]);
@@ -197,7 +193,6 @@ export default function AdminDashboard() {
 	const occupiedEq = equipmentList.filter(e => !e.isAvailable && e.status === 'ACTIVE').length;
 	const maintenanceEq = equipmentList.filter(e => e.status === 'MAINTENANCE' || e.status === 'UNDER_MAINTENANCE').length;
 
-	// Dynamic tab header texts
 	const getTabHeaders = () => {
 		switch (activeTab) {
 			case 'dashboard':
@@ -240,9 +235,7 @@ export default function AdminDashboard() {
 			case 'dashboard':
 				return (
 					<div className="space-y-7">
-
-						{/* Header Banner */}
-						<div className="relative bg-[#11236a] rounded-[24px] px-8 py-6 flex items-center justify-between overflow-hidden shadow-lg">
+						<div className="relative bg-[#11236a] rounded-3xl px-8 py-6 flex items-center justify-between overflow-hidden shadow-lg">
 							<div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #6366f1 0%, transparent 60%)' }} />
 							<div className="relative z-10">
 								<p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">System Admin Console</p>
@@ -258,8 +251,6 @@ export default function AdminDashboard() {
 								<RotateCw className="w-4 h-4" />
 							</button>
 						</div>
-
-						{/* Row 1: Users, Departments, Stations, Equipment */}
 						<div>
 							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Infrastructure Overview</p>
 							<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -296,8 +287,6 @@ export default function AdminDashboard() {
 								})}
 							</div>
 						</div>
-
-						{/* Row 2: Test Types, Categories, Protocols */}
 						<div>
 							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Test Configuration Summary</p>
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -340,8 +329,6 @@ export default function AdminDashboard() {
 								))}
 							</div>
 						</div>
-
-						{/* Row 3: Pending System Configuration Status */}
 						<div>
 							<p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-3">Pending Configuration Status</p>
 							<div className="bg-white border border-zinc-200/60 rounded-[20px] p-5 shadow-sm">
@@ -373,15 +360,11 @@ export default function AdminDashboard() {
 								</div>
 							</div>
 						</div>
-
 					</div>
 				);
-
-
 			case 'platform-availability':
 				return (
 					<div className="space-y-6">
-						{/* Header Card with Metrics */}
 						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
 								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
@@ -406,19 +389,15 @@ export default function AdminDashboard() {
 								<RotateCw className="w-4 h-4" />
 							</button>
 						</div>
-
-						{/* Interactive Platform 14-Grid */}
 						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
 							{Array.from({ length: 14 }, (_, i) => {
 								const pNum = i + 1;
 								return (
 									<div key={pNum} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
-										{/* Card Header */}
 										<div className="bg-[#11236a] flex items-center justify-between px-3 py-2 shrink-0">
 											<span className="text-white text-xs font-extrabold tracking-wide">S{pNum}</span>
 											<span className="text-zinc-500 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
 										</div>
-										{/* Card Body Grid */}
 										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
 											{Array.from({ length: 10 }, (_, j) => {
 												const sNum = j + 1;
@@ -449,11 +428,9 @@ export default function AdminDashboard() {
 						</div>
 					</div>
 				);
-
 			case 'nabl-station-availability':
 				return (
 					<div className="space-y-6">
-						{/* Header Card with Metrics */}
 						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
 								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
@@ -478,19 +455,15 @@ export default function AdminDashboard() {
 								<RotateCw className="w-4 h-4" />
 							</button>
 						</div>
-
-						{/* Interactive NABL Platform 1-Grid */}
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 							{Array.from({ length: 1 }, (_, i) => {
 								const pNum = i + 1;
 								return (
 									<div key={pNum} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
-										{/* Card Header */}
 										<div className="bg-[#11236a] flex items-center justify-between px-3 py-2 shrink-0">
 											<span className="text-white text-xs font-extrabold tracking-wide">NABL Station {pNum}</span>
 											<span className="text-zinc-500 text-[8px] font-bold tracking-wider uppercase">UNIT</span>
 										</div>
-										{/* Card Body Grid */}
 										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
 											{Array.from({ length: 10 }, (_, j) => {
 												const sNum = j + 1;
@@ -521,11 +494,9 @@ export default function AdminDashboard() {
 						</div>
 					</div>
 				);
-
 			case 'equipment-availability':
 				return (
 					<div className="space-y-6">
-						{/* Header Card with Metrics */}
 						<div className="bg-white border border-zinc-200/50 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
 							<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6">
 								<h2 className="text-base font-extrabold text-zinc-900 tracking-tight" style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
@@ -554,8 +525,6 @@ export default function AdminDashboard() {
 								<RotateCw className="w-4 h-4" />
 							</button>
 						</div>
-
-						{/* Equipment Telemetry Cards Grid */}
 						<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 							{equipmentList.map((eq) => {
 								const isOccupied = !eq.isAvailable;
@@ -565,7 +534,6 @@ export default function AdminDashboard() {
 										onClick={() => setSelectedEquipmentModal(eq)}
 										className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer hover:scale-[1.01]"
 									>
-										{/* Card Header */}
 										<div className="bg-[#11236a] flex items-center justify-between px-4 py-2.5 shrink-0">
 											<div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
 												<Activity className="w-3.5 h-3.5 text-white shrink-0" />
@@ -581,9 +549,7 @@ export default function AdminDashboard() {
 												{eq.status === 'MAINTENANCE' || eq.status === 'UNDER_MAINTENANCE' ? 'Maintenance' : isOccupied ? 'Occupied' : 'Available'}
 											</span>
 										</div>
-
-										{/* Card Body */}
-										<div className="p-4 flex-grow flex flex-col justify-between bg-[#f8fafc]/30 space-y-3">
+										<div className="p-4 grow flex flex-col justify-between bg-[#f8fafc]/30 space-y-3">
 											<div className="border border-zinc-150 bg-zinc-50/50 rounded-xl p-3 flex flex-col gap-2 text-[10px]">
 												<div className="flex items-center justify-between text-zinc-500 font-bold uppercase tracking-wider">
 													<span>Calibration Due</span>
@@ -596,7 +562,6 @@ export default function AdminDashboard() {
 													<span className="text-zinc-700 font-extrabold">{eq.status}</span>
 												</div>
 											</div>
-
 											<div className="text-right">
 												<span className="text-[10px] text-indigo-600 font-extrabold hover:underline">
 													View Details →
@@ -614,37 +579,26 @@ export default function AdminDashboard() {
 						</div>
 					</div>
 				);
-
 			case 'departments-management':
 				return <DepartmentManagement />;
-
 			case 'users-management':
 				return <UserManagement />;
-
 			case 'test-types-management':
 				return <TestTypeManagement />;
-
 			case 'test-category-management':
 				return <TestCategoryManagement />;
-
 			case 'test-protocols-management':
 				return <TestProtocolManagement />;
-
 			case 'product-part-names':
 				return <ProductPartManagement />;
-
 			case 'suppliers-customers':
 				return <SupplierCustomerManagement />;
-
 			case 'rd-testing-equipments':
 				return <TestingEquipmentManagement />;
-
 			case 'system-logs':
 				return <SystemLogsManagement />;
-
 			case 'mis-reports':
 				return <MisReportDispatchManagement />;
-
 			default:
 				return null;
 		}
@@ -674,17 +628,15 @@ export default function AdminDashboard() {
 		>
 			{renderContent()}
 
-			{/* High-Fidelity Occupancy Details Modal */}
 			{selectedPlatformModal && (() => {
 				const details = platformOccupancies.find(
 					(item: any) => String(item.stationNo) === String(selectedPlatformModal.stationNo) && String(item.platformNo) === String(selectedPlatformModal.platformNo)
 				);
 				const isAvailable = platformSlots[`${selectedPlatformModal.stationNo}-${selectedPlatformModal.platformNo}`];
-				
+
 				return (
 					<div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
-						<div className="bg-white border border-zinc-200 rounded-[24px] max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-							{/* Header */}
+						<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 							<div className="bg-[#11236a] text-white px-6 py-4 flex items-center justify-between">
 								<div className="flex items-center gap-2">
 									<Activity className="w-5 h-5 text-white/90" />
@@ -699,8 +651,6 @@ export default function AdminDashboard() {
 									✕
 								</button>
 							</div>
-							
-							{/* Content */}
 							<div className="p-6 space-y-4">
 								{isAvailable ? (
 									<div className="text-center py-6 space-y-3">
@@ -723,7 +673,6 @@ export default function AdminDashboard() {
 												<p className="text-[11px] text-rose-700/80 font-medium">Platform is currently occupied and running load cycles.</p>
 											</div>
 										</div>
-										
 										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
@@ -749,8 +698,6 @@ export default function AdminDashboard() {
 									</div>
 								)}
 							</div>
-							
-							{/* Footer */}
 							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
 								<button
 									onClick={() => setSelectedPlatformModal(null)}
@@ -763,18 +710,15 @@ export default function AdminDashboard() {
 					</div>
 				);
 			})()}
-
-			{/* High-Fidelity NABL Occupancy Details Modal */}
 			{selectedNablPlatformModal && (() => {
 				const details = nablPlatformOccupancies.find(
 					(item: any) => String(item.stationNo) === String(selectedNablPlatformModal.stationNo) && String(item.platformNo) === String(selectedNablPlatformModal.platformNo)
 				);
 				const isAvailable = nablPlatformSlots[`${selectedNablPlatformModal.stationNo}-${selectedNablPlatformModal.platformNo}`];
-				
+
 				return (
 					<div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
-						<div className="bg-white border border-zinc-200 rounded-[24px] max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-							{/* Header */}
+						<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 							<div className="bg-[#11236a] text-white px-6 py-4 flex items-center justify-between">
 								<div className="flex items-center gap-2">
 									<Activity className="w-5 h-5 text-white/90" />
@@ -789,8 +733,6 @@ export default function AdminDashboard() {
 									✕
 								</button>
 							</div>
-							
-							{/* Content */}
 							<div className="p-6 space-y-4">
 								{isAvailable ? (
 									<div className="text-center py-6 space-y-3">
@@ -813,7 +755,6 @@ export default function AdminDashboard() {
 												<p className="text-[11px] text-rose-700/80 font-medium">Platform is currently occupied and running load cycles.</p>
 											</div>
 										</div>
-										
 										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
@@ -839,8 +780,6 @@ export default function AdminDashboard() {
 									</div>
 								)}
 							</div>
-							
-							{/* Footer */}
 							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
 								<button
 									onClick={() => setSelectedNablPlatformModal(null)}
@@ -853,15 +792,12 @@ export default function AdminDashboard() {
 					</div>
 				);
 			})()}
-
-			{/* High-Fidelity Equipment Occupancy Details Modal */}
 			{selectedEquipmentModal && (() => {
 				const isAvailable = selectedEquipmentModal.isAvailable;
-				
+
 				return (
 					<div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-300">
-						<div className="bg-white border border-zinc-200 rounded-[24px] max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-							{/* Header */}
+						<div className="bg-white border border-zinc-200 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 							<div className="bg-[#11236a] text-white px-6 py-4 flex items-center justify-between">
 								<div className="flex items-center gap-2">
 									<Activity className="w-5 h-5 text-white/90" />
@@ -876,8 +812,6 @@ export default function AdminDashboard() {
 									✕
 								</button>
 							</div>
-							
-							{/* Content */}
 							<div className="p-6 space-y-4">
 								{isAvailable ? (
 									<div className="text-center py-6 space-y-3">
@@ -900,7 +834,6 @@ export default function AdminDashboard() {
 												<p className="text-[11px] text-rose-700/80 font-medium">Equipment is currently occupied and running test cycles.</p>
 											</div>
 										</div>
-										
 										<div className="border border-zinc-150 bg-zinc-50/30 rounded-2xl p-4 space-y-3 text-xs">
 											<div className="flex justify-between items-center py-1.5 border-b border-zinc-100">
 												<span className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Occupied By</span>
@@ -926,8 +859,6 @@ export default function AdminDashboard() {
 									</div>
 								)}
 							</div>
-							
-							{/* Footer */}
 							<div className="bg-zinc-50 border-t border-zinc-200/80 px-6 py-4 flex justify-end">
 								<button
 									onClick={() => setSelectedEquipmentModal(null)}

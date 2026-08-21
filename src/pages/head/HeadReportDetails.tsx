@@ -154,7 +154,6 @@ export default function HeadReportDetails() {
 
 	return (
 		<div className="space-y-6">
-			{/* Back navigation */}
 			<div className="flex items-center justify-between">
 				<button
 					onClick={() => navigate('/head/completed-reports')}
@@ -164,14 +163,8 @@ export default function HeadReportDetails() {
 					<span>Back to Completed Reports</span>
 				</button>
 			</div>
-
-			{/* Main Grid: Request Summary & Action Panel */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				
-				{/* Left Columns: Request details & Samples List */}
 				<div className="lg:col-span-2 space-y-6">
-					
-					{/* Request Details Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<div className="flex items-center gap-2">
@@ -227,8 +220,6 @@ export default function HeadReportDetails() {
 							</button>
 						</div>
 					</div>
-
-					{/* Samples List */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
@@ -236,7 +227,6 @@ export default function HeadReportDetails() {
 							</h3>
 							<span className="text-[10px] font-bold text-zinc-400 uppercase">{qty} Samples</span>
 						</div>
-
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
 								const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === idx);
@@ -357,13 +347,7 @@ export default function HeadReportDetails() {
 						</div>
 					</div>
 				</div>
-
-				{/* Right Column: Actions Panel */}
 				<div className="space-y-6">
-					
-
-
-					{/* Certification signoff Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
 							Head Certification
@@ -399,7 +383,6 @@ export default function HeadReportDetails() {
 						)}
 					</div>
 				</div>
-
 			</div>
 
 			{viewTearDownFile && (

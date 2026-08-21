@@ -52,21 +52,17 @@ export default function SystemLogsManagement() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Filter state
 	const [search, setSearch] = useState('');
 	const [entity, setEntity] = useState('');
 	const [action, setAction] = useState('');
 	const [sortBy, setSortBy] = useState('createdAt');
 	const [sortOrder, setSortOrder] = useState('desc');
 
-	// Pagination
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(10);
 
-	// Detail Modal state
 	const [selectedLog, setSelectedLog] = useState<SystemLog | null>(null);
 
-	// Stats counters based on current filters (excluding pagination)
 	const [stats, setStats] = useState({
 		total: 0,
 		creates: 0,
@@ -98,7 +94,6 @@ export default function SystemLogsManagement() {
 				setLogs(filteredLogs);
 				setTotalLogs(result.data?.total || filteredLogs.length);
 
-				// Set stats from data if returned or fallback
 				setStats({
 					total: result.data?.total || 0,
 					creates: result.data?.stats?.CREATE || 0,
@@ -126,7 +121,6 @@ export default function SystemLogsManagement() {
 		setCurrentPage(1);
 		fetchLogs();
 	};
-
 
 	const renderChangeDescription = (log: SystemLog) => {
 		let detailsObj: any = null;
@@ -189,11 +183,11 @@ export default function SystemLogsManagement() {
 
 		if (log.action === 'UPDATE') {
 			const isOldNewStructure = detailsObj.old !== undefined && detailsObj.new !== undefined;
-			
+
 			if (isOldNewStructure) {
 				const oldData = detailsObj.old || {};
 				const newData = detailsObj.new || {};
-				
+
 				const allKeys = Array.from(new Set([...Object.keys(oldData), ...Object.keys(newData)]));
 				const changes = allKeys.filter(k => String(oldData[k]) !== String(newData[k]));
 
@@ -318,8 +312,6 @@ export default function SystemLogsManagement() {
 					<span>{error}</span>
 				</div>
 			)}
-
-			{/* Stats Panel */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 				{[
 					{ label: 'Total Operations Logs', value: stats.total, color: 'text-[#11236a]', bg: 'bg-[#11236a]/5 border-zinc-200/50' },
@@ -339,8 +331,6 @@ export default function SystemLogsManagement() {
 					</div>
 				))}
 			</div>
-
-			{/* Filters Panel */}
 			<div className="bg-white border border-zinc-200/60 rounded-[24px] p-5 shadow-sm space-y-4">
 				<form onSubmit={handleSearchSubmit} className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
 					<div className="relative flex-1">
@@ -422,8 +412,6 @@ export default function SystemLogsManagement() {
 					</div>
 				</div>
 			</div>
-
-			{/* Logs Table */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden">
 				{isLoading ? (
 					<div className="py-20 flex flex-col items-center justify-center gap-3">
@@ -514,8 +502,6 @@ export default function SystemLogsManagement() {
 					</div>
 				)}
 			</div>
-
-			{/* Details Modal */}
 			{selectedLog && (
 				<div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
 					<div className="bg-white border border-zinc-200 rounded-3xl max-w-2xl w-full shadow-2xl p-6 relative overflow-hidden flex flex-col max-h-[85vh]">

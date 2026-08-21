@@ -13,8 +13,6 @@ interface CapaRecord {
 	owner: string;
 	createdDate: string;
 	targetDate?: string;
-
-	// new format fields
 	partProduct?: string;
 	modelName?: string;
 	customerSupplier?: string;
@@ -65,7 +63,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 		);
 	}
 
-	// Map legacy fields to NABL sheet format to ensure exact layout uniformity
 	const mappedCapa = {
 		...selectedCapa,
 		partProduct: selectedCapa.partProduct || selectedCapa.productName || 'N/A',
@@ -97,7 +94,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 		const printContent = document.getElementById('printable-capa-sheet');
 		if (!printContent) return;
 
-		// Create an iframe to print
 		const iframe = document.createElement('iframe');
 		iframe.style.position = 'fixed';
 		iframe.style.right = '0';
@@ -226,7 +222,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 
 	return (
 		<div className="space-y-6">
-			{/* Toolbar / Action buttons */}
 			<div className="flex items-center justify-between">
 				<button 
 					onClick={() => setActiveTab('capa-management')}
@@ -234,7 +229,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 				>
 					<ChevronLeft className="w-4 h-4" /> Back to CAPA Register
 				</button>
-
 				<div className="flex items-center gap-3">
 					<button 
 						onClick={handlePrint}
@@ -250,14 +244,11 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 					</div>
 				</div>
 			</div>
-
-			{/* CAPA Printable Sheet View (Completely square/flat corners per request) */}
 			<div 
 				id="printable-capa-sheet" 
 				className="bg-white border border-slate-650 rounded-none overflow-hidden max-w-6xl mx-auto text-zinc-900"
 			>
 				<table className="w-full border-collapse border border-slate-650 text-xs bg-white" style={{ tableLayout: 'fixed' }}>
-					{/* Row 1 & 2: Header Grid */}
 					<thead>
 						<tr className="text-center font-bold text-[11px] leading-tight">
 							<td className="border border-slate-650 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[9%]" style={{ width: '9%' }}>Part/Product</td>
@@ -281,9 +272,7 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 							</td>
 						</tr>
 					</thead>
-
 					<tbody>
-						{/* Row 3: Title & Improvement Options */}
 						<tr>
 							<td className="border border-slate-650 p-2 font-bold text-blue-800 text-[11px] bg-white" colSpan={4}>
 								☐ Title :: <span className="text-zinc-900 font-bold">{mappedCapa.title}</span>
@@ -308,8 +297,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								</table>
 							</td>
 						</tr>
-
-						{/* Row 4: Column Section Headers */}
 						<tr className="bg-blue-50/20 bg-blue-light text-center font-bold text-[10px] text-zinc-800">
 							<td className="border border-slate-650 py-1.5">Part Name</td>
 							<td className="border border-slate-650 py-1.5" colSpan={3}>(Problem & Reason)</td>
@@ -317,17 +304,11 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 							<td className="border border-slate-650 py-1.5" style={{ width: '90px' }}>Target</td>
 							<td className="border border-slate-650 py-1.5" style={{ width: '70px' }}>Status</td>
 						</tr>
-
-						{/* Row 5: Main Content Matrix */}
 						<tr>
-							{/* Column 1: Part Name */}
 							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle" rowSpan={2}>
 								{mappedCapa.partName}
 							</td>
-
-							{/* Column 2: Problem & Reason */}
 							<td className="border border-slate-650 p-2.5 align-top space-y-2.5" colSpan={3} rowSpan={2}>
-								{/* Problem Detail */}
 								<div className="space-y-0.5">
 									<span className="block font-bold text-blue-800 text-[10px] uppercase">
 										☐ Problem : {mappedCapa.title}
@@ -338,8 +319,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 										<p>Venue: {mappedCapa.venue}</p>
 									</div>
 								</div>
-
-								{/* Defect Graphic */}
 								{mappedCapa.imageUrl ? (
 									<div className="border border-slate-300 rounded-none overflow-hidden bg-zinc-50 max-w-[420px] mx-auto p-1">
 										<a href={mappedCapa.imageUrl} target="_blank" rel="noopener noreferrer">
@@ -356,8 +335,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 										<span className="text-[9px] font-bold uppercase tracking-wider block">No defect graphic</span>
 									</div>
 								)}
-
-								{/* Root Cause (Why-Why Analysis) */}
 								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
 									<span className="block font-bold text-blue-800 text-[10px] uppercase">
 										☐ Root Cause :
@@ -369,8 +346,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 										<p>Why 4: <span className="font-normal text-zinc-800">{mappedCapa.why4}</span></p>
 									</div>
 								</div>
-
-								{/* Process Undetected Cause */}
 								<div className="space-y-0.5 pt-1.5 border-t border-slate-200">
 									<span className="block font-bold text-blue-800 text-[10px] uppercase">
 										☐ Process undetected cause:
@@ -382,8 +357,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 									</div>
 								</div>
 							</td>
-
-							{/* Column 3: Counter Measure details */}
 							<td className="border border-slate-650 p-2.5 align-top" colSpan={2}>
 								<div className="space-y-2.5">
 									<div className="space-y-0.5">
@@ -407,24 +380,16 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 									</div>
 								</div>
 							</td>
-
-							{/* Column 4: Target Date */}
 							<td className="border border-slate-650 p-2.5 text-center font-bold text-zinc-800 text-xs align-top col-target">
 								<span className="block text-[8px] text-zinc-500 uppercase font-semibold border-b border-slate-200 pb-0.5">Target Date</span>
 								<span className="block text-[11px] font-extrabold text-zinc-900 mt-1">{mappedCapa.targetDate || mappedCapa.targetedDate}</span>
 							</td>
-
-							{/* Column 5: Status */}
 							<td className="border border-slate-650 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle col-status" rowSpan={2}>
 								{mappedCapa.status === 'COMPLETED' ? 'Done' : mappedCapa.status || 'Pending'}
 							</td>
 						</tr>
-
-						{/* Row 5b: Improvement Images (In a separate table row to guarantee same-baseline horizontal alignment) */}
 						<tr>
-							{/* Column 3: Counter Measure Images */}
 							<td className="border border-slate-650 p-2.5 align-middle bg-white" colSpan={2}>
-								{/* Before / After attachments table */}
 								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
 									<thead>
 										<tr className="bg-zinc-50 font-bold text-center">
@@ -452,8 +417,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 									</tbody>
 								</table>
 							</td>
-
-							{/* Column 4: Prevention Image */}
 							<td className="border border-slate-650 p-2.5 text-center align-middle col-target bg-white">
 								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
 									<thead>
@@ -475,8 +438,6 @@ export default function CapaReports({ selectedCapa, setActiveTab }: CapaReportsP
 								</table>
 							</td>
 						</tr>
-
-						{/* Row 6: Remark */}
 						<tr>
 							<td className="border border-slate-650 p-2 font-bold text-blue-800 text-[10px] align-top bg-white" colSpan={8}>
 								Remark : <span className="font-semibold text-zinc-700 leading-relaxed italic">{mappedCapa.remark || 'No management remarks recorded.'}</span>

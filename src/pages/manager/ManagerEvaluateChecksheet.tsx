@@ -54,7 +54,6 @@ export default function ManagerEvaluateChecksheet() {
 	const navigate = useNavigate();
 	const { planKey } = useParams<{ planKey: string }>();
 
-	// Metadata stores
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
@@ -64,7 +63,6 @@ export default function ManagerEvaluateChecksheet() {
 	const [cellData, setCellData] = useState<{ [key: string]: string }>({});
 	const [loading, setLoading] = useState(true);
 
-	// Evaluation states
 	const [evaluationRemarks, setEvaluationRemarks] = useState('');
 	const [previewPhotoModal, setPreviewPhotoModal] = useState<string | null>(null);
 
@@ -103,7 +101,6 @@ export default function ManagerEvaluateChecksheet() {
 					}
 				}
 
-				// Fetch entries from backend database
 				const dbEntries = await getChecksheetEntries(planKey)();
 
 				if (isMounted) {
@@ -114,7 +111,6 @@ export default function ManagerEvaluateChecksheet() {
 					setEquipments(eqps || []);
 					setPlans(parsedPlans);
 
-					// Map database entries to cellData state
 					const mappedData: { [key: string]: string } = {};
 					dbEntries.forEach((entry: any) => {
 						if (entry.date && entry.data) {
@@ -149,7 +145,6 @@ export default function ManagerEvaluateChecksheet() {
 		};
 	}, [planKey]);
 
-	// Resolve details
 	const planInfo = (() => {
 		if (!planKey || !plans[planKey]) return null;
 		const plan = plans[planKey];
@@ -168,7 +163,6 @@ export default function ManagerEvaluateChecksheet() {
 		};
 	})();
 
-	// Inspector recommendation & evidence photos for reliability plan
 	const dbInspection = planInfo?.request?.sampleInspections?.find(
 		(si: any) => Number(si.testPlanId) === Number(planInfo?.plan?.id)
 	);
@@ -206,7 +200,6 @@ export default function ManagerEvaluateChecksheet() {
 			dbImages = [];
 		}
 
-		// Derive equipment details live from plan.equipmentId -> equipments list
 		const assignedEq = planObj?.equipmentId ? equipments.find((e: any) => String(e.id) === String(planObj.equipmentId)) : null;
 
 		const getEqField = (field: string, fallback: string) => {
@@ -238,7 +231,6 @@ export default function ManagerEvaluateChecksheet() {
 			return fallback;
 		};
 
-		// Specified requirements always comes from the test protocol's judgement criteria
 		const protocolJudgement = planInfo?.protocol?.judgementCriteria || 'N/A';
 
 		const checksObj = (() => {
@@ -264,11 +256,9 @@ export default function ManagerEvaluateChecksheet() {
 		};
 	})();
 
-	// Determine column layout strictly from productType
 	const productType = (planInfo?.plan?.productType || planInfo?.protocol?.productType || 'SATL').toUpperCase();
 	const columns = productType === 'FATL' ? FATL_COLUMNS : SATL_COLUMNS;
 
-	// Date generator helper
 	const getDatesArray = (startStr: string, endStr: string) => {
 		if (!startStr || !endStr) return [];
 		const dates: string[] = [];
@@ -290,7 +280,6 @@ export default function ManagerEvaluateChecksheet() {
 		? getDatesArray(planInfo.plan.startDate, planInfo.plan.endDate)
 		: [];
 
-	// Pre-calculate cumulative totals for FATL and SATL
 	const calculatedTotals = useMemo(() => {
 		const totals: {
 			[dateStr: string]: {
@@ -344,7 +333,6 @@ export default function ManagerEvaluateChecksheet() {
 			const requestId = String(planInfo.plan.testRequestId);
 			const sampleIdx = Number(planInfo.plan.sampleIndex);
 
-			// 1. Save TestPlan evaluation status to database
 			const planUpdateData = {
 				id: Number(planInfo.plan.id),
 				sampleIndex: sampleIdx,
@@ -377,7 +365,6 @@ export default function ManagerEvaluateChecksheet() {
 				throw new Error('Failed to save test plan evaluation to database');
 			}
 
-			// 2. Save evaluation status and remarks to the backend database
 			const existingInspection = planInfo.request?.sampleInspections?.find((r: any) => Number(r.testPlanId) === Number(planInfo.plan.id));
 			const existingChecks = (() => {
 				if (!existingInspection) return {};
@@ -395,12 +382,9 @@ export default function ManagerEvaluateChecksheet() {
 			formData.append('testPlanId', String(planInfo.plan.id));
 			formData.append('allottedId', planInfo.plan.allottedId || `REQ-${requestId}-S${String(sampleIdx + 1).padStart(2, '0')}`);
 			
-			// For reliability, we don't have engineer reports, so keep evaluationRemarks as comments
-			// For performance/NABL, we must preserve the engineer's submitted remarks/observations
 			const finalRemarks = isReliability ? evaluationRemarks : (existingInspection?.remarks || 'N/A');
 			formData.append('remarks', finalRemarks);
 			
-			// Keep the status as PASSED/FAILED based on physical inspection status, but set it back to PASSED if it was UNDER_REVIEW
 			const currentInspectionStatus = existingInspection?.status || 'PASSED';
 			const finalInspectionStatus = currentInspectionStatus === 'UNDER_REVIEW' ? 'PASSED' : currentInspectionStatus;
 			formData.append('status', finalInspectionStatus);
@@ -409,7 +393,6 @@ export default function ManagerEvaluateChecksheet() {
 			const saveDbOp = saveSampleInspection(requestId, formData);
 			await saveDbOp();
 
-			// Release reserved platform channels and equipment
 			if (planInfo.plan.stationNo && planInfo.plan.platformNos && planInfo.plan.platformNos.length > 0) {
 				try {
 					const releasePlatOp = releasePlatforms(
@@ -431,7 +414,6 @@ export default function ManagerEvaluateChecksheet() {
 				}
 			}
 
-			// 3. Fetch latest request status with all inspections and plans from DB to check completeness
 			const freshReqRes = await fetch(`/api/v1/test-requests/${requestId}`, {
 				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
 			});
@@ -444,8 +426,6 @@ export default function ManagerEvaluateChecksheet() {
 				const qty = freshRequest.sampleQty || 1;
 				let allSamplesComplete = true;
 
-				// Verify all samples have their plans evaluated
-				// Get list of samples that passed inspection
 				const passedSampleIndices: number[] = [];
 				for (let i = 0; i < qty; i++) {
 					const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
@@ -456,14 +436,12 @@ export default function ManagerEvaluateChecksheet() {
 
 				const requestPlans = freshRequest.testPlans || [];
 				if (passedSampleIndices.length > 0) {
-					// 1. Check that each passed sample has at least one plan
 					const hasPlansForAllPassed = passedSampleIndices.every(idx => 
 						requestPlans.some((p: any) => Number(p.sampleIndex) === idx)
 					);
 					if (!hasPlansForAllPassed) {
 						allSamplesComplete = false;
 					} else {
-						// 2. Check that every plan is evaluated
 						const allPlansEvaluated = requestPlans.every((p: any) => 
 							p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
 						);
@@ -487,7 +465,6 @@ export default function ManagerEvaluateChecksheet() {
 						}
 					});
 
-					// If there are failed inspections for samples without plans, count them as failed
 					for (let i = 0; i < qty; i++) {
 						const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
 						if (report && report.status === 'FAILED') {
@@ -560,7 +537,6 @@ export default function ManagerEvaluateChecksheet() {
 			description={isReliability ? "Review chronological checksheet parameters filled out by inspector before evaluating sample result." : "Review submitted test report, observations, and specimen photos before evaluating sample result."}
 		>
 			<div className="space-y-6">
-				{/* Top Bar Back button */}
 				<div className="flex justify-between items-center">
 					<button 
 						onClick={() => navigate(`/manager/test-plans/${reqIdStr}`)}
@@ -574,7 +550,6 @@ export default function ManagerEvaluateChecksheet() {
 					</span>
 				</div>
 
-				{/* Metadata details block */}
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm grid grid-cols-2 md:grid-cols-4 gap-5 text-xs font-bold text-zinc-800">
 					<div>
 						<span className="text-zinc-400 font-extrabold uppercase text-[8px] tracking-wider block">Model / Capacity</span>
@@ -594,7 +569,6 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				</div>
 
-				{/* Read only checksheet table or Report display */}
 				{isReliability ? (
 					<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm overflow-hidden flex flex-col gap-4">
 						<h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-500">
@@ -654,7 +628,6 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				) : (
 					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						{/* Left: Test Details & Equipment */}
 						<div className="space-y-6">
 							<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-4">
 								<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
@@ -705,7 +678,6 @@ export default function ManagerEvaluateChecksheet() {
 							</div>
 						</div>
 
-						{/* Right: Test Pictures */}
 						<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm space-y-6 flex flex-col max-h-[700px] overflow-y-auto">
 							<h3 className="text-xs font-extrabold uppercase tracking-wider text-[#11236a] border-b border-zinc-100 pb-2">
 								Test Pictures
@@ -715,7 +687,6 @@ export default function ManagerEvaluateChecksheet() {
 							  (reportData?.afterImages && reportData.afterImages.length > 0) || 
 							  (reportData?.imagePaths && reportData.imagePaths.length > 0)) ? (
 								<div className="space-y-6">
-									{/* Before Test Pictures */}
 									{reportData?.beforeImages && reportData.beforeImages.length > 0 && (
 										<div className="space-y-2.5">
 											<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">Before Test Pictures ({reportData.beforeImages.length})</span>
@@ -743,7 +714,6 @@ export default function ManagerEvaluateChecksheet() {
 										</div>
 									)}
 
-									{/* After Test Pictures */}
 									{reportData?.afterImages && reportData.afterImages.length > 0 && (
 										<div className="space-y-2.5">
 											<span className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider block">After Test Pictures ({reportData.afterImages.length})</span>
@@ -771,7 +741,6 @@ export default function ManagerEvaluateChecksheet() {
 										</div>
 									)}
 
-									{/* Legacy Test Pictures fallback */}
 									{reportData?.imagePaths && reportData.imagePaths.length > 0 && 
 									 (!reportData?.beforeImages || reportData.beforeImages.length === 0) && 
 									 (!reportData?.afterImages || reportData.afterImages.length === 0) && (
@@ -811,7 +780,6 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				)}
 
-				{/* Inspector Outcome Recommendation & Evidence Photos Card (Reliability plans only) */}
 				{isReliability && (dbInspection || inspectionImages.length > 0) && (
 					<div className="bg-white border border-zinc-200 rounded-[24px] p-5 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -855,7 +823,6 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				)}
 
-				{/* Action Section */}
 				<div className="bg-white border border-zinc-200 rounded-[28px] p-6 shadow-sm flex flex-col gap-4">
 					<h3 className="text-sm font-extrabold uppercase tracking-wider text-zinc-900 border-b border-zinc-100 pb-2">
 						Set Sample Test Result
@@ -894,7 +861,6 @@ export default function ManagerEvaluateChecksheet() {
 					</div>
 				</div>
 			</div>
-			{/* Photo Preview Modal */}
 			{previewPhotoModal && (
 				<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewPhotoModal(null)}>
 					<div className="relative max-w-4xl max-h-[90vh] bg-white rounded-2xl overflow-hidden shadow-2xl p-2" onClick={e => e.stopPropagation()}>

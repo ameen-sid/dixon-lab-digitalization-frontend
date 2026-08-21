@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText, XCircle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText, XCircle, X } from 'lucide-react';
+
 import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
 interface RequestRecord {
@@ -206,7 +207,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 						const planName = p.testType?.name || 'General Test';
 						const isCompleted = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
 						const isTestingPhase = !isCompleted && p.startDate && p.endDate;
-						
+
 						return [
 							{
 								step: `Testing Execution (${planName})`,
@@ -271,7 +272,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 
 	return (
 		<div className="space-y-6">
-			{/* Back bar */}
 			<div className="flex items-center justify-between">
 				<button
 					onClick={() => setActiveTab('my-requests')}
@@ -291,8 +291,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 					)}
 				</div>
 			</div>
-
-			{/* Rejection Remarks from Head */}
 			{selectedRequest.status === 'REJECTED' && selectedRequest.remarks && (
 				<div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 shadow-sm flex flex-col gap-2">
 					<div className="flex items-center gap-2 text-rose-800 font-extrabold text-sm">
@@ -304,12 +302,8 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 					</p>
 				</div>
 			)}
-
-			{/* Three Column details panel */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Left Columns: Core Metadata */}
 				<div className="lg:col-span-2 space-y-6">
-					{/* Core Specs Card */}
 					<div className="bg-white border border-zinc-200/50 rounded-3xl p-5 shadow-sm space-y-6">
 						<div className="flex items-center justify-between border-b border-zinc-150 pb-3">
 							<div>
@@ -364,8 +358,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								);
 							})()}
 						</div>
-
-						{/* Applicant details */}
 						<div className="bg-zinc-50/50 border border-zinc-200/50 rounded-2xl p-4 space-y-3 overflow-hidden">
 							<h4 className="text-[10px] font-extrabold text-indigo-955 uppercase tracking-wider">Applicant & Manufacturer Information</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
@@ -383,8 +375,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 							</div>
 						</div>
-
-						{/* Product details */}
 						<div className="border border-zinc-200/50 rounded-2xl p-4 space-y-3 bg-[#f8fafc]/30 overflow-hidden">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">Product Specifications</h4>
 							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-semibold">
@@ -414,8 +404,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 							</div>
 						</div>
-
-						{/* NABL Testing Protocols details */}
 						<div className="border border-zinc-200/50 rounded-2xl p-4 space-y-3 bg-zinc-50/50">
 							<h4 className="text-[10px] font-extrabold text-zinc-700 uppercase tracking-wider">Test Configuration</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
@@ -461,16 +449,12 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</div>
 							</div>
 						</div>
-
-						{/* Sample Description */}
 						<div className="border-t border-zinc-150 pt-4">
 							<p className="text-[9px] text-zinc-700 font-extrabold uppercase mb-1">Sample Description</p>
 							<p className="text-xs text-zinc-800 font-medium leading-relaxed bg-[#f8fafc] rounded-xl p-3 border border-zinc-200">
 								{selectedRequest.sampleDescription}
 							</p>
 						</div>
-
-						{/* Attachment Mentions */}
 						{selectedRequest.attachmentMention && (
 							<div className="border-t border-zinc-150 pt-4">
 								<p className="text-[9px] text-zinc-700 font-extrabold uppercase mb-1">Attachments Mentioned / Remarks</p>
@@ -479,8 +463,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								</p>
 							</div>
 						)}
-
-						{/* File Attachments */}
 						{selectedRequest.attachments && selectedRequest.attachments.length > 0 && (
 							<div className="border-t border-zinc-150 pt-4">
 								<p className="text-[9px] text-zinc-700 font-extrabold uppercase mb-2">Submitted File Attachments</p>
@@ -511,10 +493,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 						)}
 					</div>
 				</div>
-
-				{/* Right Column: Telemetry & Flow Charts */}
 				<div className="space-y-6">
-					{/* Testing Progression Status Timeline */}
 					<div className="bg-white border border-zinc-200/50 rounded-3xl p-5 shadow-sm space-y-4">
 						<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Step Progression</h4>
 						<div className="space-y-4 relative pl-5 border-l border-zinc-200 ml-2 pt-1">
@@ -672,8 +651,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							})()}
 						</div>
 					</div>
-
-					{/* Individual Sample Inspection Results */}
 					{selectedRequest.status !== 'PENDING_APPROVAL' && selectedRequest.status !== 'REJECTED' && (
 						<div className="bg-white border border-zinc-200/50 rounded-3xl p-5 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
@@ -817,8 +794,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 
 				</div>
 			</div>
-
-			{/* Sample Progression Timeline Modal */}
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
 					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto animate-scale-up">
@@ -874,8 +849,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
 								</p>
 							</div>
-
-							{/* Steps progression */}
 							<div className="space-y-6 relative pl-6 border-l border-zinc-200 ml-2 pt-1">
 								{timelineSteps.map((item, idx) => {
 									const isActive = idx === activeIdx;
@@ -905,7 +878,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									);
 								})}
 							</div>
-
 
 						</div>
 					</div>

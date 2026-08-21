@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Send, Upload, FileText, X, AlertTriangle, HelpCircle, CheckCircle, Edit3 } from 'lucide-react';
-import { getTestTypes } from '../../services/operations/testTypeService';
-import CustomSelect from '../../components/CustomSelect';
 import { toast } from 'react-hot-toast';
+import { ChevronLeft, Send, Upload, FileText, X, AlertTriangle, HelpCircle, CheckCircle, Edit3 } from 'lucide-react';
+
+import CustomSelect from '../../components/CustomSelect';
+
+import { getTestTypes } from '../../services/operations/testTypeService';
 
 interface CreateRequestProps {
 	onSubmit: (input: any, files: File[]) => void;
@@ -83,7 +85,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 	if (showPreview) {
 		return (
 			<div className="space-y-6 animate-fade-in">
-				{/* Top bar */}
 				<div className="flex items-center">
 					<button 
 						onClick={() => setShowPreview(false)}
@@ -92,17 +93,13 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 						<ChevronLeft className="w-4 h-4" /> Back to Form Editor
 					</button>
 				</div>
-
-				{/* Preview layout sheet */}
 				<div className="bg-white border border-zinc-200 rounded-3xl shadow-md p-6 max-w-4xl mx-auto space-y-6">
 					<div className="border-b border-zinc-200 pb-4">
 						<span className="text-[10px] font-extrabold px-2.5 py-1 bg-indigo-50 text-[#11236a] border border-indigo-100 rounded-md uppercase tracking-wider">Verification Step</span>
 						<h3 className="text-base font-extrabold text-zinc-955 uppercase tracking-wider mt-2.5">Confirm Testing Request Details</h3>
 						<p className="text-xs text-zinc-700 font-semibold mt-1">Please review all values carefully. Click Confirm & Submit below to dispatch samples to R&D laboratory.</p>
 					</div>
-
 					<div className="space-y-6 divide-y divide-zinc-200 text-xs">
-						{/* SECTION 1 Preview */}
 						<div className="space-y-4 pt-2">
 							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">1. Applicant & Manufacturer Profile</h4>
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,15 +117,12 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								<p className="text-xs font-bold text-zinc-955 leading-relaxed">{formInput.customerContactDetails}</p>
 							</div>
 						</div>
-
-						{/* SECTION 2 Preview */}
 						<div className="space-y-4 pt-4">
 							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">2. Technical Specifications</h4>
 							<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
 								<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Sample Description</p>
 								<p className="text-xs font-bold text-zinc-955 whitespace-pre-wrap leading-relaxed">{formInput.sampleDescription}</p>
 							</div>
-							
 							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
 								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm overflow-hidden">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Model No. / ID</p>
@@ -155,7 +149,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									<p className="text-xs font-bold text-zinc-955 break-words whitespace-pre-wrap">{formInput.brandName}</p>
 								</div>
 							</div>
-
 							{formInput.attachmentMention && (
 								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Drawing / Specifications Mentioned</p>
@@ -163,8 +156,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								</div>
 							)}
 						</div>
-
-						{/* SECTION 3 Preview */}
 						<div className="space-y-4 pt-4">
 							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">3. Protocols & Witness Scope</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -190,8 +181,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								</div>
 							)}
 						</div>
-
-						{/* SECTION 4 Preview */}
 						<div className="space-y-4 pt-4">
 							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">4. Conformity & Logistical Rules</h4>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -206,7 +195,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									</div>
 								)}
 							</div>
-
 							<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 								<div>
 									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Sample Collect-back Request</p>
@@ -222,8 +210,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								)}
 							</div>
 						</div>
-
-						{/* File List Preview */}
 						{selectedFiles.length > 0 && (
 							<div className="space-y-4 pt-4">
 								<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">5. Uploaded Drawing Documents</h4>
@@ -246,8 +232,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</div>
 						)}
 					</div>
-
-					{/* Final buttons */}
 					<div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200">
 						<button 
 							type="button" 
@@ -268,10 +252,8 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 			</div>
 		);
 	}
-
 	return (
 		<div className="space-y-6">
-			{/* Back Button Panel */}
 			<div className="flex items-center">
 				<button 
 					onClick={() => setActiveTab('my-requests')}
@@ -280,16 +262,12 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 					<ChevronLeft className="w-4 h-4" /> Back to Submission List
 				</button>
 			</div>
-
-			{/* Form Sheet Card */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm p-6 max-w-4xl mx-auto">
 				<div className="border-b border-zinc-150 pb-4 mb-6">
 					<h3 className="text-sm font-extrabold text-zinc-955 uppercase tracking-wider">Submit Testing Request Form</h3>
 					<p className="text-[11px] text-zinc-650 font-medium mt-1">Please enter exact technical calibrations. Fields marked with <span className="text-rose-500 font-bold">*</span> are mandatory.</p>
 				</div>
-
 				<form onSubmit={handleFormSubmit} className="space-y-6">
-					{/* SECTION 1: Customer & Manufacturer Information */}
 					<div className="space-y-4">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">1. Applicant & Manufacturer Details</h4>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -306,7 +284,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all resize-none"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Manufacturer Name and Address <span className="text-rose-500 font-extrabold">*</span>
@@ -321,7 +298,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								/>
 							</div>
 						</div>
-
 						<div className="w-full">
 							<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 								Contact Details of Customer / Applicant <span className="text-rose-500 font-extrabold">*</span>
@@ -336,8 +312,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							/>
 						</div>
 					</div>
-
-					{/* SECTION 2: Sample Description & Product Specs */}
 					<div className="space-y-4 pt-2">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">2. Sample & Product Specifications</h4>
 						<div>
@@ -353,7 +327,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all resize-none"
 							/>
 						</div>
-
 						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
@@ -368,7 +341,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Family Model <span className="text-zinc-600 font-medium">(if Any)</span>
@@ -381,7 +353,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Product Serial Number <span className="text-zinc-600 font-medium">(if Any)</span>
@@ -394,7 +365,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Product Rating <span className="text-rose-500 font-extrabold">*</span>
@@ -408,7 +378,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Sample Qty <span className="text-rose-500 font-extrabold">*</span>
@@ -422,7 +391,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Trade Mark / Brand <span className="text-rose-500 font-extrabold">*</span>
@@ -437,7 +405,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 								/>
 							</div>
 						</div>
-
 						<div>
 							<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 								Drawing / Specification / any attachment (Please mention)
@@ -451,8 +418,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							/>
 						</div>
 					</div>
-
-					{/* SECTION 3: Testing Parameters & Witness */}
 					<div className="space-y-4 pt-2">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">3. Testing Protocols & Witness Parameters</h4>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -469,7 +434,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Test Type <span className="text-rose-500 font-extrabold">*</span>
@@ -481,7 +445,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									placeholder="Select Test Type"
 								/>
 							</div>
-
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
 									Witness Required <span className="text-rose-500 font-extrabold">*</span>
@@ -527,8 +490,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</div>
 						)}
 					</div>
-
-					{/* SECTION 4: Conformity & Logistical Rules */}
 					<div className="space-y-4 pt-2">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">4. Conformity & Logistical Parameters</h4>
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -608,8 +569,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							)}
 						</div>
 					</div>
-
-					{/* File Attachments Dropzone */}
 					<div className="space-y-4 pt-2">
 						<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">5. Supporting Documents & File Attachments</h4>
 						<div className="border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-2xl p-6 text-center bg-zinc-50/50 transition-colors relative group">
@@ -650,8 +609,6 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</div>
 						)}
 					</div>
-
-					{/* Buttons */}
 					<div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-150">
 						<button 
 							type="button"

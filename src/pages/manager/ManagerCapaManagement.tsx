@@ -30,7 +30,6 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 
 	const [capaView, setCapaView] = useState<'list' | 'new'>('list');
 
-	// List filters state
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [currentPage, setCurrentPage] = useState(1);
@@ -44,12 +43,10 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 			setInitialCapaInput(init);
 			setCapaView('new');
 
-			// Clear location.state so reloading or navigating doesn't reopen it
 			navigate(location.pathname, { replace: true, state: {} });
 		}
 	}, [location.state, navigate, location.pathname]);
 
-	// 1. NEW CAPA FORM VIEW
 	if (capaView === 'new') {
 		return (
 			<CreateCapa
@@ -68,7 +65,6 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 		);
 	}
 
-	// 2. TABLE LIST VIEW (DEFAULT)
 	const filteredCapas = capas.filter(c => {
 		const matchesSearch = c.productName.toLowerCase().includes(searchQuery.toLowerCase()) || 
 							  c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -89,7 +85,6 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 
 	return (
 		<div className="space-y-6">
-			{/* Top toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 				<div className="flex flex-col sm:flex-row gap-3 flex-1">
 					<div className="relative flex-1 max-w-md">
@@ -131,8 +126,6 @@ export default function ManagerCapaManagement({ capas, onAddCapa, requests }: Ma
 					</select>
 				</div>
 			</div>
-
-			{/* CAPA Table list */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{paginatedCapas.length === 0 ? (
 					<div className="text-center py-16">

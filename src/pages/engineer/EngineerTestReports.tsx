@@ -668,8 +668,6 @@ export default function EngineerTestReports({
 
 							<div className="space-y-6 pt-2">
 								<h5 className="text-[11px] font-black text-zinc-800 uppercase tracking-wider">Test Pictures</h5>
-
-								{/* Before Test Pictures */}
 								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
 									<div className="flex items-center justify-between">
 										<label className="text-[10px] text-[#11236a] font-extrabold uppercase">Before Test Pictures</label>
@@ -710,8 +708,6 @@ export default function EngineerTestReports({
 										<span className="text-[10px] text-zinc-400 italic">No before pictures uploaded.</span>
 									)}
 								</div>
-
-								{/* After Test Pictures */}
 								<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
 									<div className="flex items-center justify-between">
 										<label className="text-[10px] text-[#11236a] font-extrabold uppercase">After Test Pictures</label>
@@ -752,8 +748,6 @@ export default function EngineerTestReports({
 										<span className="text-[10px] text-zinc-400 italic">No after pictures uploaded.</span>
 									)}
 								</div>
-
-								{/* Legacy Test Pictures */}
 								{reportForm.specimenImages.length > 0 && reportForm.beforeImages.length === 0 && reportForm.afterImages.length === 0 && (
 									<div className="flex flex-col gap-2 p-4 bg-zinc-50/50 rounded-2xl border border-zinc-100">
 										<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Legacy Test Pictures</label>

@@ -273,7 +273,6 @@ export default function UserManagement() {
 		return matchesSearch && matchesRole && matchesDept;
 	});
 
-	// Adjust page bounds dynamically if currentPage exceeds maxPage (directly during render)
 	const maxPage = Math.ceil(filteredUsers.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	if (currentPage !== activePage) {

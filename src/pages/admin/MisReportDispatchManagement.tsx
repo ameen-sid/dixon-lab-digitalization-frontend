@@ -56,7 +56,6 @@ export default function MisReportDispatchManagement() {
 
 	return (
 		<div className="space-y-6">
-			{/* Top Banner */}
 			<div className="relative bg-[#11236a] rounded-[24px] px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg overflow-hidden">
 				<div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, #6366f1 0%, transparent 60%)' }} />
 				<div className="relative z-10">
@@ -70,11 +69,7 @@ export default function MisReportDispatchManagement() {
 					<p className="text-white/50 text-xs mt-1 font-medium">Manually compile and send automated MIS reports via SMTP for testing & audit purposes.</p>
 				</div>
 			</div>
-
-			{/* Cards Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-				{/* Card 1: Weekly PDF MIS Report 1 */}
 				<div className="bg-white border border-zinc-200/80 rounded-[24px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
@@ -135,8 +130,6 @@ export default function MisReportDispatchManagement() {
 						</button>
 					</div>
 				</div>
-
-				{/* Card 2: Daily Excel MIS Report 2 */}
 				<div className="bg-white border border-zinc-200/80 rounded-[24px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
@@ -197,7 +190,6 @@ export default function MisReportDispatchManagement() {
 						</button>
 					</div>
 				</div>
-
 			</div>
 		</div>
 	);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, X } from 'lucide-react';
+
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
 
@@ -34,8 +35,8 @@ export default function CapaManagement({ capas, setActiveTab, setSelectedCapa }:
 
 	const filteredCapas = capas.filter(c => {
 		const matchesSearch = c.productName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-							  c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-							  c.relatedRequest.toLowerCase().includes(searchQuery.toLowerCase());
+							c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+							c.relatedRequest.toLowerCase().includes(searchQuery.toLowerCase());
 		const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
 		let matchesDate = true;
 		if (startDate) {
@@ -59,7 +60,6 @@ export default function CapaManagement({ capas, setActiveTab, setSelectedCapa }:
 
 	return (
 		<div className="space-y-6">
-			{/* Top toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
 				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
 					<div className="relative min-w-[200px] flex-1">
@@ -143,8 +143,6 @@ export default function CapaManagement({ capas, setActiveTab, setSelectedCapa }:
 					</button>
 				)}
 			</div>
-
-			{/* CAPA Table list */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{paginatedCapas.length === 0 ? (
 					<div className="text-center py-16">

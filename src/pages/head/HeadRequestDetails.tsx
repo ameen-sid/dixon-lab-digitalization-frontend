@@ -144,12 +144,10 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 		}
 	};
 
-	// Modals and operations state
 	const [showApproveModal, setShowApproveModal] = useState(false);
 	const [showRejectModal, setShowRejectModal] = useState(false);
 	const [remarksText, setRemarksText] = useState('');
 
-	// Telemetry and active sample timeline details
 	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
 
 	const targetId = requestId || id;
@@ -289,7 +287,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 
 	const activeIdx = timelineSteps.findIndex(s => !s.completed && !s.failed);
 
-	// Handle Approval Submit
 	const handleApproveSubmit = async () => {
 		if (!request) return;
 		try {
@@ -305,7 +302,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 		}
 	};
 
-	// Handle Rejection Submit
 	const handleRejectSubmit = async () => {
 		if (!request) return;
 		if (!remarksText.trim()) {
@@ -351,8 +347,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 
 	return (
 		<div className="space-y-6 text-xs font-semibold">
-
-			{/* Top Control Bar */}
 			<div className="flex items-center justify-between bg-white border border-zinc-200/50 rounded-2xl px-5 py-3.5 shadow-sm">
 				<button
 					onClick={handleGoBack}
@@ -417,8 +411,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 					})()}
 				</div>
 			</div>
-
-			{/* Rejection Banner */}
 			{request.status === 'REJECTED' && request.remarks && (
 				<div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex flex-col gap-1.5 shadow-sm">
 					<div className="flex items-center gap-2 text-rose-800 font-extrabold text-xs">
@@ -430,14 +422,8 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 					</p>
 				</div>
 			)}
-
-			{/* Layout split: 2 columns details + 1 column timeline */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-				{/* Left column: core specifications */}
 				<div className="lg:col-span-2 space-y-6">
-
-					{/* Consolidated Request Details Card */}
 					<div className="bg-white border border-zinc-200/50 rounded-3xl p-6 shadow-sm space-y-6">
 						<div className="border-b border-zinc-100 pb-3 flex items-center justify-between">
 							<h3 className="text-sm font-black text-zinc-950 uppercase tracking-wide">
@@ -447,8 +433,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								REQ ID: {request.requestId || `REQ-00${request.id}`}
 							</span>
 						</div>
-
-						{/* Section 1: Requester Profile */}
 						<div className="space-y-3">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
 								Requester Profile
@@ -468,8 +452,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								</div>
 							</div>
 						</div>
-
-						{/* Section 2: Applicant & Manufacturer Details */}
 						<div className="border-t border-zinc-100/85 pt-4 space-y-3">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
 								Applicant & Manufacturer Profile
@@ -489,8 +471,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								</div>
 							</div>
 						</div>
-
-						{/* Section 3: Product Specifications */}
 						<div className="border-t border-zinc-100/85 pt-4 space-y-3 overflow-hidden">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
 								Product & Sample Details
@@ -522,8 +502,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								</div>
 							</div>
 						</div>
-
-						{/* Section 4: Test Protocol Configuration */}
 						<div className="border-t border-zinc-100/85 pt-4 space-y-3">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
 								Test Protocol Configuration
@@ -567,8 +545,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								</div>
 							</div>
 						</div>
-
-						{/* Section 5: Detailed Description & Attachments Mentioned */}
 						<div className="border-t border-zinc-100/85 pt-4 space-y-4">
 							<div className="space-y-2">
 								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Detailed Sample Description</p>
@@ -587,8 +563,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							)}
 						</div>
 					</div>
-
-					{/* File Attachments */}
 					{request.attachments && request.attachments.length > 0 && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-3">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider">
@@ -620,11 +594,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 						</div>
 					)}
 				</div>
-
-				{/* Right column: Step progression timeline & Actions */}
 				<div className="space-y-6">
-
-					{/* Action Card (Only displays if status is PENDING_APPROVAL) */}
 					{request.status === 'PENDING_APPROVAL' && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 							<h4 className="text-[10px] font-extrabold text-zinc-700 uppercase tracking-wider border-b border-zinc-100 pb-2">
@@ -657,8 +627,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							</div>
 						</div>
 					)}
-
-					{/* Final Report Sign-off Card (Only displays if status is PASS, FAIL, or PARTIAL) */}
 					{['PASS', 'FAIL', 'PARTIAL'].includes(request.status) && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 							<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider border-b border-zinc-100 pb-2">
@@ -685,8 +653,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							</button>
 						</div>
 					)}
-
-					{/* Step progression timeline */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-5">
 						<h4 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2">
 							Step Progression
@@ -847,8 +813,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							})()}
 						</div>
 					</div>
-
-					{/* Individual Sample Inspection Results */}
 					{request.status !== 'PENDING_APPROVAL' && request.status !== 'REJECTED' && (
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm space-y-4">
 							<h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center justify-between">
@@ -993,8 +957,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 
 				</div>
 			</div>
-
-			{/* Sample Progression Timeline Modal */}
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
 					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto animate-scale-up">
@@ -1017,8 +979,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 									Allotted ID: <span className="text-zinc-700 font-extrabold">{sampleReport?.allottedId || 'N/A'}</span>
 								</p>
 							</div>
-
-							{/* Steps progression */}
 							<div className="space-y-6 relative pl-6 border-l border-zinc-200 ml-2 pt-1">
 								{timelineSteps.map((item, idx) => {
 									const isActive = idx === activeIdx;
@@ -1044,16 +1004,10 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 									);
 								})}
 							</div>
-
-
 						</div>
 					</div>
 				</div>
 			)}
-
-			{/* ========================================================================= */}
-			{/* APPROVAL ACTION MODAL */}
-			{/* ========================================================================= */}
 			{showApproveModal && (
 				<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center animate-fade-in backdrop-blur-xs">
 					<div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 space-y-4 border border-zinc-200 animate-scale-up">
@@ -1098,10 +1052,6 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 					</div>
 				</div>
 			)}
-
-			{/* ========================================================================= */}
-			{/* REJECTION ACTION MODAL */}
-			{/* ========================================================================= */}
 			{showRejectModal && (
 				<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center animate-fade-in backdrop-blur-xs">
 					<div className="bg-white rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 space-y-4 border border-zinc-200 animate-scale-up">

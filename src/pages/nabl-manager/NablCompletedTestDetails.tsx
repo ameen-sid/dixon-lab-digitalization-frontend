@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { getNablRequestDetails } from '../../services/operations/nablRequestService';
 import { 
-	ChevronLeft, FileText, Download, Eye, CheckCircle, XCircle, Calendar, UserCheck, Clipboard
+ChevronLeft, FileText, Download, Eye, CheckCircle, XCircle, Calendar, UserCheck, Clipboard
 } from 'lucide-react';
+
+import DashboardLayout from '../layouts/DashboardLayout';
+
+import { getNablRequestDetails } from '../../services/operations/nablRequestService';
 
 interface Attachment {
 	id: number;
@@ -153,7 +155,6 @@ export default function NablCompletedTestDetails() {
 	return (
 		<DashboardLayout title="Completed Test Details">
 			<div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-				{/* Navigation Bar */}
 				<div className="flex items-center justify-between">
 					<button 
 						onClick={() => navigate('/nabl-manager/completed-tests')}
@@ -161,7 +162,6 @@ export default function NablCompletedTestDetails() {
 					>
 						<ChevronLeft className="w-4 h-4" /> Back to Completed Tests Registry
 					</button>
-
 					<div className="flex items-center gap-2">
 						{isFail ? (
 							<span className="px-3.5 py-1.5 bg-rose-50 text-rose-700 rounded-full text-xs font-extrabold border border-rose-200 uppercase tracking-wider flex items-center gap-1.5">
@@ -174,14 +174,10 @@ export default function NablCompletedTestDetails() {
 						)}
 					</div>
 				</div>
-
-				{/* 1. COMPLETED TEST REQUEST FORM DETAILS & ATTACHMENTS CARD */}
 				<div className="bg-white border border-zinc-300 rounded-[32px] shadow-md p-6 space-y-6">
 					<h3 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider flex items-center gap-2 border-b border-zinc-200 pb-3">
 						<FileText className="w-4 h-4 text-[#11236a]" /> Completed Test Request Form Details (TRF)
 					</h3>
-
-					{/* Header Banner */}
 					<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs">
 						<div className="grid grid-cols-12">
 							<div className="col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
@@ -203,10 +199,7 @@ export default function NablCompletedTestDetails() {
 								</p>
 							</div>
 						</div>
-
-						{/* Form Data Table */}
 						<div className="border-t border-zinc-400 divide-y divide-zinc-400">
-							{/* Section 1: Address & Contact Details */}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									1. Customer Name & Address:
@@ -233,8 +226,6 @@ export default function NablCompletedTestDetails() {
 									{request.customerContactDetails}
 								</div>
 							</div>
-
-							{/* Section 2: Sample Description & Ratings */}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									4. Sample Description:
@@ -301,8 +292,6 @@ export default function NablCompletedTestDetails() {
 									{request.sampleQty}
 								</div>
 							</div>
-
-							{/* Section 3: Testing Requirements & Standards */}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									11. Test Standard / Protocol:
@@ -329,8 +318,6 @@ export default function NablCompletedTestDetails() {
 									{request.sampleCondition || 'Satisfactory'}
 								</div>
 							</div>
-
-							{/* Section 4: Customer Preferences & Conformity */}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									14. Witness Required:
@@ -377,8 +364,6 @@ export default function NablCompletedTestDetails() {
 									</div>
 								</div>
 							)}
-
-							{/* Customer Signature Name */}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
 									19. Customer Name & Signature:
@@ -391,8 +376,6 @@ export default function NablCompletedTestDetails() {
 							</div>
 						</div>
 					</div>
-
-					{/* REQUEST FORM ATTACHMENTS SUBSECTION */}
 					<div className="space-y-3 pt-4 border-t border-zinc-200">
 						<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider flex items-center gap-2">
 							<FileText className="w-3.5 h-3.5 text-blue-600" /> Request Form Attachments ({request.attachments?.length || 0})
@@ -434,8 +417,6 @@ export default function NablCompletedTestDetails() {
 						)}
 					</div>
 				</div>
-
-				{/* 2. TEST PLAN EXECUTION & REPORT SUMMARY CARD */}
 				<div className="bg-white border border-zinc-300 rounded-[32px] shadow-md p-6 space-y-6">
 					<h3 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider flex items-center gap-2 border-b border-zinc-200 pb-3">
 						<Clipboard className="w-4 h-4 text-[#11236a]" /> Test Plan Execution & Certified Report Summary
@@ -496,8 +477,6 @@ export default function NablCompletedTestDetails() {
 							</p>
 						</div>
 					</div>
-
-					{/* TEST PLAN ATTACHMENTS SUBSECTION */}
 					<div className="space-y-3 pt-4 border-t border-zinc-200">
 						<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider flex items-center gap-2">
 							<FileText className="w-3.5 h-3.5 text-emerald-600" /> Test Plan & Report Attachments ({request.testPlan?.attachments?.length || 0})

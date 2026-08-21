@@ -100,7 +100,6 @@ export default function DepartmentManagement() {
 	const handleUpdateDept = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!deptName.trim() || editingDeptId === null) return;
-
 		try {
 			await departmentService.updateDepartment(editingDeptId, deptName)();
 			showNotification(`Department "${deptName.trim()}" updated successfully!`, 'success');
@@ -143,7 +142,6 @@ export default function DepartmentManagement() {
 
 	const filteredDepts = departments.filter((d) => d.name.toLowerCase().includes(deptSearch.toLowerCase()));
 
-	// Adjust page bounds dynamically if currentPage exceeds maxPage (directly during render)
 	const maxPage = Math.ceil(filteredDepts.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	if (currentPage !== activePage) {

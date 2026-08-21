@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import DashboardLayout from '../layouts/DashboardLayout';
-import { getNablRequestDetails } from '../../services/operations/nablRequestService';
 import { ChevronLeft, FileText, Download, Eye } from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
+
+import { getNablRequestDetails } from '../../services/operations/nablRequestService';
 
 interface NablRequestData {
 	id: number;
@@ -36,7 +37,6 @@ export default function NablRequestReport() {
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
 
-	// Auth check
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
 
@@ -119,7 +119,6 @@ export default function NablRequestReport() {
 	return (
 		<DashboardLayout title="NABL Request Report">
 			<div className="space-y-6 animate-fade-in">
-				{/* Top Navigation */}
 				<div className="flex items-center justify-between">
 					<button 
 						onClick={() => navigate('/nabl-manager/requests')}
@@ -134,10 +133,7 @@ export default function NablRequestReport() {
 						</span>
 					</div>
 				</div>
-
-				{/* Report Sheet Card */}
 				<div className="bg-white border border-zinc-300 rounded-[32px] shadow-md p-6 max-w-4xl mx-auto space-y-6">
-					{/* Form Top Header */}
 					<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs">
 						<div className="grid grid-cols-12">
 							<div className="col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
@@ -161,10 +157,7 @@ export default function NablRequestReport() {
 							TEST REQUEST FORM — REPORT VIEW
 						</div>
 					</div>
-
-					{/* Physical Paper Sheet Mock Table */}
 					<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs bg-white divide-y divide-zinc-400">
-						{/* Customer Address */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Name and Address of Customer / Applicant
@@ -173,8 +166,6 @@ export default function NablRequestReport() {
 								{request.customerNameAddress}
 							</div>
 						</div>
-
-						{/* Manufacturer Address */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Manufacturer Name and address
@@ -183,8 +174,6 @@ export default function NablRequestReport() {
 								{request.manufacturerNameAddress}
 							</div>
 						</div>
-
-						{/* Contact Details */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Contact Details of Customer / Applicant
@@ -193,8 +182,6 @@ export default function NablRequestReport() {
 								{request.customerContactDetails}
 							</div>
 						</div>
-
-						{/* Sample Description */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Sample Description
@@ -203,8 +190,6 @@ export default function NablRequestReport() {
 								{request.sampleDescription}
 							</div>
 						</div>
-
-						{/* Model No */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Model No. / Identification
@@ -213,8 +198,6 @@ export default function NablRequestReport() {
 								{request.modelNo}
 							</div>
 						</div>
-
-						{/* Family Model */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Family Model (If Any)
@@ -223,8 +206,6 @@ export default function NablRequestReport() {
 								{request.familyModel || 'NA'}
 							</div>
 						</div>
-
-						{/* Product Serial Number */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Product Serial Number (If any)
@@ -233,8 +214,6 @@ export default function NablRequestReport() {
 								{request.serialNumber || 'NA'}
 							</div>
 						</div>
-
-						{/* Product Rating */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Product Rating
@@ -243,8 +222,6 @@ export default function NablRequestReport() {
 								{request.productRating}
 							</div>
 						</div>
-
-						{/* Sample Qty */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Sample Qty.
@@ -253,8 +230,6 @@ export default function NablRequestReport() {
 								{request.sampleQty}
 							</div>
 						</div>
-
-						{/* Brand */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Trade Mark / Brand
@@ -263,8 +238,6 @@ export default function NablRequestReport() {
 								{request.brandName}
 							</div>
 						</div>
-
-						{/* Drawings attachment details */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Drawing / Specification /any attachment (Please mention)
@@ -273,8 +246,6 @@ export default function NablRequestReport() {
 								{request.attachmentMention || 'NA'}
 							</div>
 						</div>
-
-						{/* Witness Required */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Witness Required
@@ -294,8 +265,6 @@ export default function NablRequestReport() {
 								</div>
 							</div>
 						</div>
-
-						{/* Witness Designation */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Name and designation of person who will witness the test
@@ -304,8 +273,6 @@ export default function NablRequestReport() {
 								{request.witnessRequired === 'Yes' ? request.witnessPersonDetails : 'NA'}
 							</div>
 						</div>
-
-						{/* Test Method */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Ref. Test Method/ Specification's
@@ -314,8 +281,6 @@ export default function NablRequestReport() {
 								{request.testMethodRef}
 							</div>
 						</div>
-
-						{/* Statement of Conformity */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Statement of conformity:
@@ -348,8 +313,6 @@ export default function NablRequestReport() {
 								)}
 							</div>
 						</div>
-
-						{/* Report with NABL Logo */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Report Required with NABL logo
@@ -369,8 +332,6 @@ export default function NablRequestReport() {
 								</div>
 							</div>
 						</div>
-
-						{/* Collected Back */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Whether sample will be collected back (not applicable for destructive test)
@@ -395,8 +356,6 @@ export default function NablRequestReport() {
 								</p>
 							</div>
 						</div>
-
-						{/* Signature Name */}
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 								Customer Name & Signature:
@@ -408,66 +367,62 @@ export default function NablRequestReport() {
 							</div>
 						</div>
 					</div>
+					{request.attachments && request.attachments.length > 0 && (
+						<div className="space-y-4 pt-4 border-t border-zinc-200">
+							<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">
+								Specifications & Manuals Attachments ({request.attachments.length})
+							</h4>
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+								{request.attachments.map((att) => {
+									const ext = att.fileName.split('.').pop()?.toLowerCase() || '';
+									const viewableExts = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'txt', 'html'];
+									const isViewable = viewableExts.includes(ext);
 
-					{/* Attachments */}
-						{request.attachments && request.attachments.length > 0 && (
-							<div className="space-y-4 pt-4 border-t border-zinc-200">
-								<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">
-									Specifications & Manuals Attachments ({request.attachments.length})
-								</h4>
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-									{request.attachments.map((att) => {
-										const ext = att.fileName.split('.').pop()?.toLowerCase() || '';
-										const viewableExts = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'txt', 'html'];
-										const isViewable = viewableExts.includes(ext);
+									const cleanPath = att.filePath.replace(/\\/g, '/');
+									const relativePath = cleanPath.includes('uploads')
+										? cleanPath.substring(cleanPath.indexOf('uploads'))
+										: cleanPath;
+									const fileUrl = `/${relativePath}`;
 
-										// Extract relative path starting from "uploads/" to work through Vite proxy
-										const cleanPath = att.filePath.replace(/\\/g, '/');
-										const relativePath = cleanPath.includes('uploads')
-											? cleanPath.substring(cleanPath.indexOf('uploads'))
-											: cleanPath;
-										const fileUrl = `/${relativePath}`;
+									const handleClick = () => {
+										if (isViewable) {
+											window.open(fileUrl, '_blank');
+										} else {
+											const link = document.createElement('a');
+											link.href = fileUrl;
+											link.download = att.fileName;
+											document.body.appendChild(link);
+											link.click();
+											document.body.removeChild(link);
+										}
+									};
 
-										const handleClick = () => {
-											if (isViewable) {
-												window.open(fileUrl, '_blank');
-											} else {
-												// Trigger browser download dialog
-												const link = document.createElement('a');
-												link.href = fileUrl;
-												link.download = att.fileName;
-												document.body.appendChild(link);
-												link.click();
-												document.body.removeChild(link);
-											}
-										};
-
-										return (
-											<div
-												key={att.id}
-												onClick={handleClick}
-												className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 shadow-sm cursor-pointer hover:bg-zinc-100 hover:border-indigo-300 transition-all group"
-											>
-												<FileText className="w-5 h-5 text-[#11236a] group-hover:text-indigo-650 shrink-0 transition-colors" />
-												<div className="overflow-hidden flex-1">
-													<p className="text-xs font-bold text-zinc-955 truncate leading-none mb-1 group-hover:underline group-hover:text-indigo-650 transition-colors">{att.fileName}</p>
-													<span className="text-[10px] text-zinc-555 font-semibold">
-														Size: {(att.fileSize / 1024).toFixed(1)} KB · {isViewable ? 'Click to view' : 'Click to download'}
-													</span>
-												</div>
-												{isViewable ? (
-													<Eye className="w-4 h-4 text-zinc-400 group-hover:text-[#11236a] transition-colors shrink-0" />
-												) : (
-													<Download className="w-4 h-4 text-zinc-400 group-hover:text-[#11236a] transition-colors shrink-0" />
-												)}
+									return (
+										<div
+											key={att.id}
+											onClick={handleClick}
+											className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl p-3.5 shadow-sm cursor-pointer hover:bg-zinc-100 hover:border-indigo-300 transition-all group"
+										>
+											<FileText className="w-5 h-5 text-[#11236a] group-hover:text-indigo-650 shrink-0 transition-colors" />
+											<div className="overflow-hidden flex-1">
+												<p className="text-xs font-bold text-zinc-955 truncate leading-none mb-1 group-hover:underline group-hover:text-indigo-650 transition-colors">{att.fileName}</p>
+												<span className="text-[10px] text-zinc-555 font-semibold">
+													Size: {(att.fileSize / 1024).toFixed(1)} KB · {isViewable ? 'Click to view' : 'Click to download'}
+												</span>
 											</div>
-										);
-									})}
-								</div>
+											{isViewable ? (
+												<Eye className="w-4 h-4 text-zinc-400 group-hover:text-[#11236a] transition-colors shrink-0" />
+											) : (
+												<Download className="w-4 h-4 text-zinc-400 group-hover:text-[#11236a] transition-colors shrink-0" />
+											)}
+										</div>
+									);
+								})}
 							</div>
-						)}
-					</div>
+						</div>
+					)}
 				</div>
-			</DashboardLayout>
-		);
-	}
+			</div>
+		</DashboardLayout>
+	);
+}

@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { CheckCircle } from 'lucide-react';
 
-// Import newly added modular requester sub-pages
 import RequesterOverview from './RequesterOverview';
 import MyRequests from './MyRequests';
 import CreateRequest from './CreateRequest';
@@ -12,7 +11,6 @@ import CapaManagement from './CapaManagement';
 import CreateCapa from './CreateCapa';
 import CapaReports from './CapaReports';
 
-// Import API services
 import { getTestRequests, createTestRequest } from '../../services/operations/testRequestService';
 import { getCapas, createCapa } from '../../services/operations/capaService';
 
@@ -58,8 +56,6 @@ interface CapaRecord {
 	status: string;
 	owner: string;
 	createdDate: string;
-
-	// new format fields
 	partProduct?: string;
 	modelName?: string;
 	customerSupplier?: string;
@@ -105,7 +101,6 @@ export default function RequesterDashboard() {
 
 		const user = JSON.parse(userStr);
 		const role = user.role ? user.role.toLowerCase() : 'requester';
-
 		if (role !== 'requester') {
 			navigate('/dashboard', { replace: true });
 		}
@@ -113,7 +108,6 @@ export default function RequesterDashboard() {
 
 	const path = location.pathname;
 
-	// Derive active tab string for header labeling
 	let activeTab = 'dashboard';
 	if (path === '/requester/my-requests') activeTab = 'my-requests';
 	else if (path === '/requester/requests/new') activeTab = 'new-request';
@@ -123,7 +117,6 @@ export default function RequesterDashboard() {
 	else if (path === '/requester/capa/details') activeTab = 'view-capa-details';
 
 	const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
-
 	const [requests, setRequests] = useState<RequestRecord[]>([]);
 
 	const loadRequests = async () => {
@@ -172,7 +165,6 @@ export default function RequesterDashboard() {
 		}
 	}, [token, userStr]);
 
-	// 2. CAPA — loaded from backend
 	const [capas, setCapas] = useState<CapaRecord[]>([]);
 
 	const loadCapas = async () => {
@@ -190,7 +182,6 @@ export default function RequesterDashboard() {
 				status: c.status === 'Done' ? 'COMPLETED' : (c.status === 'COMPLETED' ? 'COMPLETED' : 'OPEN'),
 				owner: c.owner || '',
 				createdDate: new Date(c.createdAt).toISOString().split('T')[0],
-				// extended
 				partProduct: c.partProduct, modelName: c.modelName, customerSupplier: c.customerSupplier,
 				date: c.date, result: c.result, title: c.title, improvementType: c.improvementType,
 				partName: c.partName, problem: c.problem, model: c.model, defectQty: c.defectQty, venue: c.venue,
@@ -207,7 +198,6 @@ export default function RequesterDashboard() {
 		}
 	};
 
-	// Selected Entities for Detail Views
 	const [selectedRequest, setSelectedRequest] = useState<RequestRecord | null>(null);
 	const [selectedCapa, setSelectedCapa] = useState<CapaRecord | null>(capas[0]);
 
@@ -217,7 +207,6 @@ export default function RequesterDashboard() {
 		? (requests.find(r => r.id === reqIdFromUrl) || selectedRequest)
 		: (selectedRequest || (requests.length > 0 ? requests[0] : null));
 
-	// Ensure selectedRequest defaults to requests[0] when requests updates
 	useEffect(() => {
 		if (requests.length > 0 && !selectedRequest) {
 			setSelectedRequest(requests[0]);
@@ -228,7 +217,6 @@ export default function RequesterDashboard() {
 		if (token && userStr) { loadCapas(); }
 	}, [token, userStr]);
 
-	// New CAPA Form Inputs State for passing initial values from complete requests
 	const [initialCapaInput, setInitialCapaInput] = useState<any>(null);
 
 	const triggerNotification = (message: string, type: 'success' | 'info' = 'success') => {
@@ -238,7 +226,6 @@ export default function RequesterDashboard() {
 		}, 4000);
 	};
 
-	// Form Submission Handlers
 	const handleCreateRequestSubmit = async (input: any, files: File[]) => {
 		try {
 			const formData = new FormData();
@@ -263,7 +250,6 @@ export default function RequesterDashboard() {
 	};
 
 	const handleCreateCapaSubmit = async (input: FormData | any) => {
-		// FormData fields must be read via .get(); plain objects via direct access
 		const get = (key: string) =>
 			input instanceof FormData ? input.get(key) : input[key];
 
@@ -298,7 +284,6 @@ export default function RequesterDashboard() {
 		navigate('/requester/capa/new');
 	};
 
-	// Dynamic tab header texts
 	const getTabHeaders = () => {
 		switch (activeTab) {
 			case 'dashboard':
@@ -427,13 +412,11 @@ export default function RequesterDashboard() {
 			description={headers.desc}
 			activeTab={activeTab}
 			onTabChange={(tab) => {
-				// Reset CAPA pre-fill states if navigated manually
 				if (tab !== 'new-capa') {
 					setInitialCapaInput(null);
 				}
 			}}
 		>
-			{/* Notifications Popups */}
 			{notification && (
 				<div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 shadow-md flex items-center gap-2 text-xs font-bold transition-all border animate-fade-in ${
 					notification.type === 'success' 

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Printer, X, FileText, AlertTriangle } from 'lucide-react';
+
 import { getTestRequests } from '../../services/operations/testRequestService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
 import { getUsers } from '../../services/operations/userService';
 import { getTestTypes } from '../../services/operations/testTypeService';
-
 
 const INSPECTION_CHECKPOINTS = [
 	{ id: 1, text: 'Is Sample Description same as written on Test Request Form?' },
@@ -40,13 +40,11 @@ const parseImagePaths = (imagesVal: any) => {
 export default function ReportPreview() {
 	const location = useLocation();
 
-	// Parse query params
 	const query = new URLSearchParams(location.search);
-	const type = query.get('type'); // 'sample' | 'request'
-	const key = query.get('key'); // for sample: `${requestId}-sample-${sampleIndex}`
-	const id = query.get('id'); // for request: `${requestId}`
+	const type = query.get('type'); 
+	const key = query.get('key'); 
+	const id = query.get('id'); 
 
-	// States
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
 	const [testProtocols, setTestProtocols] = useState<any[]>([]);
@@ -111,7 +109,6 @@ export default function ReportPreview() {
 		};
 	}, []);
 
-	// Formatting Helpers
 	const formatDate = (dateStr: string) => {
 		if (!dateStr) return 'N/A';
 		const d = new Date(dateStr);
@@ -162,7 +159,6 @@ export default function ReportPreview() {
 		}) || null;
 	};
 
-	// 1. RESOLVE DATA DEPENDING ON REPORT TYPE
 	let request: any = null;
 	let sampleIndex: number | null = null;
 	let targetPlan: any = null;
@@ -241,7 +237,6 @@ export default function ReportPreview() {
 			isOverallPartial = passedCount > 0 && failedCount > 0;
 			isEvaluated = evaluatedCount === qty;
 
-			// Use first non-null sample's plan for metadata template fields
 			let foundPlan = null;
 			for (let i = 0; i < qty; i++) {
 				const plan = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === i);
@@ -304,7 +299,6 @@ export default function ReportPreview() {
 	const testProtocol = targetPlan ? testProtocols.find(p => String(p.id) === String(targetPlan.testProtocolId)) : null;
 	const equipmentUsed = targetPlan ? equipments.find(e => String(e.id) === String(targetPlan.equipmentId)) : null;
 
-	// Dynamic equipment helper
 	const getEquipmentDetails = (eq: any) => {
 		if (!eq) {
 			return {
@@ -352,7 +346,6 @@ export default function ReportPreview() {
 		};
 	};
 
-	// DQL constants & template variables
 	const isAllInspectionFailed = (() => {
 		if (!request) return false;
 		if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
@@ -413,7 +406,6 @@ export default function ReportPreview() {
 	const startOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.startDate) : formatDate(request.createdAt));
 	const endOfTestDate = isAllInspectionFailed ? 'NA' : (targetPlan ? formatDate(targetPlan.endDate) : formatDate(request.updatedAt || request.createdAt));
 
-	// Determine the engineer who submitted the report (from checks JSON metadata or TestPlan)
 	let engineerWhoSubmitted = '';
 	if ((type === 'sample' || type === 'plan') && sampleIndex !== null) {
 		const insp = findInspectionForPlan(request, targetPlan, sampleIndex);
@@ -423,11 +415,9 @@ export default function ReportPreview() {
 				engineerWhoSubmitted = checksObj.submittedByName;
 			}
 		}
-		// Fallback to TestPlan.submittedBy
 		if (!engineerWhoSubmitted && targetPlan?.submittedBy) {
 			engineerWhoSubmitted = targetPlan.submittedBy;
 		}
-		// Fallback: search in all sampleInspections for this sampleIndex for any submittedByName
 		if (!engineerWhoSubmitted && request?.sampleInspections) {
 			const fallbackInsp = request.sampleInspections.find((si: any) =>
 				Number(si.sampleIndex) === sampleIndex &&
@@ -439,11 +429,9 @@ export default function ReportPreview() {
 		}
 	}
 
-	// If still empty or if we are loading the full request report, collect all engineer names from inspections/plans
 	if (!engineerWhoSubmitted && request) {
 		const submittedNames = new Set<string>();
 
-		// 1. Collect from test plans
 		if (request.testPlans) {
 			for (const plan of request.testPlans) {
 				if (plan.submittedBy) {
@@ -452,7 +440,6 @@ export default function ReportPreview() {
 			}
 		}
 
-		// 2. Collect from inspections
 		if (request.sampleInspections) {
 			for (const insp of request.sampleInspections) {
 				const checksObj = parseChecksObj(insp.checks);
@@ -467,11 +454,9 @@ export default function ReportPreview() {
 		}
 	}
 
-	// Signatures
 	const testedBy = engineerWhoSubmitted ||
 		(request?.assignedTo && request.assignedTo.role !== 'Lab Manager' && request.assignedTo.role !== 'Head' ? request.assignedTo.name : '') ||
 		'Quality Engineer';
-	// Make approvedBy dynamic for the overall report by checking the evaluator of the last evaluated sample
 	let managerWhoEvaluated = '';
 	if (type === 'request' && samplesList.length > 0) {
 		for (let i = samplesList.length - 1; i >= 0; i--) {
@@ -481,7 +466,6 @@ export default function ReportPreview() {
 			}
 		}
 	}
-	// Determine if NABL
 	const planTestTypeObj = targetPlan?.testTypeId ? testTypes.find(t => String(t.id) === String(targetPlan.testTypeId)) : null;
 	const planTestTypeName = planTestTypeObj?.name || targetPlan?.testType?.name || '';
 	const requestTestTypeName = request?.testType?.name || '';
@@ -511,7 +495,6 @@ export default function ReportPreview() {
 	const headUserName = headUser?.name || (currentUser?.role?.toLowerCase() === 'head' ? currentUser.name : null) || 'Head of Laboratory';
 	const evaluationDate = (targetPlan && targetPlan.evaluatedAt) ? formatDate(targetPlan.evaluatedAt) : formatDate(request.updatedAt || request.createdAt);
 
-	// Collect before and after images
 	const beforeImages: string[] = [];
 	const afterImages: string[] = [];
 	const specimenImages: string[] = [];
@@ -577,7 +560,6 @@ export default function ReportPreview() {
 
 		const imagesToRender = (hasCombined ? combinedImages : specimenImages).slice(0, 6);
 
-		// Determine grid columns dynamically based on image count to make it look premium
 		const cols = imagesToRender.length === 1
 			? 'grid-cols-1 max-w-md mx-auto'
 			: imagesToRender.length === 2
@@ -599,10 +581,8 @@ export default function ReportPreview() {
 		);
 	};
 
-	// Render custom page components (Non-NABL)
 	const renderHeader = (pageNo: number) => (
 		<div className="w-full border-2 border-black text-black select-none">
-			{/* Top Row: Logo & Lab Details */}
 			<div className="grid grid-cols-12 border-b-2 border-black divide-x-2 divide-black">
 				<div className="col-span-5 p-2 flex items-center justify-center">
 					<div className="flex items-center gap-2">
@@ -623,7 +603,6 @@ export default function ReportPreview() {
 					</h2>
 				</div>
 			</div>
-			{/* Bottom Row: Metadata info */}
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
 				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
 				<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
@@ -648,10 +627,8 @@ export default function ReportPreview() {
 		</div>
 	);
 
-	// Render custom page components (NABL)
 	const renderNablHeader = (pageNo: number) => (
 		<div className="w-full border-2 border-black text-black select-none font-bold text-center">
-			{/* Top Row: Logo, Lab Details, NABL Logo */}
 			<div className="grid grid-cols-12 border-b-2 border-black divide-x-2 divide-black">
 				<div className="col-span-3 p-2 flex items-center justify-center">
 					<div className="flex items-center gap-1.5">
@@ -675,7 +652,6 @@ export default function ReportPreview() {
 					<img src="/nabl-logo.png" alt="NABL Logo" className="h-16 object-contain" />
 				</div>
 			</div>
-			{/* Bottom Row: Metadata info */}
 			<div className="grid grid-cols-6 divide-x-2 divide-black text-[8px] font-bold text-center bg-white">
 				<div className="py-1 px-1">ISSUE NO: {issueNo}</div>
 				<div className="py-1 px-1">ISSUE DATE: 15-01-2024</div>
@@ -797,7 +773,6 @@ export default function ReportPreview() {
 			`}</style>
 
 			<div className="min-h-screen flex flex-col no-scrollbar">
-				{/* Top Command Action bar */}
 				<div className="bg-white border-b border-zinc-200/80 px-6 py-3 flex items-center justify-between no-print sticky top-0 z-50 shadow-sm">
 					<div className="flex items-center gap-2 text-zinc-800">
 						<FileText className="w-5 h-5 text-[#11236a]" />
@@ -838,7 +813,6 @@ export default function ReportPreview() {
 						<div className="watermark">FAILED</div>
 						<div className="content-container flex flex-col justify-between h-full space-y-6">
 							<div>
-								{/* Header */}
 								<div className="w-full border-2 border-black text-black select-none mb-4">
 									<div className="grid grid-cols-12 border-b-2 border-black divide-x-2 divide-black">
 										<div className="col-span-4 p-2 flex items-center justify-center">
@@ -861,8 +835,6 @@ export default function ReportPreview() {
 										<div className="py-1 px-1">Page 1 of 1</div>
 									</div>
 								</div>
-
-								{/* General Details Table */}
 								<div className="space-y-4 font-sans">
 									<div>
 										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">1. General Request & Sample Information</h4>
@@ -904,8 +876,6 @@ export default function ReportPreview() {
 											</tbody>
 										</table>
 									</div>
-
-									{/* Checklist Parameters Table */}
 									<div>
 										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">2. Visual & Physical Checklist Parameters</h4>
 										<table className="w-full border-2 border-black text-[9.5px] font-bold border-collapse text-black">
@@ -934,16 +904,12 @@ export default function ReportPreview() {
 											</tbody>
 										</table>
 									</div>
-
-									{/* Failure Remarks & Observations */}
 									<div>
 										<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">3. Remarks & Non-Compliance Observations</h4>
 										<div className="border-2 border-black p-3 text-[10px] text-black font-semibold min-h-[60px] whitespace-pre-wrap leading-relaxed">
 											{inspectionReport?.remarks || 'No remarks provided.'}
 										</div>
 									</div>
-
-									{/* Photos Section */}
 									{inspectionImages.length > 0 && (
 										<div>
 											<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">4. Inspection Photos Reference</h4>
@@ -968,8 +934,6 @@ export default function ReportPreview() {
 									)}
 								</div>
 							</div>
-
-							{/* Footer Signatures */}
 							<div className="grid grid-cols-2 gap-10 text-[10px] font-bold text-zinc-700 mt-6 pt-4 border-t border-zinc-200 font-sans">
 								<div>
 									<p className="text-[8px] uppercase tracking-wider text-zinc-400">Inspected by (Quality Inspector)</p>
@@ -984,7 +948,6 @@ export default function ReportPreview() {
 					</div>
 				) : isNabl ? (
 					<>
-						{/* -------------------- NABL PAGE 1 -------------------- */}
 						<div className="a4-page nabl-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
@@ -993,7 +956,6 @@ export default function ReportPreview() {
 									{renderNablSubHeader()}
 
 									<h3 className="text-center font-black text-[13px] underline tracking-widest my-3 text-black">TEST REPORT</h3>
-
 									<div className="space-y-4">
 										<div>
 											<h4 className="text-[10px] font-extrabold text-[#11236a] uppercase tracking-wider mb-1">1. General Information</h4>
@@ -1085,8 +1047,6 @@ export default function ReportPreview() {
 								{renderNablFooter()}
 							</div>
 						</div>
-
-						{/* -------------------- NABL PAGE 2 -------------------- */}
 						<div className="a4-page nabl-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
@@ -1095,7 +1055,6 @@ export default function ReportPreview() {
 									{renderNablSubHeader()}
 
 									<h3 className="text-center font-black text-[13px] underline tracking-widest my-3 text-black">TEST REPORT (TEST RESULTS)</h3>
-
 									<div className="my-3">
 										<table className="w-full border-2 border-black text-left border-collapse text-black text-[9.5px]">
 											<thead>
@@ -1238,8 +1197,6 @@ export default function ReportPreview() {
 								{renderNablFooter()}
 							</div>
 						</div>
-
-						{/* -------------------- NABL PAGE 3 -------------------- */}
 						<div className="a4-page nabl-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
@@ -1346,8 +1303,6 @@ export default function ReportPreview() {
 								{renderNablFooter()}
 							</div>
 						</div>
-
-						{/* -------------------- NABL PAGE 4 -------------------- */}
 						<div className="a4-page nabl-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
@@ -1370,7 +1325,6 @@ export default function ReportPreview() {
 													</tr>
 												</thead>
 												<tbody className="divide-y-2 divide-black font-bold text-center">
-													{/* Row 1: The assigned test equipment from the test plan */}
 													<tr className="divide-x-2 divide-black bg-[#f0fdf4]">
 														<td className="p-1">1</td>
 														<td className="p-1 text-left uppercase font-extrabold text-[#166534]">
@@ -1383,7 +1337,6 @@ export default function ReportPreview() {
 															{equipmentUsed && equipmentUsed.calibrationDueDate ? formatDate(equipmentUsed.calibrationDueDate) : 'Valid'}
 														</td>
 													</tr>
-													{/* Calibration standards from image */}
 													{[
 														{ sn: 2, name: 'Power Meter', make: 'Chroma', accuracy: '±1%', range: '0 to 600V, 0 to 20A, LC: 0.0001Wh', cal: '30/11/2026' },
 														{ sn: 3, name: 'Wascator (Ref. Washing Machine)', make: 'Electrolux Professional', accuracy: 'NA', range: '7.0kg rated capacity', cal: '15/10/2026' },
@@ -1446,14 +1399,12 @@ export default function ReportPreview() {
 					</>
 				) : (
 					<>
-						{/* -------------------- PAGE 1 -------------------- */}
 						<div className="a4-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
 								<div>
 									{renderHeader(1)}
 									<h3 className="text-center font-bold text-[14px] underline tracking-widest my-5 text-black">TEST REPORT</h3>
-
 									<table className="w-full border-2 border-black text-[11.5px] font-bold border-collapse text-black">
 										<tbody>
 											<tr className="border-b-2 border-black">
@@ -1536,8 +1487,6 @@ export default function ReportPreview() {
 								{renderFooter()}
 							</div>
 						</div>
-
-						{/* -------------------- PAGE 2 -------------------- */}
 						<div className="a4-page">
 							<div className="watermark">CONFIDENTIAL</div>
 							<div className="content-container flex flex-col justify-between h-full">
@@ -1737,7 +1686,6 @@ export default function ReportPreview() {
 									</div>
 
 									{renderTestPicturesSection("Test Pictures:")}
-
 									<div className="text-center font-black tracking-widest text-[11px] text-zinc-800 uppercase mt-6 select-none">
 										***** END OF THE TEST REPORT *****
 									</div>
@@ -1751,4 +1699,3 @@ export default function ReportPreview() {
 		</>
 	);
 }
-

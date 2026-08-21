@@ -58,7 +58,6 @@ export default function HeadFailureDetails() {
 
 	const qty = request.sampleQty || 1;
 
-	// Check if already certified/completed, failed, or returned to testing
 	const isActioned = ['completed', 'failed', 'fail', 'retest'].includes((request.status || '').toLowerCase()) ||
 		(((request.status || '').toLowerCase() === 'inspection_failed' || (request.status || '').toLowerCase() === 'inspection_completed') && 
 		 !(request.remarks || '').includes('Submitted to Head'));
@@ -67,7 +66,6 @@ export default function HeadFailureDetails() {
 		if (processing) return;
 		setProcessing(true);
 		try {
-			// Update status in backend
 			const remarksText = request.remarks ? `${request.remarks}` : '';
 			const newRemarks = remarksText.replace('Submitted to Head', 'Returned for Retest');
 			const op = updateTestRequestStatus(
@@ -77,7 +75,6 @@ export default function HeadFailureDetails() {
 			);
 			await op();
 
-			// Clear evaluation status in DB for all sample test plans
 			for (let idx = 0; idx < qty; idx++) {
 				const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
 				if (planObj) {
@@ -167,7 +164,6 @@ export default function HeadFailureDetails() {
 
 	return (
 		<div className="space-y-6">
-			{/* Back navigation */}
 			<div className="flex items-center justify-between">
 				<button
 					onClick={() => navigate('/head/failure-decision')}
@@ -177,14 +173,8 @@ export default function HeadFailureDetails() {
 					<span>Back to Failure Decision Board</span>
 				</button>
 			</div>
-
-			{/* Main Grid: Request Summary & Action Panel */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-				{/* Left Columns: Request details & Samples List */}
 				<div className="lg:col-span-2 space-y-6">
-
-					{/* Request Details Card */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<div className="flex items-center gap-2">
@@ -239,8 +229,6 @@ export default function HeadFailureDetails() {
 							</button>
 						</div>
 					</div>
-
-					{/* Samples List */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
@@ -349,13 +337,7 @@ export default function HeadFailureDetails() {
 						</div>
 					</div>
 				</div>
-
-				{/* Right Column: Actions Panel */}
 				<div className="space-y-6">
-
-
-
-					{/* Failure Adjudication Decisions */}
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
 							Adjudication Decisions
@@ -409,7 +391,6 @@ export default function HeadFailureDetails() {
 						)}
 					</div>
 				</div>
-
 			</div>
 		</div>
 	);

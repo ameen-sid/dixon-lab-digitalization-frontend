@@ -44,11 +44,9 @@ export default function TestCategoryManagement() {
 		setIsLoading(true);
 		setError(null);
 		try {
-			// Fetch test types for select dropdown
 			const fetchedTypes = await testTypeService.getTestTypes()();
 			setTestTypes(fetchedTypes);
 
-			// Fetch test categories
 			const fetchedCats = await testCategoryService.getTestCategories()();
 			setCategories(fetchedCats);
 		} catch (err) {

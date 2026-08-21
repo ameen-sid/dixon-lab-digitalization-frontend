@@ -137,7 +137,6 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 		});
 	}, [filledPlans, searchQuery, statusFilter]);
 
-	// Reset page on filter/search change
 	useEffect(() => {
 		setCurrentPage(1);
 	}, [searchQuery, statusFilter]);
@@ -166,7 +165,6 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 
 	return (
 		<div className="space-y-6">
-			{/* Filters toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
 				<div className="relative w-full lg:max-w-xs">
 					<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
@@ -212,8 +210,6 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 					)}
 				</div>
 			</div>
-
-			{/* Main Content Table */}
 			<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-sm overflow-hidden">
 				<div className="p-6 border-b border-zinc-100 flex items-center gap-3">
 					<div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">

@@ -75,7 +75,6 @@ export default function HeadSampleTests() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
 
-	// Load requests from backend
 	const loadRequests = async () => {
 		setLoading(true);
 		try {
@@ -93,7 +92,6 @@ export default function HeadSampleTests() {
 		loadRequests();
 	}, []);
 
-	// Filter & search logic matching Requester MyRequests
 	const filteredRequests = requests.filter(req => {
 		const matchesSearch = 
 			(req.brandName || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -117,7 +115,6 @@ export default function HeadSampleTests() {
 		return matchesSearch && matchesStatus && matchesDate;
 	});
 
-	// Pagination math
 	const maxPage = Math.ceil(filteredRequests.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
 	
@@ -127,11 +124,8 @@ export default function HeadSampleTests() {
 
 	return (
 		<div className="space-y-6">
-			{/* Filters Dashboard Toolbar */}
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-4">
 				<div className="flex flex-col md:flex-row gap-3 flex-1 flex-wrap">
-					
-					{/* Search input */}
 					<div className="relative min-w-[200px] flex-1">
 						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-655" />
 						<input 
@@ -156,8 +150,6 @@ export default function HeadSampleTests() {
 							</button>
 						)}
 					</div>
-					
-					{/* CustomSelect status filter */}
 					<CustomSelect
 						value={statusFilter}
 						onChange={(val) => {
@@ -182,8 +174,6 @@ export default function HeadSampleTests() {
 						]}
 						className="w-44 shrink-0"
 					/>
-
-					{/* Date filters */}
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
 						<input 
@@ -210,8 +200,6 @@ export default function HeadSampleTests() {
 						/>
 					</div>
 				</div>
-
-				{/* Clear Filters Action */}
 				{(searchQuery || statusFilter !== 'ALL' || startDate || endDate) && (
 					<button 
 						onClick={() => {
@@ -227,8 +215,6 @@ export default function HeadSampleTests() {
 						Reset Queue Filter
 					</button>
 				)}
-
-				{/* Reload button */}
 				<button 
 					onClick={loadRequests}
 					disabled={loading}
@@ -238,8 +224,6 @@ export default function HeadSampleTests() {
 					<span>Reload Queue</span>
 				</button>
 			</div>
-
-			{/* Table of requests */}
 			<div className="bg-white border border-zinc-200/50 rounded-3xl shadow-sm overflow-hidden p-1">
 				{filteredRequests.length === 0 ? (
 					<div className="text-center py-16">

@@ -10,7 +10,6 @@ import { getTestProtocols } from '../../services/operations/testProtocolService'
 import { getTestingEquipments } from '../../services/operations/testingEquipmentService';
 import { getChecksheetEntries } from '../../services/operations/reliabilityChecksheetService';
 
-// Helper to check if a checksheet database entry has actual parameter inputs (ignoring auto-calculated fields)
 const isMeaningfulChecksheetEntry = (entry: any): boolean => {
 	if (!entry || !entry.data) return false;
 	let parsedData = entry.data;
@@ -34,7 +33,7 @@ const isMeaningfulChecksheetEntry = (entry: any): boolean => {
 	return meaningfulEntries.length > 0;
 };
 
-// Returns previous working day YYYY-MM-DD string, skipping Sundays (getDay() === 0)
+
 const getPreviousWorkingDayStr = (baseDate: Date = new Date()): string => {
 	const d = new Date(baseDate);
 	d.setHours(0, 0, 0, 0);
@@ -51,7 +50,7 @@ const getPreviousWorkingDayStr = (baseDate: Date = new Date()): string => {
 export default function InspectorDailyChecksheet() {
 	const navigate = useNavigate();
 
-	// Data stores
+	
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
@@ -61,13 +60,13 @@ export default function InspectorDailyChecksheet() {
 	const [checksheetEntriesMap, setChecksheetEntriesMap] = useState<{ [key: string]: any[] }>({});
 	const [loading, setLoading] = useState(true);
 
-	// Filter states
+	
 	const [searchQuery, setSearchQuery] = useState('');
 	const [typeFilter, setTypeFilter] = useState('All');
 	const [stationFilter, setStationFilter] = useState('All');
 	const [statusFilter, setStatusFilter] = useState('All');
 
-	// Fetch all parameters on mount
+	
 	useEffect(() => {
 		let isMounted = true;
 		const loadData = async () => {
@@ -100,7 +99,7 @@ export default function InspectorDailyChecksheet() {
 					}
 				}
 
-				// Concurrently fetch database checksheet entries for all test plans
+				
 				const entriesMap: { [key: string]: any[] } = {};
 				await Promise.all(
 					Object.keys(parsedPlans).map(async (key) => {
@@ -139,7 +138,7 @@ export default function InspectorDailyChecksheet() {
 	const todayStr = `${_todayLocal.getFullYear()}-${String(_todayLocal.getMonth() + 1).padStart(2, '0')}-${String(_todayLocal.getDate()).padStart(2, '0')}`;
 	const yesterdayStr = getPreviousWorkingDayStr(_todayLocal);
 
-	// Filter active test plans to Reliability tests only active today
+	
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
 		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
@@ -148,10 +147,10 @@ export default function InspectorDailyChecksheet() {
 		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
 		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
 
-		// Check if it qualifies as a reliability test
+		
 		const isReliability = !!(testType && testType.name.toLowerCase().includes('reliability'));
 
-		// Check if today falls within start and end date range
+		
 		let isTodayInRange = false;
 		if (plan.startDate && plan.endDate) {
 			const today = new Date();
@@ -202,7 +201,7 @@ export default function InspectorDailyChecksheet() {
 		);
 	});
 
-	// Static type options
+	
 	const typeOptions = [
 		{ value: 'All', label: 'All Types' },
 		{ value: 'FATL', label: 'FATL' },
@@ -220,7 +219,7 @@ export default function InspectorDailyChecksheet() {
 
 
 
-	// Apply all filter selections
+	
 	const filteredPlans = reliabilityPlans.map(item => {
 		const entries = checksheetEntriesMap[item.key] || [];
 		const targetCheckDate = item.plan.startDate && yesterdayStr < item.plan.startDate ? todayStr : yesterdayStr;
@@ -234,7 +233,7 @@ export default function InspectorDailyChecksheet() {
 			equipmentName: eqName
 		};
 	}).filter(item => {
-		// Search query filter
+		
 		const q = searchQuery.toLowerCase();
 		const matchesSearch = 
 			item.request.brandName.toLowerCase().includes(q) ||
@@ -242,20 +241,20 @@ export default function InspectorDailyChecksheet() {
 			item.request.sampleDescription.toLowerCase().includes(q) ||
 			(item.request.requestId || `REQ-${item.request.id}`).toLowerCase().includes(q);
 
-		// Checksheet Type filter
+		
 		const typeVal = item.plan.productType || item.protocol?.productType || 'SATL';
 		const matchesType = typeFilter === 'All' || typeVal.toUpperCase() === typeFilter.toUpperCase();
 
-		// Station filter
+		
 		const matchesStation = stationFilter === 'All' || String(item.plan.stationNo) === stationFilter;
 
-		// Status filter
+		
 		const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
 
 		return matchesSearch && matchesType && matchesStation && matchesStatus;
 	});
 
-	// Format platforms list text
+	
 	const getPlatformsText = (plan: any) => {
 		if (!plan || !plan.platformNos) return 'N/A';
 		return plan.platformNos.map((pNum: number) => `S${plan.stationNo}-P${pNum}`).join(', ');
@@ -278,9 +277,7 @@ export default function InspectorDailyChecksheet() {
 			description="Select active reliability test plan to log chronological checksheet parameters."
 		>
 			<div className="space-y-6">
-				{/* Search & Filters Toolbar */}
 				<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row gap-4 items-center justify-between">
-					{/* Search input (Left side) */}
 					<div className="relative w-full lg:max-w-xs">
 						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 						<input 
@@ -291,8 +288,6 @@ export default function InspectorDailyChecksheet() {
 							className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 						/>
 					</div>
-
-					{/* Dropdowns (Right side) */}
 					<div className="flex flex-wrap gap-4 items-center w-full lg:w-auto lg:justify-end">
 						<div className="flex items-center gap-1.5">
 							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Type:</span>
@@ -303,7 +298,6 @@ export default function InspectorDailyChecksheet() {
 								className="w-28"
 							/>
 						</div>
-
 						<div className="flex items-center gap-1.5">
 							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Station:</span>
 							<CustomSelect
@@ -313,9 +307,6 @@ export default function InspectorDailyChecksheet() {
 								className="w-28"
 							/>
 						</div>
-
-
-
 						<div className="flex items-center gap-1.5">
 							<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Status:</span>
 							<CustomSelect
@@ -346,8 +337,6 @@ export default function InspectorDailyChecksheet() {
 						)}
 					</div>
 				</div>
-
-				{/* Table Grid Cards */}
 				<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm">
 					<div className="flex items-center gap-3 mb-6">
 						<div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center">
@@ -434,7 +423,6 @@ export default function InspectorDailyChecksheet() {
 											</div>
 										</div>
 									</div>
-
 									<div className="flex items-center gap-2 mt-4 text-xs font-extrabold text-[#11236a] hover:underline justify-end pt-1">
 										<span>Open Checksheet</span>
 										<ArrowRight className="w-3.5 h-3.5" />

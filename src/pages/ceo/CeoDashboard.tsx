@@ -58,7 +58,6 @@ const isCompletedStatus = (s: any) => [
   'inspection_failed'
 ].includes(getSafeStatusText(s));
 
-// NABL Status Helpers matching NablManagerDashboard
 const isEndDatePassed = (req: any) => {
   if (!req.testPlan?.endDate) return false;
   const today = new Date();
@@ -76,9 +75,6 @@ const getNablCategory = (req: any) => {
   return 'COMPLETED_PASS';
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHADCN DUAL MONTH RANGE CALENDAR POPOVER COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 function ShadcnDualMonthCalendar({
   startDate,
   endDate,
@@ -238,7 +234,6 @@ function ShadcnDualMonthCalendar({
 
   return (
     <div ref={containerRef} className="relative inline-block">
-      {/* Date Range Selector Pill */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -255,11 +250,8 @@ function ShadcnDualMonthCalendar({
         </span>
         <Calendar className="w-4 h-4 text-indigo-300 shrink-0 opacity-70" />
       </button>
-
-      {/* Floating Dual Month Shadcn Range Calendar Popover */}
       {isOpen && (
         <div className="absolute right-0 mt-3 z-[9999] bg-[#121214] text-white p-5 rounded-3xl shadow-2xl border border-zinc-800/80 min-w-[580px] animate-in fade-in zoom-in-95 duration-150">
-          {/* Header Controls */}
           <div className="flex items-center justify-between mb-4 border-b border-zinc-800/80 pb-3">
             <button
               type="button"
@@ -279,15 +271,11 @@ function ShadcnDualMonthCalendar({
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Dual Month Calendar Grids */}
           <div className="flex gap-6">
             {renderMonthGrid(month1)}
             <div className="w-[1px] bg-zinc-800/80 my-2" />
             {renderMonthGrid(month2)}
           </div>
-
-          {/* Bottom Actions */}
           <div className="flex items-center justify-between border-t border-zinc-800/80 pt-3 mt-4 text-xs">
             <button
               type="button"
@@ -319,9 +307,6 @@ function ShadcnDualMonthCalendar({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INFO TOOLTIP COMPONENT FOR KPI CARDS
-// ─────────────────────────────────────────────────────────────────────────────
 function InfoTooltip({ title, text }: { title: string; text: string }) {
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -355,10 +340,6 @@ function InfoTooltip({ title, text }: { title: string; text: string }) {
     </span>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CUSTOM SVG CHARTS WITH LIVE DATA
-// ─────────────────────────────────────────────────────────────────────────────
 
 function Donut({
   segments,
@@ -417,7 +398,6 @@ function Donut({
           offset += pct;
           return el;
         })}
-        {/* Central Total Count Display */}
         <text
           x={cx}
           y={cy + 4.5}
@@ -448,8 +428,6 @@ function Donut({
   );
 }
 
-// ── DAILY PLATFORM HOURS LINE CHART ─────────────────────────────────────────
-// Helper for smooth Bezier curve paths
 function getSmoothPath(pts: { x: number; y: number }[]) {
   if (!pts || !pts.length) return '';
   if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
@@ -475,7 +453,6 @@ function getAreaPath(pts: { x: number; y: number }[], height: number, paddingY: 
   return `${curveD} L ${last.x} ${height - paddingY} L ${first.x} ${height - paddingY} Z`;
 }
 
-// ── DAILY PLATFORM HOURS SMOOTH GRADIENT AREA CHART ─────────────────────────
 function DailyPlatformLineChart({ data }: { data: any[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -489,7 +466,7 @@ function DailyPlatformLineChart({ data }: { data: any[] }) {
   const paddingX = 12;
   const paddingY = 24;
 
-  const maxVal = 24; // Always 24 Hours Basis!
+  const maxVal = 24; 
   const labelStep = Math.max(1, Math.ceil(data.length / 7));
 
   const pointsOccupied = data.map((d, i) => {
@@ -531,11 +508,9 @@ function DailyPlatformLineChart({ data }: { data: any[] }) {
           );
         })}
 
-        {/* Translucent Area Fills */}
         <path d={pathAvailableArea} fill="url(#platformAvailableGrad)" />
         <path d={pathOccupiedArea} fill="url(#platformOccupiedGrad)" />
 
-        {/* Smooth Curved Lines */}
         <path d={pathAvailableCurve} fill="none" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d={pathOccupiedCurve} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
@@ -584,7 +559,6 @@ function DailyPlatformLineChart({ data }: { data: any[] }) {
   );
 }
 
-// ── DAILY MACHINE HOURS SMOOTH GRADIENT AREA CHART ─────────────────────────
 function DailyMachineLineChart({ data }: { data: any[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -598,7 +572,7 @@ function DailyMachineLineChart({ data }: { data: any[] }) {
   const paddingX = 12;
   const paddingY = 24;
 
-  const maxVal = 24; // Always 24 Hours Basis!
+  const maxVal = 24; 
   const labelStep = Math.max(1, Math.ceil(data.length / 7));
 
   const pointsAllocated = data.map((d, i) => {
@@ -640,11 +614,9 @@ function DailyMachineLineChart({ data }: { data: any[] }) {
           );
         })}
 
-        {/* Translucent Area Fills */}
         <path d={pathAllocatedArea} fill="url(#machineAllocatedGrad)" />
         <path d={pathActualArea} fill="url(#machineActualGrad)" />
 
-        {/* Smooth Curved Lines */}
         <path d={pathAllocatedCurve} fill="none" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d={pathActualCurve} fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
@@ -828,9 +800,6 @@ function ChartCard({ title, children, isFiltered }: { title: string; children: R
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXECUTIVE DASHBOARD COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
   const [requests, setRequests] = useState<any[]>([]);
   const [nablRequests, setNablRequests] = useState<any[]>([]);
@@ -840,7 +809,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
   const [plans, setPlans] = useState<{ [key: string]: any }>({});
   const [loading, setLoading] = useState(true);
 
-  // Date Range Filters — Default to This Month!
   const [startDateFilter, setStartDateFilter] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -850,7 +818,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
   });
   const [activeDatePreset, setActiveDatePreset] = useState<'ALL' | 'THIS_MONTH' | 'LAST_30' | 'YTD' | 'CUSTOM'>('THIS_MONTH');
 
-  // Filter states
   const [selectedStation, setSelectedStation] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState('');
@@ -933,7 +900,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
 
   useEffect(() => { load(); }, [startDateFilter, endDateFilter, selectedStation, selectedPlatform, selectedEquipment, selectedTestType]);
 
-  // Date Filter Matching Helper — If no dates set, returns true for all!
   const matchesDateRange = (dateStr: string) => {
     if (!dateStr) return true;
     if (!startDateFilter && !endDateFilter) return true;
@@ -1020,7 +986,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     }))
   ];
 
-  // ── FILTERED DATASETS ──────────────────────────────────────────────────────
   const isDateFiltered = activeDatePreset !== 'THIS_MONTH';
   const isTestTypeFiltered = !!selectedTestType;
   const isStationFiltered = !!(selectedStation || selectedPlatform);
@@ -1063,8 +1028,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return true;
   });
 
-  // ── DYNAMIC METRIC CALCULATIONS ───────────────────────────────────────────
-  // 1. Overall Lab Efficiency
   const currentEfficiency = (() => {
     let totalDone = 0;
     let totalEfficient = 0;
@@ -1097,7 +1060,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return Number(((totalEfficient / totalDone) * 100).toFixed(1));
   })();
 
-  // 2. Tests Completed / Failed
   const currentCompletedPassed = (() => {
     const stdPass = periodStandardRequests.filter((r) =>
       ['completed', 'testing_passed', 'testing_partial', 'pass'].includes(getSafeStatusText(r.status))
@@ -1112,14 +1074,12 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return stdFail + nablFail;
   })();
 
-  // 3. Success Rate
   const currentSuccessRate = (() => {
     const totalConcluded = currentCompletedPassed + currentFailed;
     if (totalConcluded === 0) return 0;
     return Number(((currentCompletedPassed / totalConcluded) * 100).toFixed(1));
   })();
 
-  // 4. Equipments Utilization
   const eqTotal = equipment.length || 11;
   const eqMaint = equipment.filter((e) => ['maintenance', 'under_maintenance', 'breakdown'].includes(getSafeStatusText(e.status))).length;
   const eqOccupied = equipment.filter((e) => e.isAvailable === false || ['occupied', 'busy', 'in_use', 'running'].includes(getSafeStatusText(e.status))).length;
@@ -1130,7 +1090,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return Number(((eqOccupied / eqTotal) * 100).toFixed(1));
   })();
 
-  // 5. Stations Utilization
   const stTotal = 140;
   const stOccupied = platforms.length > 0
     ? platforms.filter((p) => p.isAvailable === false || ['occupied', 'busy', 'reserved', 'in_use', 'testing'].includes(getSafeStatusText(p.status))).length
@@ -1142,7 +1101,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return Number(((stOccupied / stTotal) * 100).toFixed(1));
   })();
 
-  // ── DYNAMIC DAILY/MONTHLY ANALYTICS FOR LINE CHARTS (BASED ON DATE RANGE FILTER) ──
   const activePlanList = Object.values(plans);
 
   const dailyPlatformAvailData = (() => {
@@ -1154,7 +1112,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     const result = [];
 
     if (totalDays <= 35) {
-      // ── DAY BY DAY MODE (<= 35 DAYS) ───────────────────────────────────────
       for (let i = 0; i < totalDays; i++) {
         const d = new Date(start);
         d.setDate(d.getDate() + i);
@@ -1215,7 +1172,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
         });
       }
     } else {
-      // ── EXTENDED RANGE MODE (> 35 DAYS, E.G. YTD / ALL TIME) ───────────────
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
       const endYear = end.getFullYear();
@@ -1324,7 +1280,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     };
 
     if (totalDays <= 35) {
-      // ── DAY BY DAY MODE (<= 35 DAYS) ───────────────────────────────────────
       for (let i = 0; i < totalDays; i++) {
         const d = new Date(start);
         d.setDate(d.getDate() + i);
@@ -1351,7 +1306,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
         });
       }
     } else {
-      // ── EXTENDED RANGE MODE (> 35 DAYS, E.G. YTD / ALL TIME) ───────────────
       const startYear = start.getFullYear();
       const startMonth = start.getMonth();
       const endYear = end.getFullYear();
@@ -1385,7 +1339,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return result;
   })();
 
-  // Status Donut Segments — GREEN STRICTLY FOR COMPLETED PASS / SUCCESS ONLY!
   const nablStatusSegs = [
     { label: 'Request Generated', value: periodNablRequests.filter((r) => getNablCategory(r) === 'REQUEST_GENERATED').length, color: '#8b5cf6' },
     { label: 'Under Testing', value: periodNablRequests.filter((r) => getNablCategory(r) === 'UNDER_TESTING').length, color: '#3b82f6' },
@@ -1429,7 +1382,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     { label: 'Occupied', value: stOccupied, color: '#e11d48' },
   ];
 
-  // ── MONTHLY TREND CALCULATIONS ───────────────────────────────────────────
   const selectedYear = new Date().getFullYear();
   const fullYearMonths = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(selectedYear, i, 1);
@@ -1474,7 +1426,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return { label: mo.label, value: monthCapas.length, open, closed, other: Math.max(0, monthCapas.length - open - closed) };
   });
 
-  // Top Client Brands
   const brandStats = (() => {
     const counts: Record<string, { total: number; pass: number; fail: number }> = {};
     const dataset = isNablSelected ? periodNablRequests : [...periodStandardRequests, ...periodNablRequests];
@@ -1495,7 +1446,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
       .slice(0, 5);
   })();
 
-  // Modal Handlers
   const getRequestDetailsByStatus = (label: string) => {
     let data: any[] = [];
     if (isNablSelected) {
@@ -1580,15 +1530,12 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
 
   return (
     <DashboardLayout title="" description="" bare={bare}>
-      {/* High-Level Executive Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 rounded-[28px] text-white shadow-xl">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white" style={{ fontFamily: "Outfit, Inter, sans-serif" }}>
             Executive Dashboard
           </h1>
         </div>
-
-        {/* Date Range Presets & Shadcn Dual Month Range Calendar */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center bg-white/10 p-1 rounded-xl border border-white/10 text-xs font-bold">
             <button
@@ -1616,8 +1563,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               YTD
             </button>
           </div>
-
-          {/* Dual Month Shadcn Range Calendar Selector */}
           <ShadcnDualMonthCalendar
             startDate={startDateFilter}
             endDate={endDateFilter}
@@ -1647,10 +1592,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
       </div>
 
       <div className="space-y-8">
-        {/* KPI Cards Row (5 Cards) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-
-          {/* Card 1: OVERALL LAB EFFICIENCY */}
           <div className="bg-white border border-zinc-200/60 rounded-[22px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] relative overflow-hidden">
             {renderCornerRibbon(isDateFiltered || isTestTypeFiltered)}
             <div>
@@ -1675,8 +1617,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
           </div>
-
-          {/* Card 2: TESTS COMPLETED / FAILED */}
           <div className="bg-white border border-zinc-200/60 rounded-[22px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] relative overflow-hidden">
             {renderCornerRibbon(isDateFiltered || isTestTypeFiltered)}
             <div>
@@ -1702,8 +1642,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">Fail: {currentFailed}</span>
             </div>
           </div>
-
-          {/* Card 3: SUCCESS RATE (GREEN RESTRICTED TO PASS/SUCCESS) */}
           <div className="bg-white border border-zinc-200/60 rounded-[22px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)] relative overflow-hidden">
             {renderCornerRibbon(isDateFiltered || isTestTypeFiltered)}
             <div>
@@ -1728,8 +1666,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
           </div>
-
-          {/* Card 4: EQUIPMENTS UTILIZATION */}
           <div className="bg-white border border-zinc-200/60 rounded-[22px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)]">
             <div>
               <div className="flex items-center justify-between">
@@ -1753,8 +1689,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
           </div>
-
-          {/* Card 5: STATIONS UTILIZATION */}
           <div className="bg-white border border-zinc-200/60 rounded-[22px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.04)]">
             <div>
               <div className="flex items-center justify-between">
@@ -1778,13 +1712,8 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
           </div>
-
         </div>
-
-        {/* Row 1 Charts: Platform Availability & Machine Utilization (Daily Line Graphs in Date Range) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-          {/* Platform Availability Daily Line Graph */}
           <div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
             {renderCornerRibbon(isDateFiltered || isStationFiltered)}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -1824,11 +1753,8 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                 </div>
               </div>
             </div>
-
             <DailyPlatformLineChart data={dailyPlatformAvailData} />
           </div>
-
-          {/* Machine Utilization Daily Line Graph */}
           <div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
             {renderCornerRibbon(isDateFiltered || isEquipmentFiltered)}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
@@ -1860,16 +1786,10 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                 </div>
               </div>
             </div>
-
             <DailyMachineLineChart data={dailyMachineUtilData} />
           </div>
-
         </div>
-
-        {/* Row 2: Status Breakdown Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-          {/* Card 1: Test Request Status */}
           <Card title={isNablSelected ? "NABL Request Status" : "Test Request Status"} isFiltered={isDateFiltered || isTestTypeFiltered}>
             <div className="flex flex-col gap-4">
               <div className="flex justify-center">
@@ -1884,8 +1804,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               </div>
             </div>
           </Card>
-
-          {/* Card 2: CAPA Status Breakdown */}
           <Card title="CAPA Status Breakdown" isFiltered={isDateFiltered || isTestTypeFiltered}>
             <div className="flex flex-col gap-4">
               <div className="flex justify-center">
@@ -1901,8 +1819,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               <div className="mt-1 text-xs text-zinc-600 border-t border-zinc-100 pt-1.5 font-black text-center">Total CAPAs: {capaTotal}</div>
             </div>
           </Card>
-
-          {/* Card 3: Equipment Availability */}
           <Card title="Equipment Availability">
             <div className="flex flex-col gap-4">
               <div className="flex justify-center">
@@ -1918,8 +1834,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               <div className="mt-1 text-xs text-zinc-600 border-t border-zinc-100 pt-1.5 font-black text-center">Total Equipments: {eqTotal}</div>
             </div>
           </Card>
-
-          {/* Card 4: Station Occupancy */}
           <Card title="Station Occupancy">
             <div className="flex flex-col gap-4">
               <div className="flex justify-center">
@@ -1935,10 +1849,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               <div className="mt-1 text-xs text-zinc-600 border-t border-zinc-100 pt-1.5 font-black text-center">Total Platform Slots: {stTotal}</div>
             </div>
           </Card>
-
         </div>
-
-        {/* Row 3: Top Client Brands Breakdown */}
         <div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden">
           {renderCornerRibbon(isDateFiltered || isTestTypeFiltered)}
           <div className="flex items-center justify-between mb-4">
@@ -1953,7 +1864,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
               Executive OEM Analytics
             </span>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-2">
             {brandStats.length === 0 ? (
               <div className="col-span-5 text-center py-6 text-xs font-semibold text-zinc-400">No brand request data in this range</div>
@@ -1977,8 +1887,6 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
             )}
           </div>
         </div>
-
-        {/* Row 4: Monthly Bar Charts */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <ChartCard title={isNablSelected ? "Monthly NABL Sample Requests" : "Monthly Sample Requests"} isFiltered={isDateFiltered || isTestTypeFiltered}>
             <BarChart
@@ -2026,10 +1934,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
             </p>
           </ChartCard>
         </div>
-
       </div>
-
-      {/* Drilldown Detail Modal */}
       {detailModal.open && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden border border-zinc-200">

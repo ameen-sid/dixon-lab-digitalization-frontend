@@ -40,7 +40,6 @@ interface EngineerDashboardOverviewProps {
 export default function EngineerDashboardOverview({ requests }: EngineerDashboardOverviewProps) {
 	const navigate = useNavigate();
 
-	// Read compiled inspections dynamically from requests relations instead of localStorage
 	const mergedReports = useMemo(() => {
 		const reportsMap: { [key: string]: any } = {};
 		requests.forEach(r => {
@@ -58,7 +57,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 		return reportsMap;
 	}, [requests]);
 
-	// 1. Calculate Metric Summary Stats
 	let totalAssignedSamples = 0;
 	let pendingSamples = 0;
 	let inProgressSamples = 0;
@@ -90,7 +88,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 			}
 		}
 
-		// Check request completion state
 		const isCompleted = [
 			'INSPECTION_COMPLETED',
 			'INSPECTION_FAILED',
@@ -104,13 +101,11 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 			'REJECTED'
 		].includes(r.status);
 
-		// Flag retesting assignments
 		const isRetest = r.status === 'RETEST' || r.status.includes('RETEST');
 		if (isRetest) {
 			retestRequestsList.push(r);
 		}
 
-		// Calculate SLA info
 		const assignedDate = r.approvedDate ? new Date(r.approvedDate) : new Date();
 		const today = new Date();
 		const diffTime = today.getTime() - assignedDate.getTime();
@@ -123,7 +118,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				? `Due in ${daysLeft}d` 
 				: `${daysLeft} days left`;
 
-		// Compute task status standard classification
 		let taskStatus = 'Pending';
 		if (!isCompleted) {
 			taskStatus = 'Pending';
@@ -160,7 +154,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 				isPassed: !hasFailed
 			});
 		} else {
-			// Sum sample-level counts for active requests
 			pendingSamples += pendingCount;
 			inProgressSamples += (passedCount + failedCount);
 
@@ -175,14 +168,11 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 		}
 	});
 
-	// Sort recent submissions by date descending
 	recentSubmissionsList.sort((a, b) => new Date(b.approvedDate).getTime() - new Date(a.approvedDate).getTime());
 
 	return (
 		<div className="space-y-6">
-			{/* Metric Cards Row */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-				{/* Total Assigned Samples */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=All', { state: { stateFilter: 'All' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-[#11236a]/40 active:scale-[0.98]"
@@ -196,8 +186,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						<Cpu className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Pending Inspections */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=Pending', { state: { statusFilter: 'Pending' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-amber-600/40 active:scale-[0.98]"
@@ -211,8 +199,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						<Clock className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* In-Progress Inspections */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=Pending', { state: { statusFilter: 'Pending' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-blue-600/40 active:scale-[0.98]"
@@ -226,8 +212,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						<Activity className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Passed Inspections */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=Passed', { state: { statusFilter: 'Passed' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-emerald-600/40 active:scale-[0.98]"
@@ -241,8 +225,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						<CheckSquare className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Failed Inspections */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=Failed', { state: { statusFilter: 'Failed' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-rose-600/40 active:scale-[0.98]"
@@ -256,8 +238,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						<XCircle className="w-5 h-5" />
 					</div>
 				</div>
-
-				{/* Partial Inspections */}
 				<div 
 					onClick={() => navigate('/engineer/assigned-samples?status=Partial', { state: { statusFilter: 'Partial' } })}
 					className="bg-white border border-zinc-200/60 rounded-3xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-purple-600/40 active:scale-[0.98]"
@@ -272,13 +252,8 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 					</div>
 				</div>
 			</div>
-
-			{/* Main Workspace Layout */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Left Columns - Active queue and submissions */}
 				<div className="lg:col-span-2 space-y-6">
-					
-					{/* Active Work Queue */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-sm overflow-hidden p-1">
 						<div className="p-5 border-b border-zinc-100 flex items-center justify-between">
 							<div>
@@ -343,8 +318,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 							</div>
 						)}
 					</div>
-
-					{/* Recent Submissions Log */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-sm overflow-hidden p-1">
 						<div className="p-5 border-b border-zinc-100">
 							<h3 className="text-sm font-extrabold text-zinc-900">Recent Completed Submissions</h3>
@@ -398,11 +371,7 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 						)}
 					</div>
 				</div>
-
-				{/* Right Column - Retesting, alerts, & guidelines */}
 				<div className="space-y-6">
-					
-					{/* Retesting Assignments Section */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-4">
 						<div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
 							<RotateCcw className="w-5 h-5 text-rose-600" />
@@ -434,8 +403,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 							</div>
 						)}
 					</div>
-
-					{/* SLA Due Date Alerts & Exception Center */}
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-5 shadow-sm space-y-4">
 						<div className="flex items-center gap-2 border-b border-zinc-100 pb-3">
 							<AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -472,8 +439,6 @@ export default function EngineerDashboardOverview({ requests }: EngineerDashboar
 							</div>
 						)}
 					</div>
-
-
 				</div>
 			</div>
 		</div>

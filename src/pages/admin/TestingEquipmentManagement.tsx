@@ -25,7 +25,6 @@ export default function TestingEquipmentManagement() {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [recordToDelete, setRecordToDelete] = useState<TestingEquipmentRecord | null>(null);
 
-	// Form states
 	const [name, setName] = useState("");
 	const [calibrationDueDate, setCalibrationDueDate] = useState("");
 	const [status, setStatus] = useState("ACTIVE");
@@ -69,7 +68,6 @@ export default function TestingEquipmentManagement() {
 	const handleEdit = (record: TestingEquipmentRecord) => {
 		setEditingId(record.id);
 		setName(record.name);
-		// Format ISO date (e.g., "2026-05-25T00:00:00.000Z") to YYYY-MM-DD for date inputs
 		const dateObj = new Date(record.calibrationDueDate);
 		const formattedDate = !isNaN(dateObj.getTime()) ? dateObj.toISOString().split('T')[0] : "";
 		setCalibrationDueDate(formattedDate);
