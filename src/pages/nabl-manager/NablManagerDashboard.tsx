@@ -11,14 +11,14 @@ import CustomSelect from '../../components/CustomSelect';
 
 import { getNablRequests } from '../../services/operations/nablRequestService';
 
-function MonthlyTrendChart({ data }: { data: { month: string; generated: number; testing: number; pass: number; fail: number }[] }) {
+function MonthlyTrendChart({ data }: { data: { month: string; count: number }[] }) {
 	const [hoveredMonth, setHoveredMonth] = useState<any | null>(null);
 
 	const height = 220;
-	const width = 620;
+	const width = 720;
 	const padding = { top: 20, right: 20, bottom: 40, left: 40 };
 
-	const maxVal = Math.max(...data.map((d) => d.generated + d.testing + d.pass + d.fail), 4);
+	const maxVal = Math.max(...data.map((d) => d.count), 4);
 	const step = Math.max(1, Math.ceil(maxVal / 4));
 	const yMax = step * 4;
 	const yTicks = [0, step, step * 2, step * 3, step * 4];
@@ -58,19 +58,8 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 					const xCenter = padding.left + i * colWidth + colWidth / 2;
 					const barWidth = Math.min(32, Math.max(18, colWidth * 0.45));
 
-					const hPass = (d.pass / yMax) * chartHeight;
-					const hFail = (d.fail / yMax) * chartHeight;
-					const hTesting = (d.testing / yMax) * chartHeight;
-					const hGen = (d.generated / yMax) * chartHeight;
-
-					let currentY = padding.top + chartHeight;
-					const yPass = currentY - hPass;
-					currentY -= hPass;
-					const yFail = currentY - hFail;
-					currentY -= hFail;
-					const yTesting = currentY - hTesting;
-					currentY -= hTesting;
-					const yGen = currentY - hGen;
+					const hBar = (d.count / yMax) * chartHeight;
+					const yBar = padding.top + chartHeight - hBar;
 
 					return (
 						<g 
@@ -88,17 +77,15 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 								rx="6"
 							/>
 
-							{d.pass > 0 && (
-								<rect x={xCenter - barWidth / 2} y={yPass} width={barWidth} height={hPass} fill="#10b981" rx="4" />
-							)}
-							{d.fail > 0 && (
-								<rect x={xCenter - barWidth / 2} y={yFail} width={barWidth} height={hFail} fill="#f43f5e" rx="4" />
-							)}
-							{d.testing > 0 && (
-								<rect x={xCenter - barWidth / 2} y={yTesting} width={barWidth} height={hTesting} fill="#f59e0b" rx="4" />
-							)}
-							{d.generated > 0 && (
-								<rect x={xCenter - barWidth / 2} y={yGen} width={barWidth} height={hGen} fill="#3b82f6" rx="4" />
+							{d.count > 0 && (
+								<rect 
+									x={xCenter - barWidth / 2} 
+									y={yBar} 
+									width={barWidth} 
+									height={hBar} 
+									fill="#11236a" 
+									rx="4" 
+								/>
 							)}
 
 							<text
@@ -115,13 +102,10 @@ function MonthlyTrendChart({ data }: { data: { month: string; generated: number;
 			</svg>
 
 			{hoveredMonth && (
-				<div className="absolute top-2 right-4 bg-zinc-900 text-white text-[11px] font-bold px-3.5 py-2 rounded-xl shadow-xl space-y-1 z-10 border border-zinc-800">
+				<div className="absolute top-2 right-4 bg-zinc-900 text-white text-[11px] font-bold px-3.5 py-2 rounded-xl shadow-xl z-10 border border-zinc-800">
 					<div className="text-zinc-400 font-extrabold uppercase text-[9px]">{hoveredMonth.month} Details</div>
 					<div className="flex items-center gap-3">
-						<span className="text-blue-400">Generated: {hoveredMonth.generated}</span>
-						<span className="text-amber-400">Testing: {hoveredMonth.testing}</span>
-						<span className="text-emerald-400">Pass: {hoveredMonth.pass}</span>
-						<span className="text-rose-400">Fail: {hoveredMonth.fail}</span>
+						<span className="text-blue-400">Issued Requests: {hoveredMonth.count}</span>
 					</div>
 				</div>
 			)}
@@ -308,6 +292,7 @@ export default function NablManagerDashboard() {
 	const [statusFilter, setStatusFilter] = useState('ALL');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
+	const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
 	const loadDashboardData = async () => {
 		setLoading(true);
@@ -364,38 +349,43 @@ export default function NablManagerDashboard() {
 		}
 	});
 
-	const monthlyTrendData = (() => {
-		const monthsMap: { [key: string]: { month: string; generated: number; testing: number; pass: number; fail: number } } = {};
-		const now = new Date();
-
-		for (let i = 5; i >= 0; i--) {
-			const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-			const monthLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
-			monthsMap[monthLabel] = { month: monthLabel, generated: 0, testing: 0, pass: 0, fail: 0 };
-		}
-
+	const availableYears = (() => {
+		const years = new Set<number>();
+		years.add(new Date().getFullYear());
 		requests.forEach((req) => {
-			if (!req.createdAt) return;
-			const createdDate = new Date(req.createdAt);
-			const monthLabel = createdDate.toLocaleString('default', { month: 'short', year: '2-digit' });
-
-			if (monthsMap[monthLabel]) {
-				const isEnded = isEndDatePassed(req);
-				const planEval = (req.testPlan?.status || req.status || '').toUpperCase();
-				const isFail = ['FAILED', 'FAIL'].includes(planEval);
-
-				if (!req.testPlan?.startDate) {
-					monthsMap[monthLabel].generated++;
-				} else if (!isEnded) {
-					monthsMap[monthLabel].testing++;
-				} else if (isFail) {
-					monthsMap[monthLabel].fail++;
-				} else {
-					monthsMap[monthLabel].pass++;
-				}
+			if (req.testPlan?.issueDate) {
+				const yr = new Date(req.testPlan.issueDate).getFullYear();
+				if (!isNaN(yr)) years.add(yr);
+			}
+			if (req.createdAt) {
+				const yr = new Date(req.createdAt).getFullYear();
+				if (!isNaN(yr)) years.add(yr);
 			}
 		});
-		return Object.values(monthsMap);
+		return Array.from(years).sort((a, b) => b - a);
+	})();
+
+	const monthlyTrendData = (() => {
+		const currentYear = selectedYear;
+
+		const months = Array.from({ length: 12 }, (_, m) => {
+			const d = new Date(currentYear, m, 1);
+			const monthLabel = d.toLocaleString('default', { month: 'short', year: '2-digit' });
+			return { month: monthLabel, count: 0 };
+		});
+
+		requests.forEach((req) => {
+			if (!req.testPlan?.issueDate) return;
+			const issueDate = new Date(req.testPlan.issueDate);
+			if (issueDate.getFullYear() !== currentYear) return;
+
+			const m = issueDate.getMonth();
+			if (m >= 0 && m < 12) {
+				months[m].count++;
+			}
+		});
+
+		return months;
 	})();
 
 	const topBrandsData = (() => {
@@ -529,19 +519,25 @@ export default function NablManagerDashboard() {
 					</div>
 					<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 						<div className="lg:col-span-7 bg-white border border-zinc-200/60 rounded-[28px] p-6 shadow-sm space-y-4">
-							<div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+							<div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-100 pb-4 gap-3">
 								<div>
 									<h2 className="text-sm font-extrabold text-zinc-900 flex items-center gap-2">
 										<BarChart2 className="w-4 h-4 text-[#11236a]" />
-										Monthly Testing Volume & Status Trend
+										Monthly Testing Volume Trend
 									</h2>
-									<p className="text-[11px] text-zinc-500 font-medium">Historical breakdown of NABL requests logged over the last 6 months</p>
+									<p className="text-[11px] text-zinc-500 font-medium">Historical trend of issued NABL requests in the selected year</p>
 								</div>
-								<div className="flex items-center gap-3 text-[10px] font-extrabold">
-									<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Generated</span>
-									<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Testing</span>
-									<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Pass</span>
-									<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Fail</span>
+								<div className="flex items-center gap-4">
+									<div className="flex items-center gap-3 text-[10px] font-extrabold">
+										<span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#11236a]" /> Issued Requests</span>
+									</div>
+									<div className="w-28 shrink-0">
+										<CustomSelect
+											value={String(selectedYear)}
+											onChange={(val) => setSelectedYear(Number(val))}
+											options={availableYears.map(yr => ({ value: String(yr), label: String(yr) }))}
+										/>
+									</div>
 								</div>
 							</div>
 							<MonthlyTrendChart data={monthlyTrendData} />
