@@ -1,8 +1,13 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { productPartEndpoints } from '../apis';
 
-const { GET_PRODUCT_PARTS_API, CREATE_PRODUCT_PART_API, UPDATE_PRODUCT_PART_API, DELETE_PRODUCT_PART_API } = productPartEndpoints;
+const { 
+	GET_PRODUCT_PARTS_API, 
+	CREATE_PRODUCT_PART_API, 
+	UPDATE_PRODUCT_PART_API, 
+	DELETE_PRODUCT_PART_API 
+} = productPartEndpoints;
 
 interface AxiosServiceError {
 	response?: {

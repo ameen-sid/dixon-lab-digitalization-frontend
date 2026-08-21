@@ -1,8 +1,13 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { testTypeEndpoints } from '../apis';
 
-const { GET_TEST_TYPES_API, CREATE_TEST_TYPE_API, UPDATE_TEST_TYPE_API, DELETE_TEST_TYPE_API } = testTypeEndpoints;
+const { 
+	GET_TEST_TYPES_API, 
+	CREATE_TEST_TYPE_API, 
+	UPDATE_TEST_TYPE_API, 
+	DELETE_TEST_TYPE_API 
+} = testTypeEndpoints;
 
 interface AxiosServiceError {
 	response?: {

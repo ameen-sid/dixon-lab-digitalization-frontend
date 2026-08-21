@@ -1,8 +1,13 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { capaEndpoints } from '../apis';
 
-const { CREATE_CAPA_API, GET_CAPAS_API, GET_CAPA_BY_ID_API, UPDATE_CAPA_STATUS_API } = capaEndpoints;
+const { 
+	CREATE_CAPA_API, 
+	GET_CAPAS_API, 
+	GET_CAPA_BY_ID_API, 
+	UPDATE_CAPA_STATUS_API 
+} = capaEndpoints;
 
 interface AxiosServiceError {
 	response?: { data?: { message?: string } };

@@ -1,8 +1,13 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { testProtocolEndpoints } from '../apis';
 
-const { GET_TEST_PROTOCOLS_API, CREATE_TEST_PROTOCOL_API, UPDATE_TEST_PROTOCOL_API, DELETE_TEST_PROTOCOL_API } = testProtocolEndpoints;
+const { 
+	GET_TEST_PROTOCOLS_API, 
+	CREATE_TEST_PROTOCOL_API, 
+	UPDATE_TEST_PROTOCOL_API, 
+	DELETE_TEST_PROTOCOL_API 
+} = testProtocolEndpoints;
 
 interface AxiosServiceError {
 	response?: {

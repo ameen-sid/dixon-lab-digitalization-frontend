@@ -1,5 +1,5 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { authEndpoints } from '../apis';
 
 const { LOGIN_API, LOGOUT_API } = authEndpoints;

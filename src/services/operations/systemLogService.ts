@@ -1,5 +1,5 @@
-import { apiConnector } from '../apiConnector';
 import { toast } from 'react-hot-toast';
+import { apiConnector } from '../apiConnector';
 import { systemLogEndpoints } from '../apis';
 
 const { GET_SYSTEM_LOGS_API } = systemLogEndpoints;
@@ -26,7 +26,6 @@ export interface SystemLogFilterParams {
 export const getSystemLogs = (filterParams: SystemLogFilterParams = {}) => {
 	return async () => {
 		try {
-			// Convert params to string values expected by systemLogQuerySchema
 			const params: any = {};
 			if (filterParams.page) params.page = String(filterParams.page);
 			if (filterParams.limit) params.limit = String(filterParams.limit);
