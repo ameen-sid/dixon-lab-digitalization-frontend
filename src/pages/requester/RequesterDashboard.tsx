@@ -39,6 +39,8 @@ interface RequestRecord {
 	createdDate: string;
 	createdAt?: string;
 	updatedAt?: string;
+	assignedDate?: string | null;
+	approvedDate?: string | null;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
 	testType?: { id: number; name: string } | null;
@@ -147,6 +149,8 @@ export default function RequesterDashboard() {
 				createdDate: new Date(db.createdAt).toISOString().split('T')[0],
 				createdAt: db.createdAt,
 				updatedAt: db.updatedAt,
+				assignedDate: db.assignedDate,
+				approvedDate: db.approvedDate,
 				telemetry: db.telemetry || [],
 				attachments: db.attachments || [],
 				testType: db.testType

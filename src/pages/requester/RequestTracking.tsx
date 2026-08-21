@@ -29,12 +29,14 @@ interface RequestRecord {
 	createdDate: string;
 	createdAt?: string;
 	updatedAt?: string;
+	assignedDate?: string | null;
+	approvedDate?: string | null;
 	telemetry: number[];
 	attachments?: { id: number; fileName: string; filePath: string; fileSize: number }[];
 	testType?: { id: number; name: string } | null;
 }
 
-const formatCompletionDate = (dateString: string | undefined) => {
+const formatCompletionDate = (dateString: string | null | undefined) => {
 	if (!dateString) return '';
 	const date = new Date(dateString);
 	if (isNaN(date.getTime())) return dateString;
@@ -173,7 +175,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				status: dbReport.status,
 				remarks: dbReport.remarks || '',
 				checks: checksObj,
-				images: imagesArr
+				images: imagesArr,
+				createdAt: dbReport.createdAt,
+				updatedAt: dbReport.updatedAt
 			};
 		}
 		return null;
@@ -190,14 +194,14 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 			},
 			{
 				step: 'Testing Request Approved',
-				date: selectedRequest.updatedAt ? new Date(selectedRequest.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+				date: selectedRequest.approvedDate || selectedRequest.assignedDate ? new Date((selectedRequest.approvedDate || selectedRequest.assignedDate) as any).toLocaleDateString() : new Date().toLocaleDateString(),
 				completed: !['PENDING_APPROVAL', 'REJECTED'].includes(selectedRequest.status)
 			},
 			{
 				step: isSampleFailed
 					? `Sample Checked & Failed (ID: ${sampleReport?.allottedId || 'N/A'})`
 					: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
-				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
+				date: sampleReport ? new Date((sampleReport.createdAt || sampleReport.updatedAt || new Date()) as any).toLocaleDateString() : 'Awaiting check',
 				completed: !!sampleReport,
 				failed: isSampleFailed
 			},
@@ -212,7 +216,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							{
 								step: `Testing Execution (${planName})`,
 								date: isCompleted
-									? 'Testing completed successfully'
+									? `Completed (${new Date(p.evaluatedAt || p.updatedAt || new Date()).toLocaleDateString()})`
 									: isTestingPhase
 										? (new Date() >= new Date(p.startDate) && new Date() <= new Date(p.endDate)
 											? `In testing phase (Ends: ${new Date(p.endDate).toLocaleDateString()})`
@@ -225,7 +229,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							{
 								step: `Evaluation (${planName})`,
 								date: p.evaluationStatus
-									? `Result: ${p.evaluationStatus} (${p.evaluationRemarks || 'No remarks'})`
+									? `Result: ${p.evaluationStatus} (${new Date(p.evaluatedAt || p.updatedAt || new Date()).toLocaleDateString()})`
 									: 'Awaiting checksheet completion and evaluation',
 								completed: isCompleted,
 								failed: p.evaluationStatus === 'FAILED'
@@ -247,7 +251,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 			) : []),
 			{
 				step: 'Approved Final Report by Head',
-				date: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status) ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				date: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status) ? new Date(selectedRequest.updatedAt || new Date()).toLocaleDateString() : 'Pending final sign-off',
 				completed: ['COMPLETED', 'FAILED', 'FAIL'].includes(selectedRequest.status)
 			}
 		];
@@ -507,6 +511,48 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								const hasFailedSample = (realSampleInspections || []).some((r: any) => r.status === 'FAILED') ||
 									(realTestPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
 
+								const approvedRequestDate = selectedRequest.approvedDate || selectedRequest.assignedDate;
+
+								const earliestInspectionDate = (() => {
+									if (!realSampleInspections || realSampleInspections.length === 0) return null;
+									const dates = realSampleInspections
+										.map((r: any) => r.createdAt || r.updatedAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const planCreatedDate = (() => {
+									if (!realTestPlans || realTestPlans.length === 0) return null;
+									const dates = realTestPlans
+										.map((p: any) => p.createdAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const testingStartDate = (() => {
+									if (!realTestPlans || realTestPlans.length === 0) return null;
+									const dates = realTestPlans
+										.map((p: any) => p.startDate || p.createdAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const testingCompletionDate = (() => {
+									if (!realTestPlans || realTestPlans.length === 0) return null;
+									const dates = realTestPlans
+										.map((p: any) => p.evaluatedAt || p.updatedAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.max(...dates)).toISOString();
+								})();
+
 								const steps = [
 									{
 										step: 'Testing Request Submitted',
@@ -516,9 +562,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									{
 										step: 'Approved Testing Request by Head of Lab',
 										date: isRejected
-											? `Rejected (${formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)})`
+											? `Rejected (${formatCompletionDate(approvedRequestDate)})`
 											: (selectedRequest.status !== 'PENDING_APPROVAL'
-												? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+												? formatCompletionDate(approvedRequestDate)
 												: 'Awaiting approval'),
 										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "INSPECTION_FAILED", "TESTING_COMPLETED"].includes(selectedRequest.status),
 										failed: isRejected
@@ -527,61 +573,61 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										isInspectionFailed ? [
 											{
 												step: 'Samples Checked',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(earliestInspectionDate || selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true
 											},
 											{
 												step: 'Inspection Failed',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true,
 												failed: true
 											}
 										] : isRetest ? [
 											{
 												step: 'Samples Checked',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(earliestInspectionDate || selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true
 											},
 											{
 												step: 'Test Plan Created',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(planCreatedDate || selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true
 											},
 											{
 												step: 'Testing',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(testingStartDate || selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true
 											},
 											{
 												step: 'Testing Failed',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(testingCompletionDate || selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true,
 												failed: true
 											},
 											{
 												step: 'Returned for Retesting',
-												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate),
+												date: formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt),
 												completed: true
 											}
 										] : [
 											{
 												step: 'Samples Checked',
 												date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(earliestInspectionDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: (selectedRequest.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
 												completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(selectedRequest.status),
 											},
 											{
 												step: 'Test Plan Created',
 												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(planCreatedDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: 'Awaiting plan',
 												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
 											},
 											{
 												step: 'Testing',
 												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(testingStartDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: (selectedRequest.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
 												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
 											},
@@ -594,7 +640,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 															? 'Testing Failed'
 															: (['TESTING_PARTIAL', 'PARTIAL'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
 												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(testingCompletionDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: 'Awaiting results',
 												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status),
 												failed: isFailedStatus || (selectedRequest.status === 'TESTING_COMPLETED' && hasFailedSample)
@@ -602,7 +648,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											{
 												step: 'Report Generation',
 												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(testingCompletionDate || selectedRequest.updatedAt)
 													: 'Pending release',
 												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
 												failed: isFinalFailedStatus
@@ -610,7 +656,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											{
 												step: 'Approved Final Report',
 												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
-													? formatCompletionDate(selectedRequest.updatedAt || selectedRequest.createdAt || selectedRequest.createdDate)
+													? formatCompletionDate(selectedRequest.updatedAt)
 													: 'Pending final sign-off',
 												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
 												failed: isFinalFailedStatus

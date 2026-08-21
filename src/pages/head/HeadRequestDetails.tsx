@@ -46,6 +46,8 @@ interface RequestRecord {
 	remarks?: string | null;
 	createdAt: string;
 	updatedAt: string;
+	assignedDate?: string | null;
+	approvedDate?: string | null;
 	attachments?: AttachmentRecord[];
 	testType?: { id: number; name: string } | null;
 	sampleInspections?: any[];
@@ -59,7 +61,7 @@ interface RequestRecord {
 	} | null;
 }
 
-const formatCompletionDate = (dateString: string | undefined) => {
+const formatCompletionDate = (dateString: string | null | undefined) => {
 	if (!dateString) return '';
 	const date = new Date(dateString);
 	if (isNaN(date.getTime())) return dateString;
@@ -204,7 +206,9 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 			return {
 				allottedId: dbReport.allottedId,
 				status: dbReport.status,
-				remarks: dbReport.remarks
+				remarks: dbReport.remarks,
+				createdAt: dbReport.createdAt,
+				updatedAt: dbReport.updatedAt
 			};
 		}
 		return null;
@@ -221,14 +225,14 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 			},
 			{
 				step: 'Testing Request Approved',
-				date: request.updatedAt ? new Date(request.updatedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+				date: request.approvedDate || request.assignedDate ? new Date((request.approvedDate || request.assignedDate) as any).toLocaleDateString() : new Date().toLocaleDateString(),
 				completed: !['PENDING_APPROVAL', 'REJECTED'].includes(request.status)
 			},
 			{
 				step: isSampleFailed
 					? `Sample Checked & Failed (ID: ${sampleReport?.allottedId || 'N/A'})`
 					: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
-				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
+				date: sampleReport ? new Date(sampleReport.createdAt || sampleReport.updatedAt || new Date()).toLocaleDateString() : 'Awaiting check',
 				completed: !!sampleReport,
 				failed: isSampleFailed
 			},
@@ -243,7 +247,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							{
 								step: `Testing Execution (${planName})`,
 								date: isCompleted
-									? 'Testing completed successfully'
+									? `Completed (${new Date(p.evaluatedAt || p.updatedAt || new Date()).toLocaleDateString()})`
 									: isTestingPhase
 										? (new Date() >= new Date(p.startDate) && new Date() <= new Date(p.endDate)
 											? `In testing phase (Ends: ${new Date(p.endDate).toLocaleDateString()})`
@@ -256,7 +260,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 							{
 								step: `Evaluation (${planName})`,
 								date: p.evaluationStatus
-									? `Result: ${p.evaluationStatus} (${p.evaluationRemarks || 'No remarks'})`
+									? `Result: ${p.evaluationStatus} (${new Date(p.evaluatedAt || p.updatedAt || new Date()).toLocaleDateString()})`
 									: 'Awaiting checksheet completion and evaluation',
 								completed: isCompleted,
 								failed: p.evaluationStatus === 'FAILED'
@@ -278,7 +282,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 			) : []),
 			{
 				step: 'Approved Final Report by Head',
-				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				date: request.status === 'COMPLETED' ? new Date(request.updatedAt || new Date()).toLocaleDateString() : 'Pending final sign-off',
 				completed: request.status === 'COMPLETED'
 			}
 		];
@@ -669,6 +673,52 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 								const hasFailedSample = (request.sampleInspections || []).some((r: any) => r.status === 'FAILED') ||
 									(request.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
 
+								const approvedRequestDate = request.approvedDate || request.assignedDate;
+
+								const earliestInspectionDate = (() => {
+									const inspections = request.sampleInspections || [];
+									if (inspections.length === 0) return null;
+									const dates = inspections
+										.map((r: any) => r.createdAt || r.updatedAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const planCreatedDate = (() => {
+									const plansList = request.testPlans || [];
+									if (plansList.length === 0) return null;
+									const dates = plansList
+										.map((p: any) => p.createdAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const testingStartDate = (() => {
+									const plansList = request.testPlans || [];
+									if (plansList.length === 0) return null;
+									const dates = plansList
+										.map((p: any) => p.startDate || p.createdAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.min(...dates)).toISOString();
+								})();
+
+								const testingCompletionDate = (() => {
+									const plansList = request.testPlans || [];
+									if (plansList.length === 0) return null;
+									const dates = plansList
+										.map((p: any) => p.evaluatedAt || p.updatedAt)
+										.filter(Boolean)
+										.map((d: any) => new Date(d).getTime());
+									if (dates.length === 0) return null;
+									return new Date(Math.max(...dates)).toISOString();
+								})();
+
 								const steps = [
 									{
 										step: 'Testing Request Submitted',
@@ -678,9 +728,9 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 									{
 										step: 'Approved Testing Request by Head of Lab',
 										date: isRejected
-											? `Rejected (${formatCompletionDate(request.updatedAt || request.createdAt)})`
+											? `Rejected (${formatCompletionDate(approvedRequestDate)})`
 											: (request.status !== 'PENDING_APPROVAL'
-												? formatCompletionDate(request.updatedAt || request.createdAt)
+												? formatCompletionDate(approvedRequestDate)
 												: 'Awaiting approval'),
 										completed: ["UNDER_INSPECTION", "INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "INSPECTION_FAILED", "TESTING_COMPLETED"].includes(request.status),
 										failed: isRejected
@@ -689,7 +739,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 										isInspectionFailed ? [
 											{
 												step: 'Samples Checked',
-												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												date: formatCompletionDate(earliestInspectionDate || request.updatedAt || request.createdAt),
 												completed: true
 											},
 											{
@@ -701,22 +751,22 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 										] : isRetest ? [
 											{
 												step: 'Samples Checked',
-												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												date: formatCompletionDate(earliestInspectionDate || request.updatedAt || request.createdAt),
 												completed: true
 											},
 											{
 												step: 'Test Plan Created',
-												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												date: formatCompletionDate(planCreatedDate || request.updatedAt || request.createdAt),
 												completed: true
 											},
 											{
 												step: 'Testing',
-												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												date: formatCompletionDate(testingStartDate || request.updatedAt || request.createdAt),
 												completed: true
 											},
 											{
 												step: 'Testing Failed',
-												date: formatCompletionDate(request.updatedAt || request.createdAt),
+												date: formatCompletionDate(testingCompletionDate || request.updatedAt || request.createdAt),
 												completed: true,
 												failed: true
 											},
@@ -729,21 +779,21 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 											{
 												step: 'Samples Checked',
 												date: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(request.status)
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(earliestInspectionDate || request.updatedAt || request.createdAt)
 													: (request.status === 'UNDER_INSPECTION' ? 'In inspection phase' : 'Pending verification'),
 												completed: ["INSPECTION_COMPLETED", "UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "RETEST", "TESTING_COMPLETED"].includes(request.status),
 											},
 											{
 												step: 'Test Plan Created',
 												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(planCreatedDate || request.updatedAt || request.createdAt)
 													: 'Awaiting plan',
 												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(request.testPlans && request.testPlans.length > 0)
 											},
 											{
 												step: 'Testing',
 												date: (["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || (request.testPlans && request.testPlans.some((p: any) => p.evaluationStatus)))
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(testingStartDate || request.updatedAt || request.createdAt)
 													: (request.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
 												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status) || !!(request.testPlans && request.testPlans.some((p: any) => p.evaluationStatus))
 											},
@@ -756,7 +806,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 															? 'Testing Failed'
 															: (request.status === 'TESTING_PARTIAL' || (request.status === 'COMPLETED' && request.remarks?.toLowerCase().includes('partial')) ? 'Testing Partial (Passed/Failed)' : 'Testing Failed / Testing Passed')),
 												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status)
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(testingCompletionDate || request.updatedAt || request.createdAt)
 													: 'Awaiting results',
 												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(request.status),
 												failed: isFailedStatus || (request.status === 'TESTING_COMPLETED' && hasFailedSample)
@@ -764,7 +814,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 											{
 												step: 'Report Generation',
 												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(request.updatedAt)
 													: 'Pending release',
 												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
 												failed: isFinalFailedStatus
@@ -772,7 +822,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 											{
 												step: 'Approved Final Report',
 												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status)
-													? formatCompletionDate(request.updatedAt || request.createdAt)
+													? formatCompletionDate(request.updatedAt)
 													: 'Pending final sign-off',
 												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(request.status),
 												failed: isFinalFailedStatus

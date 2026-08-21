@@ -35,6 +35,9 @@ interface ApprovedRequest {
 	requesterName: string;
 	status: string;
 	approvedDate: string;
+	assignedDate?: string | null;
+	createdAt?: string;
+	updatedAt?: string;
 	engineerId?: string;
 	engineerName?: string;
 	inspectionResult?: string;
@@ -151,7 +154,9 @@ export default function ApprovedRequestDetails({
 					remarks: insp.remarks || '',
 					status: insp.status,
 					checks: checksObj,
-					images: imagesArr
+					images: imagesArr,
+					createdAt: insp.createdAt,
+					updatedAt: insp.updatedAt
 				};
 			}
 		}
@@ -163,17 +168,17 @@ export default function ApprovedRequestDetails({
 		const steps = [
 			{
 				step: 'Testing Request Submitted',
-				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(),
+				date: request.createdAt ? new Date(request.createdAt).toLocaleDateString() : (request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString()),
 				completed: true
 			},
 			{
 				step: 'Testing Request Approved',
-				date: request.approvedDate ? new Date(request.approvedDate).toLocaleDateString() : new Date().toLocaleDateString(),
+				date: request.approvedDate || request.assignedDate ? new Date(request.approvedDate || request.assignedDate!).toLocaleDateString() : new Date().toLocaleDateString(),
 				completed: true
 			},
 			{
 				step: `Sample Checked & Passed (ID: ${sampleReport?.allottedId || 'N/A'})`,
-				date: sampleReport ? new Date().toLocaleDateString() : 'Awaiting check',
+				date: sampleReport ? new Date(sampleReport.createdAt || sampleReport.updatedAt || new Date()).toLocaleDateString() : 'Awaiting check',
 				completed: !!sampleReport
 			},
 			{
@@ -186,7 +191,7 @@ export default function ApprovedRequestDetails({
 			{
 				step: 'Testing execution',
 				date: (request.status === 'COMPLETED' || (testPlan && testPlan.evaluationStatus))
-					? 'Testing completed successfully'
+					? `Completed (${new Date(testPlan?.evaluatedAt || testPlan?.updatedAt || new Date()).toLocaleDateString()})`
 					: testPlan
 						? (new Date() >= new Date(testPlan.startDate) && new Date() <= new Date(testPlan.endDate)
 							? `In testing phase (Ends: ${new Date(testPlan.endDate).toLocaleDateString()})`
@@ -202,13 +207,13 @@ export default function ApprovedRequestDetails({
 			{
 				step: 'Reliability Evaluation',
 				date: testPlan && testPlan.evaluationStatus
-					? `Result: ${testPlan.evaluationStatus} (${testPlan.evaluationRemarks || 'No remarks'})`
+					? `Result: ${testPlan.evaluationStatus} (${new Date(testPlan.evaluatedAt || testPlan.updatedAt || new Date()).toLocaleDateString()})`
 					: 'Awaiting checksheet completion and evaluation',
 				completed: !!(testPlan && testPlan.evaluationStatus)
 			},
 			{
 				step: 'Approved Final Report by Head',
-				date: request.status === 'COMPLETED' ? new Date().toLocaleDateString() : 'Pending final sign-off',
+				date: request.status === 'COMPLETED' ? new Date(request.updatedAt || new Date()).toLocaleDateString() : 'Pending final sign-off',
 				completed: request.status === 'COMPLETED'
 			}
 		];
