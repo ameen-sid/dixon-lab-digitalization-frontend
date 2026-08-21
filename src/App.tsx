@@ -1,10 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
+
 import Login from './pages/auth/Login';
 import Dashboard from './pages/Dashboard';
-
-// Import individual dashboard pages to expose clean paths
 import AdminDashboard from './pages/admin/AdminDashboard';
 import CeoDashboard from './pages/ceo/CeoDashboard';
 import HeadDashboard from './pages/head/HeadDashboard';
@@ -28,8 +27,6 @@ function App() {
 		const handleGlobalKeyDown = (e: KeyboardEvent) => {
 			if (e.key === 'Enter') {
 				const target = e.target as HTMLElement;
-				
-				// Allow enter-to-submit on the login page
 				if (window.location.pathname === '/') {
 					return;
 				}
@@ -38,7 +35,6 @@ function App() {
 					target.tagName === 'INPUT' &&
 					!['button', 'submit', 'image', 'reset'].includes((target as HTMLInputElement).type)
 				) {
-					// Allow Enter on search inputs
 					const isSearch = (target.getAttribute('type') === 'search') ||
 									 (target.getAttribute('placeholder')?.toLowerCase().includes('search')) ||
 									 (target.getAttribute('name')?.toLowerCase().includes('search'));
@@ -59,12 +55,8 @@ function App() {
 			<Toaster position="bottom-right" reverseOrder={false} />
 			<Routes>
 				<Route path="/" element={<Login />} />
-
-				{/* Dynamic dispatcher route */}
 				<Route path="/dashboard" element={<Dashboard />} />
 
-				{/* Role-specific clean path routes */}
-				{/* Admin Console clean path routes */}
 				<Route path="/admin/dashboard" element={<AdminDashboard />} />
 				<Route path="/admin/platform-availability" element={<AdminDashboard />} />
 				<Route path="/admin/nabl-station-availability" element={<AdminDashboard />} />
@@ -79,7 +71,9 @@ function App() {
 				<Route path="/admin/rd-equipment" element={<AdminDashboard />} />
 				<Route path="/admin/system-logs" element={<AdminDashboard />} />
 				<Route path="/admin/mis-reports" element={<AdminDashboard />} />
+
 				<Route path="/ceo/dashboard" element={<CeoDashboard />} />
+
 				<Route path="/head/dashboard" element={<HeadDashboard />} />
 				<Route path="/head/ceo-dashboard" element={<HeadDashboard />} />
 				<Route path="/head/sample-tests" element={<HeadDashboard />} />
@@ -89,6 +83,7 @@ function App() {
 				<Route path="/head/failure-decision" element={<HeadDashboard />} />
 				<Route path="/head/failure-decision/:id" element={<HeadDashboard />} />
 				<Route path="/head/capa-reports" element={<HeadDashboard />} />
+
 				<Route path="/manager/dashboard" element={<ManagerDashboard />} />
 				<Route path="/manager/approved-requests" element={<ManagerDashboard />} />
 				<Route path="/manager/approved-requests/:id" element={<ManagerDashboard />} />
@@ -102,7 +97,9 @@ function App() {
 				<Route path="/manager/completed-requests" element={<ManagerDashboard />} />
 				<Route path="/manager/completed-requests/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/evaluate-checksheet/:planKey" element={<ManagerEvaluateChecksheet />} />
+
 				<Route path="/reports/preview" element={<ReportPreview />} />
+
 				<Route path="/engineer/dashboard" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples" element={<EngineerDashboard />} />
 				<Route path="/engineer/assigned-samples/:planId" element={<EngineerDashboard />} />
@@ -110,9 +107,11 @@ function App() {
 				<Route path="/engineer/test-report" element={<EngineerDashboard />} />
 				<Route path="/engineer/test-report/:planKey" element={<EngineerDashboard />} />
 				<Route path="/engineer/filled-reports" element={<EngineerDashboard />} />
+
 				<Route path="/inspector/dashboard" element={<InspectorDashboard />} />
 				<Route path="/inspector/daily-checksheet" element={<InspectorDailyChecksheet />} />
 				<Route path="/inspector/checksheet/:planKey" element={<InspectorChecksheet />} />
+
 				<Route path="/nabl-manager/dashboard" element={<NablManagerDashboard />} />
 				<Route path="/nabl-manager/requests" element={<NablManagerRequests />} />
 				<Route path="/nabl-manager/requests/:id" element={<NablRequestReport />} />
@@ -120,7 +119,6 @@ function App() {
 				<Route path="/nabl-manager/completed-tests" element={<NablManagerCompletedTests />} />
 				<Route path="/nabl-manager/completed-tests/:id" element={<NablCompletedTestDetails />} />
 
-				{/* Requester sub-pages serving unique URL paths */}
 				<Route path="/requester" element={<RequesterDashboard />} />
 				<Route path="/requester/dashboard" element={<RequesterDashboard />} />
 				<Route path="/requester/my-requests" element={<RequesterDashboard />} />
@@ -130,7 +128,6 @@ function App() {
 				<Route path="/requester/capa/new" element={<RequesterDashboard />} />
 				<Route path="/requester/capa/details" element={<RequesterDashboard />} />
 
-				{/* Fallback to Login */}
 				<Route path="*" element={<Login />} />
 			</Routes>
 		</Router>
