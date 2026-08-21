@@ -400,7 +400,7 @@ export default function AdminDashboard() {
 										</div>
 										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
 											{Array.from({ length: 10 }, (_, j) => {
-												const sNum = j + 1;
+												const sNum = j % 2 === 0 ? (j / 2) + 1 : Math.floor(j / 2) + 6;
 												const isAvailable = platformSlots[`${pNum}-${sNum}`];
 												return (
 													<button
@@ -466,7 +466,7 @@ export default function AdminDashboard() {
 										</div>
 										<div className="grid grid-cols-2 gap-2 p-3 flex-1 bg-[#f8fafc]/30">
 											{Array.from({ length: 10 }, (_, j) => {
-												const sNum = j + 1;
+												const sNum = j % 2 === 0 ? (j / 2) + 1 : Math.floor(j / 2) + 6;
 												const isAvailable = nablPlatformSlots[`${pNum}-${sNum}`];
 												return (
 													<button
