@@ -1514,7 +1514,7 @@ export default function ReportPreview() {
 													</tr>
 													<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
 														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
-														<td className="p-2 uppercase text-rose-700 font-bold leading-relaxed text-[10px]">
+														<td className="p-2 text-rose-700 font-bold leading-relaxed text-[10px]">
 															{(type === 'sample' || type === 'plan')
 																? (request.sampleInspections?.find((si: any) => Number(si.sampleIndex) === sampleIndex)?.remarks || request.remarks || 'Failed inspection.')
 																: (samplesList[0]?.inspectionReport?.remarks || request.remarks || 'Failed inspection.')}
@@ -1537,7 +1537,7 @@ export default function ReportPreview() {
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
 														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Tests Name</td>
-														<td className="p-2 uppercase font-extrabold text-[10px]">{testDescription}</td>
+														<td className="p-2 uppercase font-extrabold text-[10px]">{testProtocol?.name || testDescription}</td>
 													</tr>
 													<tr className="border-b-2 border-black divide-x-2 divide-black">
 														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Test Method</td>
@@ -1557,7 +1557,7 @@ export default function ReportPreview() {
 													</tr>
 													<tr className={`${!isReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
 														<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[10px]">Observation / Results</td>
-														<td className="p-2 uppercase leading-relaxed text-[10.5px]">
+														<td className="p-2 leading-relaxed text-[10.5px]">
 															{isReliability ? (
 																targetPlan.evaluationStatus === 'PASSED' ? (
 																	<span className="text-emerald-700 font-bold">{targetPlan.evaluationRemarks || 'N/A'}</span>
@@ -1619,7 +1619,12 @@ export default function ReportPreview() {
 															</tr>
 															<tr className="border-b-2 border-black divide-x-2 divide-black">
 																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Tests Name</td>
-																<td className="p-2 uppercase font-extrabold text-[9px]">{getTestDescription(planObj)}</td>
+																<td className="p-2 uppercase font-extrabold text-[9px]">
+																	{(() => {
+																		const proto = testProtocols.find(p => String(p.id) === String(planObj?.testProtocolId));
+																		return proto ? proto.name : getTestDescription(planObj);
+																	})()}
+																</td>
 															</tr>
 															<tr className="border-b-2 border-black divide-x-2 divide-black">
 																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Test Method</td>
@@ -1639,7 +1644,7 @@ export default function ReportPreview() {
 															</tr>
 															<tr className={`${!isPlanReliability ? 'border-b-2 border-black' : ''} divide-x-2 divide-black`}>
 																<td className="p-2 w-48 bg-zinc-100 font-black uppercase text-[9px]">Observation / Results</td>
-																<td className="p-2 uppercase text-[9px] leading-relaxed">
+																<td className="p-2 text-[9px] leading-relaxed">
 																	{isPlanReliability ? (
 																		sample.finalOutcome === 'PASSED' ? (
 																			<span className="text-emerald-700 font-bold">{planObj?.evaluationRemarks || 'N/A'}</span>

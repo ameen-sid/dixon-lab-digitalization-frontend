@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, Upload, FileText, Trash2, Search, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, Upload, FileText, Trash2, Search, ChevronRight, Eye, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { getTestTypes } from '../../services/operations/testTypeService';
@@ -73,6 +73,8 @@ export default function EngineerTestReports({
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [reportStatusFilter, setReportStatusFilter] = useState('ALL');
+	const [previewModalImage, setPreviewModalImage] = useState<string | null>(null);
+	const [isFormInitialized, setIsFormInitialized] = useState(false);
 
 	const [reportForm, setReportForm] = useState<TestReportForm>({
 		testPurpose: '',
@@ -223,6 +225,10 @@ export default function EngineerTestReports({
 	}, []);
 
 	useEffect(() => {
+		setIsFormInitialized(false);
+	}, [planKey]);
+
+	useEffect(() => {
 		if (!planKey || loading || !plans[planKey]) return;
 
 		const plan = plans[planKey];
@@ -275,21 +281,63 @@ export default function EngineerTestReports({
 				eqModel: eqDet.model !== '-' ? eqDet.model : (existingReport.eqModel || ''),
 				eqCalibration: eqDet.calibration !== '-' ? eqDet.calibration : (existingReport.eqCalibration || '')
 			});
+			setIsFormInitialized(true);
 		} else {
-			setReportForm({
-				testPurpose: '',
-				specifiedRequirement: testProtocol?.judgementCriteria || '',
-				observationResults: '',
-				specimenImages: [],
-				beforeImages: [],
-				afterImages: [],
-				eqName: eqDet.name,
-				eqMake: eqDet.make,
-				eqModel: eqDet.model,
-				eqCalibration: eqDet.calibration
-			});
+			let draft: any = null;
+			try {
+				const savedDraft = localStorage.getItem(`draft_report_${planKey}`);
+				if (savedDraft) {
+					draft = JSON.parse(savedDraft);
+				}
+			} catch (e) {
+				console.error('Error loading draft', e);
+			}
+
+			if (draft) {
+				setReportForm({
+					testPurpose: draft.testPurpose || '',
+					specifiedRequirement: testProtocol?.judgementCriteria || '',
+					observationResults: draft.observationResults || '',
+					specimenImages: [],
+					beforeImages: draft.beforeImages || [],
+					afterImages: draft.afterImages || [],
+					eqName: eqDet.name,
+					eqMake: eqDet.make,
+					eqModel: eqDet.model,
+					eqCalibration: eqDet.calibration
+				});
+			} else {
+				setReportForm({
+					testPurpose: '',
+					specifiedRequirement: testProtocol?.judgementCriteria || '',
+					observationResults: '',
+					specimenImages: [],
+					beforeImages: [],
+					afterImages: [],
+					eqName: eqDet.name,
+					eqMake: eqDet.make,
+					eqModel: eqDet.model,
+					eqCalibration: eqDet.calibration
+				});
+			}
+			setIsFormInitialized(true);
 		}
 	}, [planKey, loading, plans, requests, testProtocols, equipments, savedReports]);
+
+	useEffect(() => {
+		if (!planKey || !isFormInitialized || !reportForm || loading) return;
+		const existingReport = savedReports[planKey];
+		if (existingReport) return;
+
+		const draftData = {
+			testPurpose: reportForm.testPurpose,
+			observationResults: reportForm.observationResults,
+			beforeImages: reportForm.beforeImages,
+			afterImages: reportForm.afterImages
+		};
+
+		localStorage.setItem(`draft_report_${planKey}`, JSON.stringify(draftData));
+	}, [planKey, reportForm, isFormInitialized, loading, savedReports]);
 
 
 
@@ -559,6 +607,7 @@ export default function EngineerTestReports({
 			}
 
 			toast.success('Test Report submitted successfully!');
+			localStorage.removeItem(`draft_report_${planKey}`);
 			navigate('/engineer/test-report');
 		} catch (error) {
 			console.error('Failed to submit test report:', error);
@@ -580,6 +629,7 @@ export default function EngineerTestReports({
 		const [reqIdStr] = planKey.split('-sample-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
 		const category = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
+		const testProtocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
 		const isSubmitted = plan.reportSubmitted || !!savedReports[planKey];
 
 		return (
@@ -623,21 +673,21 @@ export default function EngineerTestReports({
 								<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Test Method</label>
 								<input
 									type="text"
-									value={request?.testMethodRef || 'N/A'}
+									value={testProtocol?.testMethod || request?.testMethodRef || 'N/A'}
 									disabled
 									className="bg-zinc-100 border border-zinc-200 rounded-xl p-2.5 text-xs text-zinc-600 font-semibold outline-none cursor-not-allowed opacity-80"
 								/>
 							</div>
 
 							<div className="flex flex-col gap-1">
-								<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Test Purpose</label>
+								<label className="text-[10px] text-zinc-900 font-black uppercase">Test Purpose *</label>
 								<input
 									type="text"
 									placeholder="Enter test purpose (e.g. routine check, validation, certification)..."
 									disabled={isSubmitted}
 									value={reportForm.testPurpose}
 									onChange={e => setReportForm({ ...reportForm, testPurpose: e.target.value })}
-									className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-800 font-semibold outline-none focus:border-[#11236a] focus:bg-white transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+									className="bg-white border border-zinc-300 rounded-xl p-3 text-xs text-zinc-900 font-semibold outline-none focus:border-[#11236a] transition-all disabled:bg-zinc-100 disabled:text-zinc-650 disabled:cursor-not-allowed"
 								/>
 							</div>
 
@@ -646,10 +696,10 @@ export default function EngineerTestReports({
 								<textarea
 									rows={3}
 									placeholder="Enter specified requirements or judgement criteria..."
-									disabled={isSubmitted}
+									disabled={true}
 									value={reportForm.specifiedRequirement}
 									onChange={e => setReportForm({ ...reportForm, specifiedRequirement: e.target.value })}
-									className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-800 font-semibold outline-none focus:border-[#11236a] resize-none focus:bg-white transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+									className="bg-zinc-100 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-600 font-semibold outline-none cursor-not-allowed opacity-80 resize-none"
 								/>
 							</div>
 
@@ -662,7 +712,7 @@ export default function EngineerTestReports({
 									disabled={isSubmitted}
 									value={reportForm.observationResults}
 									onChange={e => setReportForm({ ...reportForm, observationResults: e.target.value })}
-									className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-xs text-zinc-800 font-semibold outline-none focus:border-[#11236a] resize-none focus:bg-white transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+									className="bg-white border border-zinc-200 rounded-xl p-3 text-xs text-zinc-900 font-semibold outline-none focus:border-[#11236a] resize-none focus:bg-white transition-all disabled:bg-zinc-100 disabled:text-zinc-650 disabled:cursor-not-allowed"
 								/>
 							</div>
 
@@ -690,17 +740,28 @@ export default function EngineerTestReports({
 									{reportForm.beforeImages.length > 0 ? (
 										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
 											{reportForm.beforeImages.map((src, idx) => (
-												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-zinc-900">
 													<img src={src} alt={`before-${idx}`} className="w-full h-full object-cover" />
-													{!isSubmitted && (
+													<div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
 														<button
 															type="button"
-															onClick={() => removeBeforeImage(idx)}
-															className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
+															onClick={() => setPreviewModalImage(src)}
+															title="Preview Image"
+															className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
 														>
-															<Trash2 className="w-4 h-4" />
+															<Eye className="w-4 h-4" />
 														</button>
-													)}
+														{!isSubmitted && (
+															<button
+																type="button"
+																onClick={() => removeBeforeImage(idx)}
+																title="Delete Image"
+																className="w-8 h-8 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+															>
+																<Trash2 className="w-4 h-4" />
+															</button>
+														)}
+													</div>
 												</div>
 											))}
 										</div>
@@ -730,17 +791,28 @@ export default function EngineerTestReports({
 									{reportForm.afterImages.length > 0 ? (
 										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
 											{reportForm.afterImages.map((src, idx) => (
-												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-zinc-900">
 													<img src={src} alt={`after-${idx}`} className="w-full h-full object-cover" />
-													{!isSubmitted && (
+													<div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
 														<button
 															type="button"
-															onClick={() => removeAfterImage(idx)}
-															className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity cursor-pointer border-none outline-none"
+															onClick={() => setPreviewModalImage(src)}
+															title="Preview Image"
+															className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
 														>
-															<Trash2 className="w-4 h-4" />
+															<Eye className="w-4 h-4" />
 														</button>
-													)}
+														{!isSubmitted && (
+															<button
+																type="button"
+																onClick={() => removeAfterImage(idx)}
+																title="Delete Image"
+																className="w-8 h-8 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+															>
+																<Trash2 className="w-4 h-4" />
+															</button>
+														)}
+													</div>
 												</div>
 											))}
 										</div>
@@ -753,8 +825,18 @@ export default function EngineerTestReports({
 										<label className="text-[10px] text-zinc-400 font-extrabold uppercase">Legacy Test Pictures</label>
 										<div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2">
 											{reportForm.specimenImages.map((src, idx) => (
-												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-white">
+												<div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 group bg-zinc-900">
 													<img src={src} alt={`specimen-${idx}`} className="w-full h-full object-cover" />
+													<div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+														<button
+															type="button"
+															onClick={() => setPreviewModalImage(src)}
+															title="Preview Image"
+															className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-all cursor-pointer border-none outline-none"
+														>
+															<Eye className="w-4 h-4" />
+														</button>
+													</div>
 												</div>
 											))}
 										</div>
@@ -845,6 +927,27 @@ export default function EngineerTestReports({
 						</div>
 					</div>
 				</form>
+				{previewModalImage && (
+					<div 
+						className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+						onClick={() => setPreviewModalImage(null)}
+					>
+						<div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-zinc-950 p-2 shadow-2xl flex flex-col items-center">
+							<button
+								onClick={() => setPreviewModalImage(null)}
+								className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer outline-none"
+							>
+								<XCircle className="w-6 h-6" />
+							</button>
+							<img
+								src={previewModalImage}
+								alt="Full Preview"
+								className="max-w-full max-h-[85vh] object-contain rounded-xl"
+								onClick={(e) => e.stopPropagation()}
+							/>
+						</div>
+					</div>
+				)}
 			</div>
 		);
 	}
@@ -940,7 +1043,7 @@ export default function EngineerTestReports({
 												{item.testType?.name || 'General Test'}
 											</span>
 
-											<h4 className="text-sm font-black text-zinc-900 mt-1.5 leading-none">
+											<h4 className="text-sm font-black text-zinc-900 mt-1.5 leading-tight break-words break-all">
 												{item.request.brandName} - {item.request.modelNo}
 											</h4>
 										</div>
@@ -997,6 +1100,27 @@ export default function EngineerTestReports({
 					</div>
 				)}
 			</div>
+			{previewModalImage && (
+				<div 
+					className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+					onClick={() => setPreviewModalImage(null)}
+				>
+					<div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-zinc-950 p-2 shadow-2xl flex flex-col items-center">
+						<button
+							onClick={() => setPreviewModalImage(null)}
+							className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all cursor-pointer outline-none"
+						>
+							<XCircle className="w-6 h-6" />
+						</button>
+						<img
+							src={previewModalImage}
+							alt="Full Preview"
+							className="max-w-full max-h-[85vh] object-contain rounded-xl"
+							onClick={(e) => e.stopPropagation()}
+						/>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
