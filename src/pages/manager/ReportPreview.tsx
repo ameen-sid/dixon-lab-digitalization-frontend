@@ -41,9 +41,9 @@ export default function ReportPreview() {
 	const location = useLocation();
 
 	const query = new URLSearchParams(location.search);
-	const type = query.get('type'); 
-	const key = query.get('key'); 
-	const id = query.get('id'); 
+	const type = query.get('type');
+	const key = query.get('key');
+	const id = query.get('id');
 
 	const [requests, setRequests] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
@@ -894,7 +894,7 @@ export default function ReportPreview() {
 															<td className="p-1.5 text-center">{cp.id}</td>
 															<td className="p-1.5">{cp.text}</td>
 															<td className={`p-1.5 text-center font-extrabold uppercase ${val === 'Yes' ? 'text-emerald-700' :
-																	val === 'No' ? 'text-rose-700' : 'text-zinc-500'
+																val === 'No' ? 'text-rose-700' : 'text-zinc-500'
 																}`}>
 																{val || 'N/A'}
 															</td>

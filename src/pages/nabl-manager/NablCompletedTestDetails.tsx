@@ -366,7 +366,7 @@ export default function NablCompletedTestDetails() {
 							)}
 							<div className="grid grid-cols-12">
 								<div className="col-span-4 border-r border-zinc-400 p-3 font-extrabold text-zinc-800 bg-zinc-50 flex items-center">
-									19. Customer Name & Signature:
+									19. Customer Name:
 								</div>
 								<div className="col-span-8 p-3 bg-white flex items-center">
 									<span className="font-extrabold text-[#11236a] italic text-xs tracking-wide">

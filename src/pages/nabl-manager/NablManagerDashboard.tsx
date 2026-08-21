@@ -425,15 +425,15 @@ export default function NablManagerDashboard() {
 		const isFail = ['FAILED', 'FAIL'].includes(planEval);
 
 		if (!req.testPlan?.startDate) {
-			return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Request Generated</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Request Generated</span>;
 		}
 		if (!isEnded) {
-			return <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold border border-amber-200/60 uppercase tracking-wide flex items-center gap-1 w-fit animate-pulse">Under Testing</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold border border-amber-200/60 uppercase tracking-wide gap-1 animate-pulse">Under Testing</span>;
 		}
 		if (isFail) {
-			return <span className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-bold border border-rose-200 uppercase tracking-wide">Completed (Fail)</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-bold border border-rose-200 uppercase tracking-wide">Completed (Fail)</span>;
 		}
-		return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200 uppercase tracking-wide">Completed (Pass)</span>;
+		return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200 uppercase tracking-wide">Completed (Pass)</span>;
 	};
 
 	return (

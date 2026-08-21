@@ -212,7 +212,7 @@ export default function NablManagerTestPlans() {
 
 			if (today >= start && today <= end) {
 				return (
-					<span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold border border-amber-200/60 uppercase tracking-wide flex items-center gap-1 w-fit animate-pulse">
+					<span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-[10px] font-bold border border-amber-200/60 uppercase tracking-wide gap-1 animate-pulse">
 						Under Testing
 					</span>
 				);
@@ -220,13 +220,13 @@ export default function NablManagerTestPlans() {
 				const evalChoice = (plan.status || rawStatus).toUpperCase();
 				if (['FAILED', 'FAIL'].includes(evalChoice)) {
 					return (
-						<span className="px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-bold border border-rose-200/60 uppercase tracking-wide flex items-center gap-1 w-fit">
+						<span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-rose-50 text-rose-700 rounded-full text-[10px] font-bold border border-rose-200/60 uppercase tracking-wide gap-1">
 							Completed (Fail)
 						</span>
 					);
 				}
 				return (
-					<span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200/60 uppercase tracking-wide flex items-center gap-1 w-fit">
+					<span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200/60 uppercase tracking-wide gap-1">
 						Completed (Pass)
 					</span>
 				);
@@ -234,15 +234,15 @@ export default function NablManagerTestPlans() {
 		}
 
 		if (['COMPLETED', 'TESTING_PASSED', 'PASS'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase tracking-wide">Completed (Pass)</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase tracking-wide">Completed (Pass)</span>;
 		}
 		if (['FAILED', 'TESTING_FAILED', 'FAIL'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100 uppercase tracking-wide">Completed (Fail)</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100 uppercase tracking-wide">Completed (Fail)</span>;
 		}
 		if (['UNDER_TESTING', 'UNDER_TEST'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100 uppercase tracking-wide animate-pulse">Under Testing</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100 uppercase tracking-wide animate-pulse">Under Testing</span>;
 		}
-		return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Request Generated</span>;
+		return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Request Generated</span>;
 	};
 
 	return (

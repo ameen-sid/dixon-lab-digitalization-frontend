@@ -208,7 +208,7 @@ export default function NablManagerCompletedTests() {
 							<table className="w-full text-left border-collapse">
 								<thead>
 									<tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-										<th className="px-4 py-3.5">Customer Name & Signature</th>
+										<th className="px-4 py-3.5">Customer Name</th>
 										<th className="px-4 py-3.5">Brand / Model</th>
 										<th className="px-4 py-3.5">Sample Description</th>
 										<th className="px-4 py-3.5">Timeline</th>

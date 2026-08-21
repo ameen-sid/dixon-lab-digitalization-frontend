@@ -81,7 +81,7 @@ export default function NablRequestReport() {
 		};
 		const s = statusMap[status] || { bg: 'bg-zinc-50', text: 'text-zinc-600', label: status || 'Unknown' };
 		return (
-			<span className={`px-3 py-1 rounded-full text-[10px] font-bold ${s.bg} ${s.text} border border-current/10`}>
+			<span className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-bold ${s.bg} ${s.text} border border-current/10`}>
 				{s.label}
 			</span>
 		);
@@ -120,7 +120,7 @@ export default function NablRequestReport() {
 		<DashboardLayout title="NABL Request Report">
 			<div className="space-y-6 animate-fade-in">
 				<div className="flex items-center justify-between">
-					<button 
+					<button
 						onClick={() => navigate('/nabl-manager/requests')}
 						className="text-xs font-bold text-zinc-700 hover:text-zinc-955 flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none transition-colors"
 					>
@@ -146,13 +146,13 @@ export default function NablRequestReport() {
 									</span>
 								</div>
 							</div>
-							
+
 							<div className="col-span-6 p-6 flex flex-col justify-center items-center text-center bg-white font-extrabold text-[#121c60] leading-tight select-none">
 								<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
 								<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 							</div>
 						</div>
-						
+
 						<div className="bg-[#11236a] text-center py-2 text-white font-extrabold tracking-widest uppercase text-[10px] border-t border-zinc-400">
 							TEST REQUEST FORM — REPORT VIEW
 						</div>
@@ -315,7 +315,7 @@ export default function NablRequestReport() {
 						</div>
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
-								Report Required with NABL logo
+								Report Required with NABL symbol
 							</div>
 							<div className="col-span-8 p-3 bg-white flex items-center gap-6">
 								<div className="flex items-center gap-2 font-bold">
@@ -358,7 +358,7 @@ export default function NablRequestReport() {
 						</div>
 						<div className="grid grid-cols-12">
 							<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
-								Customer Name & Signature:
+								Customer Name:
 							</div>
 							<div className="col-span-8 p-3 bg-white flex justify-between items-center">
 								<span className="font-extrabold text-[#11236a] italic text-xs tracking-wide">

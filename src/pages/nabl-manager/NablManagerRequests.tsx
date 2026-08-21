@@ -68,6 +68,8 @@ export default function NablManagerRequests() {
 	const [showCreateForm, setShowCreateForm] = useState(false);
 	const [showPreview, setShowPreview] = useState(false);
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const [startDateFilter, setStartDateFilter] = useState('');
+	const [endDateFilter, setEndDateFilter] = useState('');
 
 	const [formInput, setFormInput] = useState({
 		customerNameAddress: '',
@@ -109,7 +111,7 @@ export default function NablManagerRequests() {
 				if (nablType) {
 					setFormInput(prev => ({ ...prev, testTypeId: String(nablType.id) }));
 				} else if (types.length > 0) {
-					
+
 					setFormInput(prev => ({ ...prev, testTypeId: String(types[0].id) }));
 				}
 			}
@@ -211,13 +213,23 @@ export default function NablManagerRequests() {
 	};
 
 	const filteredRequests = requests.filter(r => {
-		const matchesSearch = 
+		const matchesSearch =
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.modelNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.sampleDescription || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.customerSignName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
 		if (!matchesSearch) return false;
+
+		// Date Range Filter
+		if (r.createdAt) {
+			const loggedDate = r.createdAt.split('T')[0];
+			if (startDateFilter && loggedDate < startDateFilter) return false;
+			if (endDateFilter && loggedDate > endDateFilter) return false;
+		} else if (startDateFilter || endDateFilter) {
+			return false;
+		}
+
 		if (statusFilter === 'ALL') return true;
 
 		const s = (r.status || '').toUpperCase();
@@ -235,18 +247,18 @@ export default function NablManagerRequests() {
 	const getStatusBadge = (status: string) => {
 		const s = status.toUpperCase();
 		if (['COMPLETED', 'TESTING_PASSED', 'PASS'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase tracking-wide">Completed</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold border border-emerald-100 uppercase tracking-wide">Completed</span>;
 		}
 		if (['FAILED', 'TESTING_FAILED', 'FAIL'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100 uppercase tracking-wide">Failed</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-bold border border-rose-100 uppercase tracking-wide">Failed</span>;
 		}
 		if (['UNDER_TESTING', 'UNDER_TEST'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100 uppercase tracking-wide animate-pulse">Testing</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold border border-amber-100 uppercase tracking-wide animate-pulse">Testing</span>;
 		}
 		if (['PENDING_APPROVAL', 'PENDING'].includes(s)) {
-			return <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Pending Approval</span>;
+			return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold border border-blue-100 uppercase tracking-wide">Pending Approval</span>;
 		}
-		return <span className="px-2.5 py-1 bg-zinc-50 text-zinc-600 rounded-full text-[10px] font-bold border border-zinc-100 uppercase tracking-wide">{status.replace(/_/g, ' ')}</span>;
+		return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 bg-zinc-50 text-zinc-600 rounded-full text-[10px] font-bold border border-zinc-100 uppercase tracking-wide">{status.replace(/_/g, ' ')}</span>;
 	};
 
 	return (
@@ -454,7 +466,7 @@ export default function NablManagerRequests() {
 								</div>
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
-										Report Required with NABL logo
+										Report Required with NABL symbol
 									</div>
 									<div className="col-span-8 p-3 bg-white flex items-center gap-6">
 										<div className="flex items-center gap-2 font-bold">
@@ -497,7 +509,7 @@ export default function NablManagerRequests() {
 								</div>
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
-										Customer Name & Signature:
+										Customer Name:
 									</div>
 									<div className="col-span-8 p-3 bg-white flex items-center">
 										<span className="font-extrabold text-[#11236a] italic text-xs tracking-wide">
@@ -558,8 +570,8 @@ export default function NablManagerRequests() {
 						<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-md p-6 max-w-4xl mx-auto">
 							<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs mb-6 bg-white">
 								<div className="grid grid-cols-12">
-									<div className="col-span-12 md:col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
-										<div className="flex flex-col items-start pl-6">
+									<div className="col-span-12 md:col-span-8 border-r border-zinc-400 p-6 flex flex-col justify-center items-center bg-white">
+										<div className="flex flex-col items-center">
 											<span className="text-5xl font-black text-[#121c60] tracking-tight relative leading-none select-none font-sans">
 												D<span className="relative inline-block text-5xl">ı<span className="absolute top-[6px] left-[1px] w-[8px] h-[8px] bg-[#df1d24] rounded-none"></span></span>xon
 											</span>
@@ -568,7 +580,7 @@ export default function NablManagerRequests() {
 											</span>
 										</div>
 									</div>
-									<div className="col-span-12 md:col-span-6 p-6 flex flex-col justify-center items-center text-center bg-white font-extrabold text-[#121c60] leading-tight select-none">
+									<div className="col-span-12 md:col-span-4 p-6 flex flex-col justify-center items-start text-left pl-6 md:pl-10 bg-white font-extrabold text-[#121c60] leading-tight select-none">
 										<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
 										<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 									</div>
@@ -886,7 +898,7 @@ export default function NablManagerRequests() {
 									</div>
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
-											Report Required with NABL logo <span className="text-rose-500 font-extrabold ml-1">*</span>
+											Report Required with NABL symbol <span className="text-rose-500 font-extrabold ml-1">*</span>
 										</div>
 										<div className="col-span-12 md:col-span-8 p-3 bg-white flex items-center gap-6">
 											<label className="flex items-center gap-2 cursor-pointer font-bold">
@@ -945,7 +957,7 @@ export default function NablManagerRequests() {
 									</div>
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
-											Customer Name & Signature: <span className="text-rose-500 font-extrabold ml-1">*</span>
+											Customer Name: <span className="text-rose-500 font-extrabold ml-1">*</span>
 										</div>
 										<div className="col-span-12 md:col-span-8 p-1 bg-white">
 											<input
@@ -1019,23 +1031,60 @@ export default function NablManagerRequests() {
 				)
 			) : (
 				<div className="space-y-6">
-					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-						<div className="relative w-full md:max-w-md shrink-0">
-							<span className="absolute inset-y-0 left-0 flex items-center pl-3">
-								<Search className="w-4 h-4 text-zinc-400" />
-							</span>
-							<input
-								type="text"
-								placeholder="Search by Brand Name, Model, or Sample Description..."
-								value={searchTerm}
-								onChange={(e) => {
-									setSearchTerm(e.target.value);
-									setCurrentPage(1);
-								}}
-								className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-medium text-zinc-800 placeholder-zinc-450 outline-none focus:bg-white focus:border-[#11236a] transition-all"
-							/>
+					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col xl:flex-row gap-4 items-center justify-between">
+						<div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto items-center">
+							<div className="relative w-full sm:w-80 shrink-0">
+								<span className="absolute inset-y-0 left-0 flex items-center pl-3">
+									<Search className="w-4 h-4 text-zinc-400" />
+								</span>
+								<input
+									type="text"
+									placeholder="Search by Brand Name, Model, or Sample Description..."
+									value={searchTerm}
+									onChange={(e) => {
+										setSearchTerm(e.target.value);
+										setCurrentPage(1);
+									}}
+									className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-medium text-zinc-800 placeholder-zinc-450 outline-none focus:bg-white focus:border-[#11236a] transition-all"
+								/>
+							</div>
+							<div className="flex items-center gap-2 w-full sm:w-auto">
+								<span className="text-[10px] font-extrabold text-zinc-450 uppercase shrink-0">From</span>
+								<input
+									type="date"
+									value={startDateFilter}
+									onChange={(e) => {
+										setStartDateFilter(e.target.value);
+										setCurrentPage(1);
+									}}
+									className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-850 outline-none focus:bg-white focus:border-[#11236a] transition-all cursor-pointer"
+								/>
+								<span className="text-[10px] font-extrabold text-zinc-450 uppercase shrink-0">To</span>
+								<input
+									type="date"
+									value={endDateFilter}
+									onChange={(e) => {
+										setEndDateFilter(e.target.value);
+										setCurrentPage(1);
+									}}
+									className="bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-zinc-850 outline-none focus:bg-white focus:border-[#11236a] transition-all cursor-pointer"
+								/>
+								{(startDateFilter || endDateFilter) && (
+									<button
+										onClick={() => {
+											setStartDateFilter('');
+											setEndDateFilter('');
+											setCurrentPage(1);
+										}}
+										title="Clear date filter"
+										className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer bg-transparent border-none outline-none"
+									>
+										<X className="w-4 h-4" />
+									</button>
+								)}
+							</div>
 						</div>
-						<div className="flex items-center gap-3 w-full md:w-auto justify-end">
+						<div className="flex items-center gap-3 w-full xl:w-auto justify-end">
 							<CustomSelect
 								value={statusFilter}
 								onChange={(val) => {
@@ -1060,7 +1109,7 @@ export default function NablManagerRequests() {
 							</button>
 							<button
 								onClick={() => setShowCreateForm(true)}
-								className="px-5 py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer outline-none active:scale-95 border-none"
+								className="px-5 py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer outline-none active:scale-95 border-none shrink-0"
 							>
 								<Plus className="w-4 h-4" /> Add NABL Request
 							</button>
@@ -1082,7 +1131,7 @@ export default function NablManagerRequests() {
 								<table className="w-full text-left border-collapse">
 									<thead>
 										<tr className="border-b border-zinc-200 bg-zinc-50/50">
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Customer Name & Signature</th>
+											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Customer Name</th>
 											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Brand Name</th>
 											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Model No</th>
 											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Sample Description</th>
