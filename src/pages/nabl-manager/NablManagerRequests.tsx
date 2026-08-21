@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import DashboardLayout from '../layouts/DashboardLayout';
-import Pagination from '../../components/Pagination';
-import CustomSelect from '../../components/CustomSelect';
-import { getNablRequests, createNablRequest } from '../../services/operations/nablRequestService';
-import { getTestTypes } from '../../services/operations/testTypeService';
 import {
 	Plus, RotateCw, FileText, Search, ChevronLeft, Send, Upload, X, CheckCircle, Edit3, Eye
 } from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
+
+import Pagination from '../../components/Pagination';
+import CustomSelect from '../../components/CustomSelect';
+
+import { getNablRequests, createNablRequest } from '../../services/operations/nablRequestService';
+import { getTestTypes } from '../../services/operations/testTypeService';
 
 interface RequestRecord {
 	id: number;
@@ -40,7 +42,6 @@ interface RequestRecord {
 export default function NablManagerRequests() {
 	const navigate = useNavigate();
 
-	// Auth check
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
 
@@ -57,8 +58,8 @@ export default function NablManagerRequests() {
 		}
 	}, [token, userStr, navigate]);
 
-	// Page states
 	const [requests, setRequests] = useState<RequestRecord[]>([]);
+	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
@@ -68,7 +69,6 @@ export default function NablManagerRequests() {
 	const [showPreview, setShowPreview] = useState(false);
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
-	// Form inputs state
 	const [formInput, setFormInput] = useState({
 		customerNameAddress: '',
 		manufacturerNameAddress: '',
@@ -95,18 +95,22 @@ export default function NablManagerRequests() {
 	const fetchDashboardData = async () => {
 		setLoading(true);
 		try {
-			// Fetch NABL requests
 			const allReqs = await getNablRequests()();
 			setRequests(allReqs || []);
 
-			// Fetch test types
 			const types = await getTestTypes()();
 
-			// Find "NABL Test" type and auto-select its ID in formInput
 			if (types && Array.isArray(types)) {
-				const nablType = types.find((t: any) => t.name === 'NABL Test');
+				setTestTypes(types);
+				let nablType = types.find((t: any) => t.name.trim().toLowerCase() === 'nabl test');
+				if (!nablType) {
+					nablType = types.find((t: any) => t.name.toLowerCase().includes('nabl'));
+				}
 				if (nablType) {
 					setFormInput(prev => ({ ...prev, testTypeId: String(nablType.id) }));
+				} else if (types.length > 0) {
+					
+					setFormInput(prev => ({ ...prev, testTypeId: String(types[0].id) }));
 				}
 			}
 		} catch (error) {
@@ -127,7 +131,6 @@ export default function NablManagerRequests() {
 		toast.success('Requests synchronized successfully.');
 	};
 
-	// File attachments handlers
 	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files) {
 			const filesArray = Array.from(e.target.files);
@@ -157,12 +160,9 @@ export default function NablManagerRequests() {
 		setShowPreview(true);
 	};
 
-	// Submission to backend
 	const handleFinalConfirm = async () => {
 		try {
 			const formData = new FormData();
-
-			// Append all form inputs
 			Object.keys(formInput).forEach((key) => {
 				const val = (formInput as any)[key];
 				if (key === 'testTypeId' && (val === '' || val === null || val === undefined)) {
@@ -171,20 +171,16 @@ export default function NablManagerRequests() {
 				formData.append(key, String(val));
 			});
 
-			// Bypass request ID generation
 			formData.append('generateRequestId', 'false');
-
-			// Append multiple files of multiple types
 			selectedFiles.forEach((file) => {
 				formData.append('files', file);
 			});
 
 			await createNablRequest(formData)();
-
-			// Reset states
 			setShowCreateForm(false);
 			setShowPreview(false);
 			setSelectedFiles([]);
+
 			setFormInput({
 				customerNameAddress: '',
 				manufacturerNameAddress: '',
@@ -214,7 +210,6 @@ export default function NablManagerRequests() {
 		}
 	};
 
-	// Filtered & Paginated requests based on search and status filter
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch = 
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -229,7 +224,6 @@ export default function NablManagerRequests() {
 		if (statusFilter === 'REQUEST_GENERATED') return s === 'REQUEST_GENERATED';
 		if (statusFilter === 'UNDER_TESTING') return s === 'UNDER_TESTING' || s === 'UNDER_TEST';
 		if (statusFilter === 'COMPLETED') return ['COMPLETED', 'FAILED', 'PASS', 'FAIL'].includes(s);
-
 		return true;
 	});
 
@@ -238,7 +232,6 @@ export default function NablManagerRequests() {
 		currentPage * itemsPerPage
 	);
 
-	// Status badge mapping
 	const getStatusBadge = (status: string) => {
 		const s = status.toUpperCase();
 		if (['COMPLETED', 'TESTING_PASSED', 'PASS'].includes(s)) {
@@ -264,7 +257,6 @@ export default function NablManagerRequests() {
 		>
 			{showCreateForm ? (
 				showPreview ? (
-					/* Preview Sheet Layout */
 					<div className="space-y-6 animate-fade-in">
 						<div className="flex items-center">
 							<button
@@ -274,10 +266,7 @@ export default function NablManagerRequests() {
 								<ChevronLeft className="w-4 h-4" /> Back to Form Editor
 							</button>
 						</div>
-
-						{/* Preview Layout Sheet */}
 						<div className="bg-white border border-zinc-300 rounded-[32px] shadow-md p-6 max-w-4xl mx-auto space-y-6">
-							{/* Form Top Specification Header */}
 							<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs">
 								<div className="grid grid-cols-12">
 									<div className="col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
@@ -290,21 +279,16 @@ export default function NablManagerRequests() {
 											</span>
 										</div>
 									</div>
-
 									<div className="col-span-6 p-6 flex flex-col justify-center items-center text-center bg-white font-extrabold text-[#121c60] leading-tight select-none">
 										<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
 										<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 									</div>
 								</div>
-
 								<div className="bg-[#11236a] text-center py-2 text-white font-extrabold tracking-widest uppercase text-[10px] border-t border-zinc-400">
 									TEST REQUEST FORM PREVIEW
 								</div>
 							</div>
-
-							{/* Physical Paper Sheet Mock Table */}
 							<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs bg-white divide-y divide-zinc-400">
-								{/* Customer Address */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Name and Address of Customer / Applicant
@@ -313,8 +297,6 @@ export default function NablManagerRequests() {
 										{formInput.customerNameAddress}
 									</div>
 								</div>
-
-								{/* Manufacturer Address */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Manufacturer Name and address
@@ -323,8 +305,6 @@ export default function NablManagerRequests() {
 										{formInput.manufacturerNameAddress}
 									</div>
 								</div>
-
-								{/* Contact Details */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Contact Details of Customer / Applicant
@@ -333,8 +313,6 @@ export default function NablManagerRequests() {
 										{formInput.customerContactDetails}
 									</div>
 								</div>
-
-								{/* Sample Description */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Sample Description
@@ -343,8 +321,6 @@ export default function NablManagerRequests() {
 										{formInput.sampleDescription}
 									</div>
 								</div>
-
-								{/* Model No */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Model No. / Identification
@@ -353,8 +329,6 @@ export default function NablManagerRequests() {
 										{formInput.modelNo}
 									</div>
 								</div>
-
-								{/* Family Model */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Family Model (If Any)
@@ -363,8 +337,6 @@ export default function NablManagerRequests() {
 										{formInput.familyModel || 'NA'}
 									</div>
 								</div>
-
-								{/* Product Serial Number */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Product Serial Number (If any)
@@ -373,8 +345,6 @@ export default function NablManagerRequests() {
 										{formInput.serialNumber || 'NA'}
 									</div>
 								</div>
-
-								{/* Product Rating */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Product Rating
@@ -383,8 +353,6 @@ export default function NablManagerRequests() {
 										{formInput.productRating}
 									</div>
 								</div>
-
-								{/* Sample Qty */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Sample Qty.
@@ -393,8 +361,6 @@ export default function NablManagerRequests() {
 										{formInput.sampleQty}
 									</div>
 								</div>
-
-								{/* Brand */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Trade Mark / Brand
@@ -403,8 +369,6 @@ export default function NablManagerRequests() {
 										{formInput.brandName}
 									</div>
 								</div>
-
-								{/* Drawings attachments details */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Drawing / Specification /any attachment (Please mention)
@@ -413,8 +377,6 @@ export default function NablManagerRequests() {
 										{formInput.attachmentMention || 'User manual provided'}
 									</div>
 								</div>
-
-								{/* Witness Required */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Witness Required
@@ -434,8 +396,6 @@ export default function NablManagerRequests() {
 										</div>
 									</div>
 								</div>
-
-								{/* Witness Designation */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Name and designation of person who will witness the test
@@ -444,8 +404,6 @@ export default function NablManagerRequests() {
 										{formInput.witnessRequired === 'Yes' ? formInput.witnessPersonDetails : 'NA'}
 									</div>
 								</div>
-
-								{/* Test Method */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Ref. Test Method/ Specification’s
@@ -454,8 +412,14 @@ export default function NablManagerRequests() {
 										{formInput.testMethodRef}
 									</div>
 								</div>
-
-								{/* Statement of Conformity */}
+								<div className="grid grid-cols-12">
+									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
+										Test Type
+									</div>
+									<div className="col-span-8 p-3 font-bold text-zinc-900">
+										{testTypes.find(t => String(t.id) === String(formInput.testTypeId))?.name || 'N/A'}
+									</div>
+								</div>
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Statement of conformity:
@@ -488,8 +452,6 @@ export default function NablManagerRequests() {
 										)}
 									</div>
 								</div>
-
-								{/* Report with NABL Logo */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Report Required with NABL logo
@@ -509,8 +471,6 @@ export default function NablManagerRequests() {
 										</div>
 									</div>
 								</div>
-
-								{/* Collected Back */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Whether sample will be collected back (not applicable for destructive test)
@@ -535,8 +495,6 @@ export default function NablManagerRequests() {
 										</p>
 									</div>
 								</div>
-
-								{/* Signature Name */}
 								<div className="grid grid-cols-12">
 									<div className="col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 border-r border-zinc-400 flex items-center">
 										Customer Name & Signature:
@@ -548,8 +506,6 @@ export default function NablManagerRequests() {
 									</div>
 								</div>
 							</div>
-
-							{/* Attached Files List */}
 							{selectedFiles.length > 0 && (
 								<div className="space-y-4 pt-4 border-t border-zinc-200">
 									<h4 className="text-xs font-extrabold text-[#11236a] uppercase tracking-wider">Specifications & Manuals Attachments ({selectedFiles.length})</h4>
@@ -570,8 +526,6 @@ export default function NablManagerRequests() {
 									</div>
 								</div>
 							)}
-
-							{/* Final Confirmation Buttons */}
 							<div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200">
 								<button
 									type="button"
@@ -591,7 +545,6 @@ export default function NablManagerRequests() {
 						</div>
 					</div>
 				) : (
-					/* Request Form Editor Layout */
 					<div className="space-y-6 animate-fade-in">
 						<div className="flex items-center">
 							<button
@@ -602,9 +555,7 @@ export default function NablManagerRequests() {
 							</button>
 						</div>
 
-						{/* Form Sheet Card */}
 						<div className="bg-white border border-zinc-200/60 rounded-3xl shadow-md p-6 max-w-4xl mx-auto">
-							{/* Document top table header */}
 							<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs mb-6 bg-white">
 								<div className="grid grid-cols-12">
 									<div className="col-span-12 md:col-span-6 border-r border-zinc-400 p-6 flex flex-col justify-center items-start bg-white">
@@ -617,23 +568,18 @@ export default function NablManagerRequests() {
 											</span>
 										</div>
 									</div>
-
 									<div className="col-span-12 md:col-span-6 p-6 flex flex-col justify-center items-center text-center bg-white font-extrabold text-[#121c60] leading-tight select-none">
 										<span className="text-sm uppercase tracking-wider font-extrabold">PERFORMANCE & SAFETY LAB,</span>
 										<span className="text-sm uppercase tracking-wider mt-1 font-extrabold">DIXON TECHNOLOGIES (INDIA) LIMITED</span>
 									</div>
 								</div>
-
 								<div className="bg-[#11236a] text-white text-center py-2.5 font-extrabold uppercase tracking-widest text-[10px] border-t border-zinc-400">
 									TEST REQUEST FORM
 								</div>
 							</div>
 
 							<form onSubmit={handleFormSubmit} className="space-y-6">
-								{/* Main Form Fields structured as physical table rows */}
 								<div className="border border-zinc-400 rounded-lg overflow-hidden text-xs bg-white divide-y divide-zinc-400">
-
-									{/* Customer Name & Address */}
 									<div className="grid grid-cols-12 min-h-[80px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Name and Address of Customer / Applicant <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -649,8 +595,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Manufacturer Name & Address */}
 									<div className="grid grid-cols-12 min-h-[80px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Manufacturer Name and address <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -666,8 +610,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Contact Details */}
 									<div className="grid grid-cols-12 min-h-[60px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Contact Details of Customer / Applicant <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -683,8 +625,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Sample Description */}
 									<div className="grid grid-cols-12 min-h-[50px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Sample Description <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -700,8 +640,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Model No */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Model No. / Identification <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -717,8 +655,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Family Model */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Family Model (If Any)
@@ -733,8 +669,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Product Serial Number */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Product Serial Number (If any)
@@ -749,8 +683,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Product Rating */}
 									<div className="grid grid-cols-12 min-h-[50px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Product Rating <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -766,8 +698,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Sample Qty */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Sample Qty. <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -783,8 +713,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Brand */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Trade Mark / Brand <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -800,8 +728,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Drawings attachments */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Drawing / Specification /any attachment (Please mention)
@@ -816,8 +742,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Witness Required */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Witness Required <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -845,8 +769,6 @@ export default function NablManagerRequests() {
 											</label>
 										</div>
 									</div>
-
-									{/* Witness Details */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Name and designation of person who will witness the test
@@ -862,8 +784,6 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Test Method */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Ref. Test Method/ Specification's <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -879,8 +799,21 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
-									{/* Statement of Conformity */}
+									<div className="grid grid-cols-12">
+										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
+											Test Type <span className="text-rose-500 font-extrabold ml-1">*</span>
+										</div>
+										<div className="col-span-12 md:col-span-8 p-1 bg-white flex items-center">
+											<div className="w-full p-1">
+												<CustomSelect
+													value={formInput.testTypeId}
+													onChange={(val) => setFormInput({ ...formInput, testTypeId: val })}
+													options={testTypes.map(t => ({ value: String(t.id), label: t.name }))}
+													placeholder="Select Test Type"
+												/>
+											</div>
+										</div>
+									</div>
 									<div className="grid grid-cols-12 min-h-[80px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Statement of conformity: <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -951,8 +884,6 @@ export default function NablManagerRequests() {
 											)}
 										</div>
 									</div>
-
-									{/* Report Required with NABL Logo */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Report Required with NABL logo <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -980,8 +911,6 @@ export default function NablManagerRequests() {
 											</label>
 										</div>
 									</div>
-
-									{/* Collected Back */}
 									<div className="grid grid-cols-12 min-h-[60px]">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Whether sample will be collected back (not applicable for destructive test) <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -1014,8 +943,6 @@ export default function NablManagerRequests() {
 											</p>
 										</div>
 									</div>
-
-									{/* Signature Name */}
 									<div className="grid grid-cols-12">
 										<div className="col-span-12 md:col-span-4 bg-zinc-50/70 p-3 font-extrabold text-zinc-800 md:border-r border-zinc-400 flex items-center">
 											Customer Name & Signature: <span className="text-rose-500 font-extrabold ml-1">*</span>
@@ -1031,11 +958,7 @@ export default function NablManagerRequests() {
 											/>
 										</div>
 									</div>
-
 								</div>
-
-
-								{/* Multiple File Attachments */}
 								<div className="space-y-4 pt-2">
 									<h4 className="text-xs font-bold text-[#11236a] uppercase tracking-wider border-l-2 border-[#11236a] pl-2">Upload Supporting Files (Drawings / Specifications)</h4>
 									<div className="border-2 border-dashed border-zinc-200 hover:border-[#11236a] rounded-2xl p-6 text-center bg-zinc-50/50 transition-colors relative group">
@@ -1075,8 +998,6 @@ export default function NablManagerRequests() {
 										</div>
 									)}
 								</div>
-
-								{/* Form Editor Control Buttons */}
 								<div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-200">
 									<button
 										type="button"
@@ -1097,11 +1018,8 @@ export default function NablManagerRequests() {
 					</div>
 				)
 			) : (
-				/* Requests Registry Queue Table Layout */
 				<div className="space-y-6">
-					{/* Header actions */}
 					<div className="bg-white border border-zinc-200/50 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
-						{/* Search Bar */}
 						<div className="relative w-full md:max-w-md shrink-0">
 							<span className="absolute inset-y-0 left-0 flex items-center pl-3">
 								<Search className="w-4 h-4 text-zinc-400" />
@@ -1117,8 +1035,6 @@ export default function NablManagerRequests() {
 								className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-9 pr-4 py-2.5 text-xs font-medium text-zinc-800 placeholder-zinc-450 outline-none focus:bg-white focus:border-[#11236a] transition-all"
 							/>
 						</div>
-
-						{/* Action Buttons */}
 						<div className="flex items-center gap-3 w-full md:w-auto justify-end">
 							<CustomSelect
 								value={statusFilter}
@@ -1150,8 +1066,6 @@ export default function NablManagerRequests() {
 							</button>
 						</div>
 					</div>
-
-					{/* Registry table queue */}
 					<div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-sm">
 						{loading ? (
 							<div className="flex flex-col items-center justify-center py-20 gap-3">

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import DashboardLayout from '../layouts/DashboardLayout';
 import toast from 'react-hot-toast';
 
-// Import sub-pages
+
 import ManagerDashboardOverview from './ManagerDashboardOverview';
 import ApprovedRequests from './ApprovedRequests';
 import ApprovedRequestDetails from './ApprovedRequestDetails';
@@ -13,12 +13,12 @@ import ManagerCapaDetails from './ManagerCapaDetails';
 import ManagerTestPlans from './ManagerTestPlans';
 import ManagerCompletedRequests from './ManagerCompletedRequests';
 
-// Import backend API services
+
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { getUsers } from '../../services/operations/userService';
 import { getCapas, createCapa } from '../../services/operations/capaService';
 
-// Interface definitions
+
 interface ApprovedRequest {
 	id: string;
 	requestId: string;
@@ -62,7 +62,7 @@ interface InspectionTask {
 	testMethodRef: string;
 	sampleDescription: string;
 	sampleQty: number;
-	status: string; // 'PENDING' | 'PASSED' | 'FAILED' | 'COMPLETED'
+	status: string; 
 	assignedDate: string;
 	completedDate?: string;
 	remarks?: string;
@@ -90,7 +90,6 @@ export default function ManagerDashboard() {
 	const location = useLocation();
 	const { id } = useParams<{ id: string }>();
 
-	// Validate Authentication and Role
 	const token = localStorage.getItem('token');
 	const userStr = localStorage.getItem('user');
 
@@ -107,18 +106,13 @@ export default function ManagerDashboard() {
 		}
 	}, [token, userStr, navigate]);
 
-	// ==========================================
-	// LIVE BACKEND DATA STATES & EFFECT HOOKS
-	// ==========================================
 	const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
 	const [loadingRequests, setLoadingRequests] = useState(false);
 	const [engineers, setEngineers] = useState<{ id: string; name: string; role: string }[]>([]);
 
-	// Dynamic request details loading state
 	const [activeRequestDetails, setActiveRequestDetails] = useState<ApprovedRequest | null>(null);
 	const [loadingDetails, setLoadingDetails] = useState(false);
 
-	// Load Approved Requests from database
 	const loadApprovedRequests = async () => {
 		setLoadingRequests(true);
 		try {
@@ -159,7 +153,6 @@ export default function ManagerDashboard() {
 				assignedDate: req.assignedDate ? req.assignedDate.split('T')[0] : null
 			}));
 
-			// Perform an automatic check for completed requests that are still UNDER_TEST
 			for (const req of mapped) {
 				if (['UNDER_TESTING', 'UNDER_TEST', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
 					const qty = req.sampleQty || 1;
@@ -176,10 +169,8 @@ export default function ManagerDashboard() {
 
 						if (dbReport) {
 							if (dbReport.status === 'FAILED') {
-								// Failed inspection means it's complete/failed
 								continue;
 							} else if (dbReport.status === 'PASSED') {
-								// Passed inspection means all its plans must be evaluated
 								if (plansForSample.length > 0 && plansForSample.every((p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED')) {
 									continue;
 								}
@@ -189,7 +180,6 @@ export default function ManagerDashboard() {
 						break;
 					}
 
-					// We only auto-transition if it actually had plans configured and all are completed
 					if (allSamplesComplete && hasPlans) {
 						let passedCount = 0;
 						let failedCount = 0;
@@ -203,7 +193,6 @@ export default function ManagerDashboard() {
 							}
 						});
 
-						// If there are failed inspections for samples without plans, count them as failed
 						const passedSampleIndices: number[] = [];
 						for (let i = 0; i < qty; i++) {
 							const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
@@ -239,7 +228,6 @@ export default function ManagerDashboard() {
 							}
 						}
 					} else if (!allSamplesComplete) {
-						// If not all samples/plans are complete, but request is in a final status, reset it back to UNDER_TESTING
 						if (['TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
 							try {
 								const statusUpdateOp = updateTestRequestStatus(
@@ -257,15 +245,13 @@ export default function ManagerDashboard() {
 				}
 			}
 
-			// Approved requests are those which have been signed off by the Lab Head 
-			// (Status is NOT PENDING_APPROVAL and NOT REJECTED)
 			let filtered = mapped.filter((r: any) => r.status !== 'PENDING_APPROVAL' && r.status !== 'REJECTED');
 			const currentUser = userStr ? JSON.parse(userStr) : null;
 			const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
 			if (isNablDept) {
-				filtered = filtered.filter((r: any) => r.testType?.name === 'NABL Test');
+				filtered = filtered.filter((r: any) => r.testType?.name && r.testType.name.toUpperCase().includes('NABL'));
 			} else {
-				filtered = filtered.filter((r: any) => r.testType?.name !== 'NABL Test');
+				filtered = filtered.filter((r: any) => !r.testType?.name || !r.testType.name.toUpperCase().includes('NABL'));
 			}
 			setApprovedRequests(filtered);
 		} catch (error) {
@@ -275,12 +261,10 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// Load Users to display as Engineers
 	const loadEngineers = async () => {
 		try {
 			const fetchUsersOp = getUsers();
 			const users = await fetchUsersOp();
-			// Capture ONLY registered staff whose role is strictly 'Engineer' case-insensitively
 			const staff = users
 				.filter((u: any) => {
 					const r = (u.role || '').toLowerCase();
@@ -298,7 +282,6 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// Boot load live data
 	useEffect(() => {
 		if (token && userStr) {
 			loadApprovedRequests();
@@ -307,7 +290,6 @@ export default function ManagerDashboard() {
 		}
 	}, [token, userStr]);
 
-	// Fetch dynamic single request details fresh from database when URL parameters change
 	useEffect(() => {
 		const loadDetails = async () => {
 			if (!id || location.pathname.includes('/manager/capa-management')) {
@@ -355,7 +337,7 @@ export default function ManagerDashboard() {
 
 				const currentUser = userStr ? JSON.parse(userStr) : null;
 				const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
-				const isNablRequest = mapped.testType?.name === 'NABL Test';
+				const isNablRequest = mapped.testType?.name && mapped.testType.name.toUpperCase().includes('NABL');
 
 				if (isNablDept && !isNablRequest) {
 					setActiveRequestDetails(null);
@@ -371,7 +353,6 @@ export default function ManagerDashboard() {
 
 				setActiveRequestDetails(mapped);
 
-				// Instantly reload available engineers list to stay synchronized
 				await loadEngineers();
 			} catch (error) {
 				console.error('Failed to load request details from database:', error);
@@ -382,11 +363,6 @@ export default function ManagerDashboard() {
 		loadDetails();
 	}, [id, location.pathname, userStr, navigate]);
 
-	// ==========================================
-	// MOCK DATABASE STATES FOR OFFLINE MODULES
-	// ==========================================
-
-	// 3. CAPA Records — live from backend
 	const [capas, setCapas] = useState<CapaRecord[]>([]);
 
 	const loadCapas = async () => {
@@ -415,7 +391,7 @@ export default function ManagerDashboard() {
 			const filteredMapped = mapped.filter((c: any) => {
 				const matchedReq = allReqs.find((r: any) => String(r.id) === String(c.relatedRequest) || r.requestId === c.relatedRequest);
 				if (!matchedReq) return false;
-				const isNablRequest = matchedReq.testType?.name === 'NABL Test';
+				const isNablRequest = matchedReq.testType?.name && matchedReq.testType.name.toUpperCase().includes('NABL');
 				return isNablDept ? isNablRequest : !isNablRequest;
 			});
 
@@ -425,20 +401,13 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// Derive current URL properties
 	const pathSegment = location.pathname.replace('/manager/', '') || 'dashboard';
 
-	// ==========================================
-	// INTEGRATED OPERATIONS WORKFLOW LOGIC
-	// ==========================================
-
-	// 1. Assign Engineer to Request (Live Backend Integration)
 	const handleAssignEngineer = async (requestId: string, engineerId: string, _engineerName: string) => {
 		try {
 			const numericRequestId = Number(requestId);
 			const numericEngineerId = Number(engineerId);
 
-			// Call backend update API to transition status to UNDER_TEST & assign scientist
 			const updateOp = updateTestRequestStatus(
 				numericRequestId,
 				'UNDER_INSPECTION',
@@ -446,11 +415,8 @@ export default function ManagerDashboard() {
 				numericEngineerId
 			);
 			await updateOp();
-
-			// Refresh listing data
 			await loadApprovedRequests();
 
-			// Sync details page dynamically
 			if (id && id === requestId) {
 				const fetchOp = getTestRequestDetails(id);
 				const req = await fetchOp();
@@ -482,7 +448,6 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// 2. Simulate Inspection Completion (Live Backend Integration)
 	const handleSimulateInspectionCompletion = async (requestId: string, result: 'PASSED' | 'FAILED', remarks: string) => {
 		try {
 			const numericRequestId = Number(requestId);
@@ -495,10 +460,8 @@ export default function ManagerDashboard() {
 			);
 			await updateOp();
 
-			// Refresh listing data
 			await loadApprovedRequests();
 
-			// Sync details page dynamically
 			if (id && id === requestId) {
 				const fetchOp = getTestRequestDetails(id);
 				const req = await fetchOp();
@@ -530,7 +493,6 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// 3. Form inspection completion (from Manager's Assigned task screen checklist)
 	const handleCompleteInspectionForm = async (taskId: string, _result: 'PASSED' | 'FAILED', _remarks: string, _checks: any) => {
 		try {
 			const numericTaskId = Number(taskId);
@@ -542,8 +504,6 @@ export default function ManagerDashboard() {
 				undefined
 			);
 			await updateOp();
-
-			// Refresh list
 			await loadApprovedRequests();
 
 		} catch (error) {
@@ -551,10 +511,6 @@ export default function ManagerDashboard() {
 		}
 	};
 
-	// 4. Initiate CAPA Report Submission
-
-
-	// Set active tab logic
 	let activeTab = 'dashboard';
 	if (pathSegment === 'approved-requests') activeTab = 'approved-requests';
 	else if (pathSegment.startsWith('approved-requests/')) activeTab = 'approved-request-details';
@@ -565,9 +521,6 @@ export default function ManagerDashboard() {
 	else if (pathSegment.startsWith('test-plans/')) activeTab = 'test-plan-details';
 	else if (pathSegment === 'completed-requests' || pathSegment.startsWith('completed-requests/')) activeTab = 'completed-requests';
 
-	// ==========================================
-	// UI NAVIGATION AND TITLE HEADERS
-	// ==========================================
 	const getTabHeaders = () => {
 		switch (activeTab) {
 			case 'dashboard':
@@ -595,7 +548,6 @@ export default function ManagerDashboard() {
 
 	const headers = getTabHeaders();
 
-	// Render current sub-page
 	const renderContent = () => {
 		switch (activeTab) {
 			case 'dashboard':
@@ -650,7 +602,6 @@ export default function ManagerDashboard() {
 				const currentUser = userStr ? JSON.parse(userStr) : null;
 				const currentManagerId = currentUser ? String(currentUser.id) : '';
 				const dynamicTasks: InspectionTask[] = approvedRequests
-					// Only requests where the engineer assigned IS the manager themselves
 					.filter(r => !!r.engineerId && r.engineerId === currentManagerId)
 					.map(r => ({
 						id: String(r.id),

@@ -18,8 +18,6 @@ interface CapaRecord {
 	owner: string;
 	createdDate: string;
 	targetDate?: string;
-
-	// new format fields
 	partProduct?: string;
 	modelName?: string;
 	customerSupplier?: string;
@@ -63,7 +61,6 @@ export default function ManagerCapaDetails() {
 			try {
 				const data = await getCapaById(id)();
 
-				// Validate access permissions based on manager's department
 				const userStr = localStorage.getItem('user');
 				const currentUser = userStr ? JSON.parse(userStr) : null;
 				const isNablDept = currentUser?.department?.name?.toUpperCase() === 'NABL';
@@ -72,7 +69,7 @@ export default function ManagerCapaDetails() {
 				const reqs = await fetchRequestsOp();
 				const matchedReq = reqs.find((r: any) => String(r.id) === String(data.relatedRequest) || r.requestId === data.relatedRequest);
 				if (matchedReq) {
-					const isNablRequest = matchedReq.testType?.name === 'NABL Test';
+					const isNablRequest = matchedReq.testType?.name && matchedReq.testType.name.toUpperCase().includes('NABL');
 					if (isNablDept && !isNablRequest) {
 						toast.error('Access Denied: CAPA details are not accessible by NABL managers.');
 						navigate('/manager/capa-management');
@@ -317,7 +314,6 @@ export default function ManagerCapaDetails() {
 
 	return (
 		<div className="space-y-6">
-			{/* Toolbar / Action buttons */}
 			<div className="flex items-center justify-between">
 				<button 
 					onClick={() => navigate('/manager/capa-management')}
@@ -341,14 +337,11 @@ export default function ManagerCapaDetails() {
 					</div>
 				</div>
 			</div>
-
-			{/* CAPA Printable Sheet View */}
 			<div 
 				id="printable-capa-sheet" 
 				className="bg-white border border-slate-655 rounded-none overflow-hidden max-w-6xl mx-auto text-zinc-900"
 			>
 				<table className="w-full border-collapse border border-slate-655 text-xs bg-white" style={{ tableLayout: 'fixed' }}>
-					{/* Row 1 & 2: Header Grid */}
 					<thead>
 						<tr className="text-center font-bold text-[11px] leading-tight">
 							<td className="border border-slate-655 bg-[#1e3a8a] bg-blue-header text-white py-2 w-[9%]" style={{ width: '9%' }}>Part/Product</td>
@@ -374,7 +367,6 @@ export default function ManagerCapaDetails() {
 					</thead>
 
 					<tbody>
-						{/* Row 3: Title & Improvement Options */}
 						<tr>
 							<td className="border border-slate-655 p-2 font-bold text-blue-800 text-[11px] bg-white" colSpan={4}>
 								☐ Title :: <span className="text-zinc-900 font-bold">{mappedCapa.title}</span>
@@ -399,8 +391,6 @@ export default function ManagerCapaDetails() {
 								</table>
 							</td>
 						</tr>
-
-						{/* Row 4: Column Section Headers */}
 						<tr className="bg-blue-50/20 bg-blue-light text-center font-bold text-[10px] text-zinc-800">
 							<td className="border border-slate-655 py-1.5">Part Name</td>
 							<td className="border border-slate-655 py-1.5" colSpan={3}>(Problem & Reason)</td>
@@ -408,8 +398,6 @@ export default function ManagerCapaDetails() {
 							<td className="border border-slate-655 py-1.5" style={{ width: '90px' }}>Target</td>
 							<td className="border border-slate-655 py-1.5" style={{ width: '70px' }}>Status</td>
 						</tr>
-
-						{/* Row 5: Main Content Matrix */}
 						<tr>
 							<td className="border border-slate-655 p-2 text-center font-extrabold text-zinc-955 text-xs align-middle" rowSpan={2}>
 								{mappedCapa.partName}
@@ -491,24 +479,16 @@ export default function ManagerCapaDetails() {
 									</div>
 								</div>
 							</td>
-
-							{/* Column 4: Target Date */}
 							<td className="border border-slate-655 p-2.5 text-center font-bold text-zinc-800 text-xs align-top col-target">
 								<span className="block text-[8px] text-zinc-500 uppercase font-semibold border-b border-slate-200 pb-0.5">Target Date</span>
 								<span className="block text-[11px] font-extrabold text-zinc-900 mt-1">{mappedCapa.targetDate || mappedCapa.targetedDate}</span>
 							</td>
-
-							{/* Column 5: Status */}
 							<td className="border border-slate-655 p-2 text-center font-extrabold text-zinc-950 text-xs align-middle col-status" rowSpan={2}>
 								{mappedCapa.status === 'COMPLETED' ? 'Done' : mappedCapa.status || 'Pending'}
 							</td>
 						</tr>
-
-						{/* Row 5b: Improvement Images (In a separate table row to guarantee same-baseline horizontal alignment) */}
 						<tr>
-							{/* Column 3: Counter Measure Images */}
 							<td className="border border-slate-655 p-2.5 align-middle bg-white" colSpan={2}>
-								{/* Before / After attachments table */}
 								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
 									<thead>
 										<tr className="bg-zinc-50 font-bold text-center">
@@ -536,8 +516,6 @@ export default function ManagerCapaDetails() {
 									</tbody>
 								</table>
 							</td>
-
-							{/* Column 4: Prevention Image */}
 							<td className="border border-slate-655 p-2.5 text-center align-middle col-target bg-white">
 								<table className="w-full border-collapse border border-slate-400 text-[9px] bg-white">
 									<thead>
