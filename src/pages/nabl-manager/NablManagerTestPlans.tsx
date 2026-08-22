@@ -192,6 +192,9 @@ export default function NablManagerTestPlans() {
 	};
 
 	const filteredRequests = requests.filter(r => {
+		const isCompleted = isEndDatePassed(r);
+		if (isCompleted) return false;
+
 		const matchesSearch = 
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.modelNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
