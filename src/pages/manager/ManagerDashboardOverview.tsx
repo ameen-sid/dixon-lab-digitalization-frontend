@@ -20,7 +20,13 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 	const managerId = managerUser ? String(managerUser.id) : '';
 
 	const [activePlanTab, setActivePlanTab] = useState<'pending' | 'active' | 'completed' | 'failed'>('active');
-	const approvedRequests = requests.filter(r => !r.engineerId);
+	const approvedRequests = requests.filter(r => {
+		const statusUpper = (r.status || '').toUpperCase();
+		const isCompleted = ['COMPLETED', 'TESTING_PASSED', 'TESTING_PARTIAL', 'TESTING_COMPLETED', 'INSPECTION_COMPLETED', 'PASS', 'PARTIAL', 'FAILED', 'TESTING_FAILED', 'FAIL'].includes(statusUpper);
+		const isFailed = statusUpper === 'INSPECTION_FAILED';
+		const isAllocated = !!r.engineerId && !isCompleted && !isFailed;
+		return !isAllocated && !isCompleted && !isFailed;
+	});
 	const pendingTestPlans = requests.filter(r => ['UNDER_INSPECTION', 'INSPECTION_COMPLETED', 'PENDING_TEST_PLAN', 'RETEST'].includes((r.status || '').toUpperCase()));
 	const activeTestPlans = requests.filter(r => ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase()));
 	const completedTestPlans = requests.filter(r => ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase()));
@@ -34,10 +40,6 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 	const pendingEvaluations = useMemo(() => {
 		const list: any[] = [];
 		requests.forEach(req => {
-			const testTypeName = String(req.testType?.name || '').toLowerCase();
-			const isReliability = testTypeName.includes('reliability');
-			if (isReliability) return; 
-
 			const requestPlans = Array.isArray(req.testPlans) ? req.testPlans : [];
 			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
 
@@ -49,10 +51,18 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 				const insp = inspections.find((si: any) => 
 					si.testPlanId ? Number(si.testPlanId) === Number(plan.id) : Number(si.sampleIndex) === Number(sampleIdx)
 				);
-				if (!insp) return;
 
-				const isSubmitted = (insp.status || '').toUpperCase() === 'UNDER_REVIEW';
-				if (isSubmitted) {
+				const testTypeName = String(req.testType?.name || '').toLowerCase();
+				const isReliability = testTypeName.includes('reliability');
+
+				if (isReliability) {
+					list.push({
+						req,
+						plan,
+						sampleIndex: sampleIdx,
+						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`
+					});
+				} else if (insp && (insp.status || '').toUpperCase() === 'UNDER_REVIEW') {
 					list.push({
 						req,
 						plan,
