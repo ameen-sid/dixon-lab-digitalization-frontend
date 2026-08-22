@@ -1115,14 +1115,14 @@ export default function NablManagerRequests() {
 							</button>
 						</div>
 					</div>
-					<div className="bg-white border border-zinc-200/60 rounded-[24px] p-6 shadow-sm">
+					<div className="bg-white border border-zinc-200/60 rounded-[24px] overflow-hidden shadow-sm">
 						{loading ? (
 							<div className="flex flex-col items-center justify-center py-20 gap-3">
 								<div className="w-10 h-10 border-4 border-[#11236a] border-t-transparent rounded-full animate-spin" />
 								<p className="text-zinc-500 font-bold text-xs">Loading NABL requests queue...</p>
 							</div>
 						) : filteredRequests.length === 0 ? (
-							<div className="text-center py-16 bg-zinc-50/50 border border-dashed border-zinc-200 rounded-2xl">
+							<div className="text-center py-16 bg-zinc-50/50 border border-dashed border-zinc-200 rounded-2xl m-6">
 								<FileText className="w-10 h-10 text-zinc-350 mx-auto mb-2.5" />
 								<p className="text-zinc-500 font-bold text-xs">No matching NABL requests found in the database.</p>
 							</div>
@@ -1130,34 +1130,34 @@ export default function NablManagerRequests() {
 							<div className="overflow-x-auto">
 								<table className="w-full text-left border-collapse">
 									<thead>
-										<tr className="border-b border-zinc-200 bg-zinc-50/50">
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Customer Name</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Brand Name</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Model No</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Sample Description</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider text-center">Qty</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Date Logged</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Status</th>
-											<th className="px-4 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider text-center">Action</th>
+										<tr className="bg-[#f8fafc] border-b border-zinc-150 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+											<th className="py-4 px-6">Customer Name</th>
+											<th className="py-4 px-6">Brand Name</th>
+											<th className="py-4 px-6">Model No</th>
+											<th className="py-4 px-6">Sample Description</th>
+											<th className="py-4 px-6 text-center">Qty</th>
+											<th className="py-4 px-6">Date Logged</th>
+											<th className="py-4 px-6">Status</th>
+											<th className="py-4 px-6 text-right">Action</th>
 										</tr>
 									</thead>
-									<tbody>
+									<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
 										{paginatedRequests.map((row) => (
-											<tr key={row.id} className="border-b border-zinc-100 hover:bg-zinc-55/20 transition-colors">
-												<td className="px-4 py-4 text-xs font-bold text-[#11236a] italic">
+											<tr key={row.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+												<td className="py-4 px-6 text-xs font-bold text-[#11236a] italic">
 													{row.customerSignName || '—'}
 												</td>
-												<td className="px-4 py-4 text-xs font-bold text-zinc-800">{row.brandName}</td>
-												<td className="px-4 py-4 text-xs font-medium text-zinc-650">{row.modelNo}</td>
-												<td className="px-4 py-4 text-xs text-zinc-500 truncate max-w-xs">{row.sampleDescription}</td>
-												<td className="px-4 py-4 text-xs font-bold text-zinc-700 text-center">{row.sampleQty}</td>
-												<td className="px-4 py-4 text-xs text-zinc-400 font-light">{row.createdAt ? row.createdAt.split('T')[0] : 'N/A'}</td>
-												<td className="px-4 py-4 text-xs">{getStatusBadge(row.status || '')}</td>
-												<td className="px-4 py-4 text-xs text-center">
+												<td className="py-4 px-6 text-xs font-bold text-zinc-800">{row.brandName}</td>
+												<td className="py-4 px-6 text-xs font-medium text-zinc-650">{row.modelNo}</td>
+												<td className="py-4 px-6 text-xs text-zinc-500 truncate max-w-xs" title={row.sampleDescription}>{row.sampleDescription}</td>
+												<td className="py-4 px-6 text-xs font-bold text-zinc-700 text-center">{row.sampleQty}</td>
+												<td className="py-4 px-6 text-xs text-zinc-400 font-light">{row.createdAt ? row.createdAt.split('T')[0] : 'N/A'}</td>
+												<td className="py-4 px-6 text-xs">{getStatusBadge(row.status || '')}</td>
+												<td className="py-4 px-6 text-xs text-right">
 													<button
 														onClick={() => navigate(`/nabl-manager/requests/${row.id}`)}
 														title="View Report"
-														className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#11236a]/10 hover:bg-[#11236a] text-[#11236a] hover:text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer outline-none border-none active:scale-95"
+														className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#11236a]/10 hover:bg-[#11236a] text-[#11236a] hover:text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer outline-none border-none active:scale-95 ml-auto"
 													>
 														<Eye className="w-3.5 h-3.5" /> View Report
 													</button>

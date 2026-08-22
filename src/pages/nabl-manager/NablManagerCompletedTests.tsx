@@ -259,14 +259,14 @@ export default function NablManagerCompletedTests() {
 						</button>
 					</div>
 				</div>
-				<div className="bg-white border border-zinc-200/60 rounded-[24px] overflow-hidden shadow-sm p-6">
+				<div className="bg-white border border-zinc-200/60 rounded-[24px] overflow-hidden shadow-sm">
 					{loading ? (
 						<div className="flex flex-col items-center justify-center py-20 gap-3">
 							<div className="w-10 h-10 border-4 border-[#11236a] border-t-transparent rounded-full animate-spin" />
 							<p className="text-zinc-500 font-bold text-xs">Loading completed tests queue...</p>
 						</div>
 					) : filteredRequests.length === 0 ? (
-						<div className="text-center py-16 bg-zinc-50/50 border border-dashed border-zinc-200 rounded-2xl">
+						<div className="text-center py-16 bg-zinc-50/50 border border-dashed border-zinc-200 rounded-2xl m-6">
 							<FileText className="w-10 h-10 text-zinc-350 mx-auto mb-2.5" />
 							<p className="text-zinc-500 font-bold text-xs">No completed tests found in the database.</p>
 						</div>
@@ -274,30 +274,30 @@ export default function NablManagerCompletedTests() {
 						<div className="overflow-x-auto">
 							<table className="w-full text-left border-collapse">
 								<thead>
-									<tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-										<th className="px-4 py-3.5">Customer Name</th>
-										<th className="px-4 py-3.5">Brand / Model</th>
-										<th className="px-4 py-3.5">Sample Description</th>
-										<th className="px-4 py-3.5">Timeline</th>
-										<th className="px-4 py-3.5">Report No</th>
-										<th className="px-4 py-3.5 text-center">Evaluation</th>
-										<th className="px-4 py-3.5 text-center">Action</th>
+									<tr className="bg-[#f8fafc] border-b border-zinc-150 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+										<th className="py-4 px-6">Customer Name</th>
+										<th className="py-4 px-6">Brand / Model</th>
+										<th className="py-4 px-6">Sample Description</th>
+										<th className="py-4 px-6">Timeline</th>
+										<th className="py-4 px-6">Report No</th>
+										<th className="py-4 px-6 text-center">Evaluation</th>
+										<th className="py-4 px-6 text-right">Action</th>
 									</tr>
 								</thead>
-								<tbody className="divide-y divide-zinc-100 text-xs">
+								<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
 									{paginatedRequests.map((row) => (
-										<tr key={row.id} className="hover:bg-zinc-50/60 transition-colors">
-											<td className="px-4 py-4 font-extrabold text-[#11236a] italic">
+										<tr key={row.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+											<td className="py-4 px-6 font-extrabold text-[#11236a] italic">
 												{row.customerSignName || '—'}
 											</td>
-											<td className="px-4 py-4">
+											<td className="py-4 px-6">
 												<div className="font-extrabold text-zinc-800">{row.brandName}</div>
 												<div className="text-[10px] font-bold text-zinc-500">{row.modelNo}</div>
 											</td>
-											<td className="px-4 py-4 text-zinc-650 max-w-xs truncate" title={row.sampleDescription}>
+											<td className="py-4 px-6 text-zinc-650 max-w-xs truncate" title={row.sampleDescription}>
 												{row.sampleDescription}
 											</td>
-											<td className="px-4 py-4 text-zinc-500 text-[11px]">
+											<td className="py-4 px-6 text-zinc-500 text-[11px]">
 												{row.testPlan?.startDate && row.testPlan?.endDate ? (
 													<div>
 														<span className="font-semibold">{new Date(row.testPlan.startDate).toLocaleDateString()}</span>
@@ -308,17 +308,17 @@ export default function NablManagerCompletedTests() {
 													<span className="italic text-zinc-400">N/A</span>
 												)}
 											</td>
-											<td className="px-4 py-4 font-bold text-zinc-800">
+											<td className="py-4 px-6 font-bold text-zinc-800">
 												{row.testPlan?.reportNo || '—'}
 											</td>
-											<td className="px-4 py-4 text-center">
+											<td className="py-4 px-6 text-center">
 												{getEvalBadge(row)}
 											</td>
-											<td className="px-4 py-4 text-center">
+											<td className="py-4 px-6 text-right">
 												<button
 													onClick={() => navigate(`/nabl-manager/completed-tests/${row.id}`)}
 													title="View full request & test plan details"
-													className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold text-[10px] rounded-lg transition-all cursor-pointer outline-none border-none active:scale-95 shadow-sm"
+													className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold text-[10px] rounded-lg transition-all cursor-pointer outline-none border-none active:scale-95 shadow-sm ml-auto"
 												>
 													<Eye className="w-3.5 h-3.5" /> View Details
 												</button>
