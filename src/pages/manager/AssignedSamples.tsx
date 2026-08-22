@@ -948,9 +948,9 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 									return (
 										<tr key={task.id} className="hover:bg-zinc-50/50 transition-all group">
 											<td className="py-4 px-6 font-extrabold text-zinc-955">{task.requestId}</td>
-											<td className="py-4 px-6">
-												<div className="font-extrabold text-zinc-900">{task.brandName}</div>
-												<span className="text-[10px] text-zinc-500 font-semibold">{task.modelNo}</span>
+											<td className="py-4 px-6 max-w-[220px]">
+												<div className="font-extrabold text-zinc-900 truncate" title={task.brandName}>{task.brandName}</div>
+												<div className="text-[10px] text-zinc-500 font-semibold truncate" title={task.modelNo}>{task.modelNo}</div>
 											</td>
 											<td className="py-4 px-6 text-[#11236a] font-extrabold max-w-[220px] truncate" title={task.testType?.name || 'N/A'}>
 												{task.testType?.name || 'N/A'}

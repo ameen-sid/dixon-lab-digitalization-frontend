@@ -167,11 +167,11 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 									{approvedRequests.slice(0, 3).map((req, i) => (
 										<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all">
 											<td className="py-3 px-4 font-bold text-indigo-700">{req.requestId || req.id}</td>
-											<td className="py-3 px-4">
-												<p className="font-bold text-zinc-800">{req.brandName}</p>
-												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{req.sampleDescription}</p>
+											<td className="py-3 px-4 max-w-[180px]">
+												<p className="font-bold text-zinc-800 truncate" title={req.brandName}>{req.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5 truncate" title={req.sampleDescription}>{req.sampleDescription}</p>
 											</td>
-											<td className="py-3 px-4 font-semibold text-zinc-650">{req.requesterName}</td>
+											<td className="py-3 px-4 font-semibold text-zinc-650 max-w-[120px] truncate" title={req.requesterName}>{req.requesterName}</td>
 											<td className="py-3 px-4 text-right">
 												<button 
 													onClick={() => navigate(`/manager/approved-requests/${req.id}`)}
@@ -228,9 +228,9 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 										return (
 											<tr key={i} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/50 transition-all">
 												<td className="py-3 px-4 font-bold text-indigo-700">{item.allottedId}</td>
-												<td className="py-3 px-4">
-													<p className="font-bold text-zinc-800">{item.req.brandName}</p>
-													<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{item.req.modelNo}</p>
+												<td className="py-3 px-4 max-w-[180px]">
+													<p className="font-bold text-zinc-800 truncate" title={item.req.brandName}>{item.req.brandName}</p>
+													<p className="text-zinc-400 text-[10px] font-semibold mt-0.5 truncate" title={item.req.modelNo}>{item.req.modelNo}</p>
 												</td>
 												<td className="py-3 px-4 font-semibold text-zinc-655">{engineerName}</td>
 												<td className="py-3 px-4 text-right">

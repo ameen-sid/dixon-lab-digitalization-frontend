@@ -932,9 +932,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													<td className="py-4 px-6 font-bold text-zinc-900 group-hover:text-[#11236a]">
 														{req.requestId || `REQ-${req.id}`}
 													</td>
-													<td className="py-4 px-6">
-														<div className="font-bold text-zinc-900 leading-tight">{req.brandName}</div>
-														<span className="text-[10px] text-zinc-555 font-medium">{req.modelNo}</span>
+													<td className="py-4 px-6 max-w-[220px]">
+														<div className="font-bold text-zinc-900 leading-tight truncate" title={req.brandName}>{req.brandName}</div>
+														<div className="text-[10px] text-zinc-555 font-medium truncate" title={req.modelNo}>{req.modelNo}</div>
 													</td>
 													<td className="py-4 px-6 text-zinc-655 max-w-xs truncate">{req.testType?.name || 'General'}</td>
 													<td className="py-4 px-6">
