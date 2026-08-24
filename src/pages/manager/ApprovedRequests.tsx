@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, ChevronRight, ClipboardCheck, Clock, X } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
@@ -28,12 +28,22 @@ interface ApprovedRequestsProps {
 
 export default function ApprovedRequests({ requests }: ApprovedRequestsProps) {
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+	const filterFromUrl = searchParams.get('filter');
+
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [statusFilter, setStatusFilter] = useState(filterFromUrl || 'ALL');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
+
+	useEffect(() => {
+		const param = searchParams.get('filter');
+		if (param) {
+			setStatusFilter(param);
+		}
+	}, [searchParams]);
 
 	const filteredRequests = requests.filter(r => {
 		const matchSearch = r.brandName.toLowerCase().includes(searchQuery.toLowerCase()) || 

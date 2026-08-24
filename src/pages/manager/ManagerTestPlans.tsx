@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer, Upload, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -101,6 +101,8 @@ const calculateEndDate = (startDateStr: string, numDays: number | string): strin
 
 export default function ManagerTestPlans({ requests, selectedRequestId, onUpdateStatus, onRefreshRequests }: ManagerTestPlansProps) {
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+	const filterFromUrl = searchParams.get('filter');
 
 	const selectedReq = selectedRequestId
 		? requests.find(r => String(r.id) === String(selectedRequestId))
@@ -143,11 +145,18 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const [activeInspectionSampleIndex, setActiveInspectionSampleIndex] = useState<number | null>(null);
 
 	const [searchQuery, setSearchQuery] = useState('');
-	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [statusFilter, setStatusFilter] = useState(filterFromUrl || 'ALL');
 	const [startDate, setStartDate] = useState('');
 	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
+
+	useEffect(() => {
+		const param = searchParams.get('filter');
+		if (param) {
+			setStatusFilter(param);
+		}
+	}, [searchParams]);
 
 	const [testTypes, setTestTypes] = useState<any[]>([]);
 	const [testCategories, setTestCategories] = useState<any[]>([]);
@@ -724,9 +733,26 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		const isInspectionFailed = (r.status || '').toUpperCase() === 'INSPECTION_FAILED' || isSubmittedToHead;
 		const isPending = !isCompleted && !isFailed && !isTesting && !isInspectionFailed;
 
+		const isPendingEvaluation = (() => {
+			const requestPlans = Array.isArray(r.testPlans) ? r.testPlans : [];
+			const todayStr = getLocalTodayStr();
+
+			return requestPlans.some((plan: any) => {
+				const isPlanEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+				if (isPlanEvaluated) return false;
+
+				const endYmd = toYYYYMMDD(plan.endDate);
+				if (!endYmd || endYmd > todayStr) return false;
+
+				return true;
+			});
+		})();
+
 		let matchStatus = true;
 		if (statusFilter === 'PENDING') {
 			matchStatus = isPending;
+		} else if (statusFilter === 'PENDING_EVALUATION') {
+			matchStatus = isPendingEvaluation;
 		} else if (statusFilter === 'UNDER_TEST') {
 			matchStatus = isTesting;
 		} else if (statusFilter === 'COMPLETED') {
@@ -795,6 +821,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									}}
 									options={[
 										{ value: 'ALL', label: 'All Statuses' },
+										{ value: 'PENDING_EVALUATION', label: 'Pending Evaluation' },
 										{ value: 'PENDING', label: 'Pending Setup' },
 										{ value: 'UNDER_TEST', label: 'Under Testing' },
 										{ value: 'COMPLETED', label: 'Completed' },

@@ -3,7 +3,8 @@ import {
 	ClipboardList, 
 	AlertTriangle, 
 	Cpu, 
-	ShieldCheck
+	ShieldCheck,
+	Eye
 } from 'lucide-react';
 
 interface ManagerDashboardOverviewProps {
@@ -12,6 +13,33 @@ interface ManagerDashboardOverviewProps {
 	capas: any[];
 	engineers: any[];
 }
+
+const getLocalTodayStr = () => {
+	const d = new Date();
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+const toYYYYMMDD = (dateVal: any): string => {
+	if (!dateVal) return '';
+	if (typeof dateVal === 'string') {
+		const str = dateVal.trim();
+		if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+			return str;
+		}
+		if (str.includes('T')) {
+			return str.split('T')[0];
+		}
+	}
+	const d = new Date(dateVal);
+	if (isNaN(d.getTime())) return '';
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${y}-${m}-${day}`;
+};
 
 export default function ManagerDashboardOverview({ navigate, requests, capas, engineers: _engineers }: ManagerDashboardOverviewProps) {
 
@@ -39,37 +67,25 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 
 	const pendingEvaluations = useMemo(() => {
 		const list: any[] = [];
+		const todayStr = getLocalTodayStr();
+
 		requests.forEach(req => {
 			const requestPlans = Array.isArray(req.testPlans) ? req.testPlans : [];
-			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
 
 			requestPlans.forEach((plan: any) => {
 				const isPlanEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
 				if (isPlanEvaluated) return;
 
+				const endYmd = toYYYYMMDD(plan.endDate);
+				if (!endYmd || endYmd > todayStr) return;
+
 				const sampleIdx = plan.sampleIndex;
-				const insp = inspections.find((si: any) => 
-					si.testPlanId ? Number(si.testPlanId) === Number(plan.id) : Number(si.sampleIndex) === Number(sampleIdx)
-				);
-
-				const testTypeName = String(req.testType?.name || '').toLowerCase();
-				const isReliability = testTypeName.includes('reliability');
-
-				if (isReliability) {
-					list.push({
-						req,
-						plan,
-						sampleIndex: sampleIdx,
-						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`
-					});
-				} else if (insp && (insp.status || '').toUpperCase() === 'UNDER_REVIEW') {
-					list.push({
-						req,
-						plan,
-						sampleIndex: sampleIdx,
-						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`
-					});
-				}
+				list.push({
+					req,
+					plan,
+					sampleIndex: sampleIdx,
+					allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`
+				});
 			});
 		});
 		return list;
@@ -148,9 +164,18 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Approved Sample Requests</h3>
 								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Recently approved sample requests requiring engineer allocation.</p>
 							</div>
-							<span className="text-[10px] font-extrabold px-2.5 py-1 bg-blue-50 text-[#11236a] border border-blue-100 rounded-full">
-								{approvedRequests.length} Pending Assignment
-							</span>
+							<div className="flex items-center gap-2">
+								<span className="text-[10px] font-extrabold px-2.5 py-1 bg-blue-50 text-[#11236a] border border-blue-100 rounded-full">
+									{approvedRequests.length} Pending Assignment
+								</span>
+								<button 
+									onClick={() => navigate('/manager/approved-requests?filter=PENDING')}
+									className="text-[10px] font-bold text-[#11236a] hover:text-white bg-blue-50 hover:bg-[#11236a] border border-blue-200 px-3 py-1 rounded-lg cursor-pointer transition-all flex items-center gap-1 shadow-xs active:scale-95"
+								>
+									<Eye className="w-3.5 h-3.5" />
+									View
+								</button>
+							</div>
 						</div>
 
 						<div className="border border-zinc-100 rounded-xl overflow-hidden">
@@ -199,9 +224,18 @@ export default function ManagerDashboardOverview({ navigate, requests, capas, en
 								<h3 className="text-xs font-bold text-zinc-900 uppercase tracking-wider">Reports Pending Evaluation</h3>
 								<p className="text-[11px] text-zinc-400 font-semibold mt-0.5">Test reports submitted by engineers awaiting manager sign-off.</p>
 							</div>
-							<span className="text-[10px] font-extrabold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full">
-								{pendingEvaluations.length} Pending Evaluation
-							</span>
+							<div className="flex items-center gap-2">
+								<span className="text-[10px] font-extrabold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-full">
+									{pendingEvaluations.length} Pending Evaluation
+								</span>
+								<button 
+									onClick={() => navigate('/manager/test-plans?filter=PENDING_EVALUATION')}
+									className="text-[10px] font-bold text-amber-800 hover:text-white bg-amber-100 hover:bg-amber-600 border border-amber-250 px-3 py-1 rounded-lg cursor-pointer transition-all flex items-center gap-1 shadow-xs active:scale-95"
+								>
+									<Eye className="w-3.5 h-3.5" />
+									View
+								</button>
+							</div>
 						</div>
 
 						<div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
