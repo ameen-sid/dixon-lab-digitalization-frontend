@@ -214,6 +214,8 @@ export default function NablManagerRequests() {
 
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch =
+			(r.serialNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+			(r.requestId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.modelNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.sampleDescription || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1039,7 +1041,7 @@ export default function NablManagerRequests() {
 								</span>
 								<input
 									type="text"
-									placeholder="Search by Brand Name, Model, or Sample Description..."
+									placeholder="Search by Serial No, Brand Name, Model, or Sample Description..."
 									value={searchTerm}
 									onChange={(e) => {
 										setSearchTerm(e.target.value);
@@ -1131,6 +1133,7 @@ export default function NablManagerRequests() {
 								<table className="w-full text-left border-collapse">
 									<thead>
 										<tr className="bg-[#f8fafc] border-b border-zinc-150 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+											<th className="py-4 px-6">Serial Number</th>
 											<th className="py-4 px-6">Customer Name</th>
 											<th className="py-4 px-6">Brand Name</th>
 											<th className="py-4 px-6">Model No</th>
@@ -1144,6 +1147,9 @@ export default function NablManagerRequests() {
 									<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
 										{paginatedRequests.map((row) => (
 											<tr key={row.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+												<td className="py-4 px-6 text-xs font-extrabold text-zinc-800">
+													{row.serialNumber || row.requestId || '—'}
+												</td>
 												<td className="py-4 px-6 text-xs font-bold text-[#11236a] italic">
 													{row.customerSignName || '—'}
 												</td>

@@ -132,6 +132,8 @@ export default function NablManagerCompletedTests() {
 	const filteredRequests = requests.filter(r => {
 		const matchesSearch = 
 			(r.customerSignName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+			(r.serialNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+			(r.requestId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.brandName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.modelNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 			(r.sampleDescription || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,7 +180,7 @@ export default function NablManagerCompletedTests() {
 						<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
 						<input 
 							type="text" 
-							placeholder="Search by Customer, Report No, Brand, Model..." 
+							placeholder="Search by Serial No, Customer, Report No, Brand..." 
 							value={searchTerm}
 							onChange={(e) => {
 								setSearchTerm(e.target.value);
@@ -275,6 +277,7 @@ export default function NablManagerCompletedTests() {
 							<table className="w-full text-left border-collapse">
 								<thead>
 									<tr className="bg-[#f8fafc] border-b border-zinc-150 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+										<th className="py-4 px-6">Serial Number</th>
 										<th className="py-4 px-6">Customer Name</th>
 										<th className="py-4 px-6">Brand / Model</th>
 										<th className="py-4 px-6">Sample Description</th>
@@ -287,6 +290,9 @@ export default function NablManagerCompletedTests() {
 								<tbody className="divide-y divide-zinc-100 text-xs font-medium text-zinc-700">
 									{paginatedRequests.map((row) => (
 										<tr key={row.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+											<td className="py-4 px-6 font-extrabold text-zinc-800">
+												{row.serialNumber || row.requestId || '—'}
+											</td>
 											<td className="py-4 px-6 font-extrabold text-[#11236a] italic">
 												{row.customerSignName || '—'}
 											</td>
