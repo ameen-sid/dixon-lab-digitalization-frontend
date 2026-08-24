@@ -147,6 +147,18 @@ export default function NablManagerTestPlans() {
 	const handleFormSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!selectedRequest) return;
+
+		if (!formInput.startDate || !formInput.endDate || !formInput.issueDate || !formInput.reportNo || !formInput.testedBy || !formInput.reviewedAndApprovedBy || !formInput.status) {
+			toast.error('Start Date, End Date, Issue Date, Report Number, Tested By, Approved By, and Evaluation Result are mandatory.');
+			return;
+		}
+
+		const existingAttachmentsCount = selectedRequest.testPlan?.attachments?.length || 0;
+		if (selectedFiles.length === 0 && existingAttachmentsCount === 0) {
+			toast.error('At least one attachment document is mandatory for configuring the test plan.');
+			return;
+		}
+
 		setIsSubmitting(true);
 		try {
 			const formData = new FormData();
@@ -163,6 +175,7 @@ export default function NablManagerTestPlans() {
 			});
 
 			await saveNablTestPlan(selectedRequest.id, formData)();
+			toast.success('Test plan configured successfully.');
 			setShowConfigModal(false);
 			setSelectedRequest(null);
 			await fetchDashboardData();
@@ -518,7 +531,7 @@ export default function NablManagerTestPlans() {
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Start Date
+										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Start Date <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="date"
@@ -530,7 +543,7 @@ export default function NablManagerTestPlans() {
 								</div>
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> End Date
+										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> End Date <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="date"
@@ -542,10 +555,11 @@ export default function NablManagerTestPlans() {
 								</div>
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Issue Date
+										<Calendar className="w-3.5 h-3.5 text-zinc-400" /> Issue Date <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="date"
+										required
 										value={formInput.issueDate}
 										onChange={(e) => setFormInput(prev => ({ ...prev, issueDate: e.target.value }))}
 										className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#11236a] transition-all"
@@ -553,10 +567,11 @@ export default function NablManagerTestPlans() {
 								</div>
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<Clipboard className="w-3.5 h-3.5 text-zinc-400" /> Report Number
+										<Clipboard className="w-3.5 h-3.5 text-zinc-400" /> Report Number <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="text"
+										required
 										placeholder="e.g. NABL-REP-2026-09"
 										value={formInput.reportNo}
 										onChange={(e) => setFormInput(prev => ({ ...prev, reportNo: e.target.value }))}
@@ -565,7 +580,7 @@ export default function NablManagerTestPlans() {
 								</div>
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Tested By (String)
+										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Tested By (String) <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="text"
@@ -578,7 +593,7 @@ export default function NablManagerTestPlans() {
 								</div>
 								<div className="space-y-1.5">
 									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
-										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Approved By (String)
+										<UserCheck className="w-3.5 h-3.5 text-zinc-400" /> Approved By (String) <span className="text-rose-500 font-extrabold ml-0.5">*</span>
 									</label>
 									<input 
 										type="text"
@@ -590,7 +605,9 @@ export default function NablManagerTestPlans() {
 									/>
 								</div>
 								<div className="col-span-1 sm:col-span-2 space-y-1.5">
-									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider block">Evaluation Result</label>
+									<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider block">
+										Evaluation Result <span className="text-rose-500 font-extrabold ml-0.5">*</span>
+									</label>
 									<div className="grid grid-cols-2 gap-3 max-w-xs">
 										<button
 											type="button"
@@ -624,7 +641,9 @@ export default function NablManagerTestPlans() {
 								</div>
 							</div>
 							<div className="space-y-2">
-								<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider">Plan Attachments (Multiple / Multi-Type)</label>
+								<label className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider flex items-center gap-1">
+									Plan Attachments (At least 1 mandatory) <span className="text-rose-500 font-extrabold ml-0.5">*</span>
+								</label>
 								<div className="border-2 border-dashed border-zinc-200 rounded-2xl p-6 flex flex-col items-center justify-center bg-[#f8fafc]/50 hover:bg-[#f8fafc] transition-all relative">
 									<input 
 										type="file" 
