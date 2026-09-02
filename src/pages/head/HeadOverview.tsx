@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { 
-	ClipboardList, 
-	CheckCircle, 
-	XCircle, 
-	AlertTriangle, 
-	ArrowRight, 
-	RefreshCw, 
-	FileText, 
-	Layers, 
+import {
+	ClipboardList,
+	CheckCircle,
+	XCircle,
+	AlertTriangle,
+	ArrowRight,
+	RefreshCw,
+	FileText,
+	Layers,
 	FolderOpen,
 	TrendingUp
 } from 'lucide-react';
@@ -73,47 +73,55 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 	const approvedRequestsCount = requests.filter(r => !['PENDING_APPROVAL', 'REJECTED'].includes(r.status)).length;
 	const rejectedRequestsCount = requests.filter(r => r.status === 'REJECTED').length;
 
-	const completedPendingApprovalCount = requests.filter(r => {
+	const completedPendingApprovalCount = requests.filter((r: any) => {
 		const statusLower = (r.status || '').toLowerCase();
-		if (statusLower === 'testing_completed') {
-			const hasFailedSample = (r.sampleInspections || []).some((si: any) => si.status === 'FAILED') ||
-									(r.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
-			return !hasFailedSample;
-		}
-		return ['pass', 'testing_passed', 'partial', 'testing_partial'].includes(statusLower);
+		const remarksLower = (r.remarks || '').toLowerCase();
+		if (statusLower === 'completed') return false;
+
+		const hasPassedPlan = (r.testPlans || []).some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
+		const hasPassedInsp = (r.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
+
+		if (!hasPassedPlan && !hasPassedInsp) return false;
+
+		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
+			remarksLower.includes('submitted to head panel');
+
+		return isSubmittedToHead;
 	}).length;
 
-	const failedTestsPendingDecisionCount = requests.filter((req: any) => {
+	const failedTestsPendingDecisionCount = requests.reduce((count, req: any) => {
+		let pendingInReq = 0;
+		const remarksLower = (req.remarks || '').toLowerCase();
 		const statusLower = (req.status || '').toLowerCase();
-		
-		const isPendingHead = (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') &&
-							  (req.remarks || '').includes('Submitted to Head') &&
-							  !(req.remarks || '').includes('Approved by Head');
-		if (['completed', 'failed', 'retest'].includes(statusLower) || (statusLower === 'inspection_failed' && !isPendingHead)) {
-			return false;
-		}
+		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
+			remarksLower.includes('submitted to head panel') ||
+			['retest', 'completed'].includes(statusLower);
 
-		if (statusLower === 'testing_completed') {
-			const hasFailedSample = (req.sampleInspections || []).some((si: any) => si.status === 'FAILED') ||
-									(req.testPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
-			return hasFailedSample;
-		}
+		if (!isSubmittedToHead) return count;
 
-		const isFailedStatus = ['testing_failed', 'fail'].includes(statusLower);
+		const isReqRetest = statusLower === 'retest';
+
+		(req.testPlans || []).forEach((p: any) => {
+			const isRetestPlan = Boolean(p.parentPlanId || p.isRetest);
+			if (!isRetestPlan && (p.evaluationStatus || '').toUpperCase() === 'FAILED') {
+				const hasHeadAction = !!p.headAction || (p.evaluationRemarks || '').includes('[HEAD_ACTION:') || isReqRetest;
+				if (!hasHeadAction) pendingInReq++;
+			}
+		});
 
 		const qty = req.sampleQty || 1;
-		let failedCount = 0;
 		for (let i = 0; i < qty; i++) {
-			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-			if (report && report.status === 'FAILED') {
-				failedCount++;
+			const insp = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+			if (insp && insp.status === 'FAILED') {
+				const hasHeadAction = !!insp.headAction || (insp.remarks || '').includes('[HEAD_ACTION:') || isReqRetest;
+				if (!hasHeadAction) pendingInReq++;
 			}
 		}
-		const isFullyFailed = failedCount === qty;
-		return isFailedStatus || isFullyFailed;
-	}).length;
 
-	const capasPendingReviewCount = capas.filter(c => 
+		return count + pendingInReq;
+	}, 0);
+
+	const capasPendingReviewCount = capas.filter(c =>
 		!['completed', 'done'].includes((c.status || '').toLowerCase())
 	).length;
 
@@ -142,7 +150,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 					<p className="text-[#11236a] font-extrabold text-[11px] uppercase tracking-wider">Directorate Console</p>
 					<p className="text-[10px] text-zinc-500 font-semibold mt-0.5">Real-time laboratory testing queue & approval metrics.</p>
 				</div>
-				<button 
+				<button
 					onClick={loadData}
 					disabled={loading}
 					className="flex items-center gap-1.5 text-zinc-700 hover:text-[#11236a] text-[10px] font-extrabold bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 px-3 py-1.5 rounded-lg cursor-pointer outline-none transition-all disabled:opacity-50"
@@ -152,7 +160,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				</button>
 			</div>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				<div 
+				<div
 					onClick={() => navigate('/head/sample-tests?status=ALL')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
 				>
@@ -166,7 +174,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<FolderOpen className="w-5 h-5" />
 					</div>
 				</div>
-				<div 
+				<div
 					onClick={() => navigate('/head/sample-tests?status=PENDING_APPROVAL')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
 				>
@@ -180,7 +188,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<ClipboardList className="w-5 h-5" />
 					</div>
 				</div>
-				<div 
+				<div
 					onClick={() => navigate('/head/sample-tests?status=APPROVED')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
 				>
@@ -194,7 +202,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<CheckCircle className="w-5 h-5" />
 					</div>
 				</div>
-				<div 
+				<div
 					onClick={() => navigate('/head/sample-tests?status=REJECTED')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group"
 				>
@@ -210,7 +218,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 				</div>
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div 
+				<div
 					onClick={() => navigate('/head/completed-reports')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
@@ -229,7 +237,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						</span>
 					</div>
 				</div>
-				<div 
+				<div
 					onClick={() => navigate('/head/failure-decision')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
@@ -248,7 +256,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						</span>
 					</div>
 				</div>
-				<div 
+				<div
 					onClick={() => navigate('/head/capa-reports')}
 					className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col justify-between min-h-[11.5rem] group relative"
 				>
@@ -294,11 +302,10 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 									<td className="py-3 px-3 font-bold text-zinc-900">{dept}</td>
 									<td className="py-3 px-3 text-center font-bold text-zinc-900">{summary.total}</td>
 									<td className="py-3 px-3 text-center">
-										<span className={`inline-block font-extrabold px-2.5 py-0.5 rounded-full text-[9px] ${
-											summary.pending > 0 
-												? 'bg-amber-50 text-amber-700 border border-amber-200' 
+										<span className={`inline-block font-extrabold px-2.5 py-0.5 rounded-full text-[9px] ${summary.pending > 0
+												? 'bg-amber-50 text-amber-700 border border-amber-200'
 												: 'bg-zinc-100 text-zinc-500'
-										}`}>
+											}`}>
 											{summary.pending}
 										</span>
 									</td>
@@ -326,7 +333,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<TrendingUp className="w-4 h-4 text-zinc-500" />
 						Recent Request Queue Activity (Last 5 Requests)
 					</h3>
-					<button 
+					<button
 						onClick={() => navigate('/head/sample-tests')}
 						className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer border-none bg-transparent outline-none hover:underline flex items-center gap-1"
 					>
@@ -334,7 +341,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 						<ArrowRight className="w-3.5 h-3.5" />
 					</button>
 				</div>
-				
+
 				<div className="overflow-x-auto">
 					<table className="w-full text-left border-collapse min-w-[600px]">
 						<thead>
@@ -410,19 +417,19 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 													{['UNDER_TEST', 'UNDER_TESTING', 'TESTING_COMPLETED', 'RETEST'].includes(req.status) && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />}
 													{req.status === 'UNDER_INSPECTION' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
 													{req.status === 'PENDING_APPROVAL' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-													{req.status === 'PASS' || req.status === 'TESTING_PASSED' 
-														? 'TESTING PASSED' 
-														: req.status === 'FAIL' || req.status === 'TESTING_FAILED' 
-															? 'TESTING FAILED' 
-															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL' 
-																? 'TESTING PARTIAL' 
+													{req.status === 'PASS' || req.status === 'TESTING_PASSED'
+														? 'TESTING PASSED'
+														: req.status === 'FAIL' || req.status === 'TESTING_FAILED'
+															? 'TESTING FAILED'
+															: req.status === 'PARTIAL' || req.status === 'TESTING_PARTIAL'
+																? 'TESTING PARTIAL'
 																: req.status.replace('_', ' ')}
 												</span>
 											);
 										})()}
 									</td>
 									<td className="py-3.5 px-2 text-right">
-										<button 
+										<button
 											onClick={() => navigate(`/head/sample-tests/${req.id}`)}
 											className="text-xs font-bold text-[#11236a] hover:text-[#0c1a52] cursor-pointer group-hover:underline bg-transparent border-none outline-none"
 										>
@@ -431,7 +438,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 									</td>
 								</tr>
 							))}
-							
+
 							{recentActivity.length === 0 && (
 								<tr>
 									<td colSpan={7} className="py-12 text-center text-zinc-400 font-bold">

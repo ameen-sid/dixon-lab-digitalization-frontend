@@ -142,15 +142,12 @@ export default function InspectorDailyChecksheet() {
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
 		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
-		
-		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
-		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
-		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
+		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId)) || plan.testType;
+		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId)) || plan.testCategory;
+		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId)) || plan.testProtocol;
 
-		
-		const isReliability = !!(testType && testType.name.toLowerCase().includes('reliability'));
+		const isReliability = !!(testType && (testType.name || '').toLowerCase().includes('reliability'));
 
-		
 		let isTodayInRange = false;
 		if (plan.startDate && plan.endDate) {
 			const today = new Date();
@@ -164,7 +161,11 @@ export default function InspectorDailyChecksheet() {
 
 			if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
 				isTodayInRange = today >= start && today <= end;
+			} else {
+				isTodayInRange = true;
 			}
+		} else {
+			isTodayInRange = true;
 		}
 
 		return {
@@ -181,23 +182,27 @@ export default function InspectorDailyChecksheet() {
 		const requestStatus = (item.request?.status || '').toUpperCase();
 		const evaluationStatus = (item.plan?.evaluationStatus || '').toUpperCase();
 
-		const isActiveTestingRequest = [
-			'UNDER_TEST',
-			'UNDER_TESTING'
-		].includes(requestStatus);
-
 		const isNotEvaluated = ![
 			'PASSED',
-			'FAILED',
-			'RETEST'
+			'FAILED'
 		].includes(evaluationStatus);
 
+		const isParentPlanEvaluatedFailed = (item.plan?.parentPlanId || item.plan?.isRetest)
+			? true
+			: isNotEvaluated;
+
+		// A plan belongs in the inspector checksheet queue if:
+		// 1. It is a reliability test type
+		// 2. The request exists and isn't rejected
+		// 3. This specific plan is currently active / unevaluated (i.e. not yet PASSED or FAILED)
 		return (
 			item.isReliability &&
 			item.request &&
+			requestStatus !== 'REJECTED' &&
+			requestStatus !== 'PENDING_APPROVAL' &&
 			item.isTodayInRange &&
-			isActiveTestingRequest &&
-			isNotEvaluated
+			isNotEvaluated &&
+			isParentPlanEvaluatedFailed
 		);
 	});
 

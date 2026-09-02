@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, AlertTriangle, ChevronRight, FolderOpen, RefreshCw, FileText } from 'lucide-react';
+import { ArrowLeft, Search, Eye, AlertTriangle, ChevronRight, ChevronDown, RotateCcw, FolderOpen, RefreshCw, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
@@ -23,6 +23,14 @@ const formatDate = (dateStr: string | undefined) => {
 
 export default function ManagerCompletedRequests({ requests, selectedRequestId }: ManagerCompletedRequestsProps) {
 	const navigate = useNavigate();
+	const [expandedRetestLineages, setExpandedRetestLineages] = useState<{ [key: string]: boolean }>({});
+
+	const toggleRetestLineage = (lineageKey: string) => {
+		setExpandedRetestLineages(prev => ({
+			...prev,
+			[lineageKey]: !prev[lineageKey]
+		}));
+	};
 
 	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
 		try {
@@ -101,10 +109,7 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 		const statusUpper = (r.status || '').toUpperCase();
 		const remarks = r.remarks || '';
 
-		if (statusUpper === 'COMPLETED') {
-			return true;
-		}
-		if (statusUpper === 'FAILED') {
+		if (['COMPLETED', 'FAILED', 'RETEST', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'TESTING_COMPLETED'].includes(statusUpper)) {
 			return true;
 		}
 		if (statusUpper === 'INSPECTION_FAILED' && remarks.includes('Approved by Head')) {
@@ -337,73 +342,131 @@ export default function ManagerCompletedRequests({ requests, selectedRequestId }
 											)}
 											{!isInspectionFailed && plans.length > 0 && (
 												<div className="space-y-3 pl-3 border-l-2 border-zinc-200">
-													{plans.map((plan: any) => {
-														let planStatusText = 'Scheduled';
-														let planBadgeClass = 'bg-zinc-50 text-zinc-500 border-zinc-150';
+													{(() => {
+														const lineageMap = new Map<number, { parentPlan: any; retestPlans: any[] }>();
+														plans.forEach((p: any) => {
+															if (p.parentPlanId) {
+																const pId = Number(p.parentPlanId);
+																if (!lineageMap.has(pId)) {
+																	const foundParent = plans.find((x: any) => Number(x.id) === pId);
+																	lineageMap.set(pId, { parentPlan: foundParent || null, retestPlans: [] });
+																}
+																lineageMap.get(pId)!.retestPlans.push(p);
+															} else {
+																const pId = Number(p.id);
+																if (!lineageMap.has(pId)) {
+																	lineageMap.set(pId, { parentPlan: p, retestPlans: [] });
+																} else {
+																	lineageMap.get(pId)!.parentPlan = p;
+																}
+															}
+														});
 
-														if (plan.evaluationStatus === 'PASSED') {
-															planStatusText = 'Testing Passed';
-															planBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-														} else if (plan.evaluationStatus === 'FAILED') {
-															planStatusText = 'Testing Failed';
-															planBadgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
-														} else {
-															planStatusText = 'Under Testing';
-															planBadgeClass = 'bg-blue-50 text-blue-700 border-blue-100';
-														}
+														const lineages = Array.from(lineageMap.entries());
 
-														return (
-															<div key={plan.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 border border-zinc-200/50 p-3.5 rounded-xl transition-all hover:bg-zinc-55">
-																<div className="space-y-1">
-																	<div className="flex items-center gap-2 flex-wrap">
-																		<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
-																			{plan.testType?.name || 'General Test'}
-																		</span>
-																		<span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${planBadgeClass}`}>
-																			{planStatusText}
-																		</span>
+														return lineages.map(([lineageKey, { parentPlan, retestPlans }]) => {
+															const mainPlan = parentPlan || retestPlans[0];
+															if (!mainPlan) return null;
+
+															const hasRetest = retestPlans.length > 0;
+															const isExpanded = !!expandedRetestLineages[`${selectedReq.id}-${lineageKey}`];
+
+															const renderPlanRow = (plan: any, isChildRetest = false) => {
+																let planStatusText = 'Scheduled';
+																let planBadgeClass = 'bg-zinc-50 text-zinc-500 border-zinc-150';
+
+																if (plan.evaluationStatus === 'PASSED') {
+																	planStatusText = 'Testing Passed';
+																	planBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+																} else if (plan.evaluationStatus === 'FAILED') {
+																	planStatusText = 'Testing Failed';
+																	planBadgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
+																} else {
+																	planStatusText = 'Under Testing';
+																	planBadgeClass = 'bg-blue-50 text-blue-700 border-blue-100';
+																}
+
+																return (
+																	<div key={plan.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isChildRetest ? 'bg-indigo-50/40 border-indigo-200/80 mt-2 ml-4' : 'bg-zinc-50/50 border-zinc-200/50'} border p-3.5 rounded-xl transition-all hover:bg-zinc-55`}>
+																		<div className="space-y-1">
+																			<div className="flex items-center gap-2 flex-wrap">
+																				{isChildRetest && (
+																					<span className="text-[9px] font-extrabold px-2 py-0.5 bg-indigo-600 text-white rounded-full flex items-center gap-1 shadow-xs">
+																						<RotateCcw className="w-2.5 h-2.5" />
+																						Retesting Cycle
+																					</span>
+																				)}
+																				<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+																					{plan.testType?.name || 'General Test'}
+																				</span>
+																				<span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${planBadgeClass}`}>
+																					{planStatusText}
+																				</span>
+																			</div>
+																			<p className="text-[10px] text-zinc-555 font-semibold">
+																				Station: S{plan.stationNo} | Duration: {plan.numberOfDays} Days | Dates: {formatDate(plan.startDate)} to {formatDate(plan.endDate)}
+																			</p>
+																			{plan.evaluationRemarks && (
+																				<p className="text-[10px] text-zinc-500 italic mt-1 bg-white p-2 rounded-lg border border-zinc-100/70">
+																					Remarks: {plan.evaluationRemarks}
+																				</p>
+																			)}
+																		</div>
+
+																		<div className="shrink-0 flex items-center gap-2 flex-wrap">
+																			<button
+																				onClick={() => {
+																					window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank');
+																				}}
+																				className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none shadow-sm active:scale-95"
+																			>
+																				<Eye className="w-3.5 h-3.5" />
+																				<span>{plan.evaluationStatus === 'FAILED' ? 'Failed Report' : (isChildRetest ? 'Retest Report' : 'Test Report')}</span>
+																			</button>
+																			{plan.testType?.name?.toLowerCase().includes('reliability') && (() => {
+																				const tdInfo = getTearDownInfo(plan, selectedReq);
+																				return (
+																					<button
+																						disabled={!tdInfo}
+																						onClick={() => handleTearDownAction(plan, selectedReq)}
+																						title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
+																						className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-2 rounded-xl border transition-all outline-none shadow-sm ${tdInfo
+																								? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
+																								: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
+																							}`}
+																					>
+																						<FileText className="w-3.5 h-3.5" />
+																						<span>Tear Down Report</span>
+																					</button>
+																				);
+																			})()}
+																			{hasRetest && !isChildRetest && (
+																				<button
+																					type="button"
+																					onClick={() => toggleRetestLineage(`${selectedReq.id}-${lineageKey}`)}
+																					className="px-2.5 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-extrabold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+																				>
+																					<span>{isExpanded ? 'Hide Retest' : 'Show Retest Plan'}</span>
+																					{isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+																				</button>
+																			)}
+																		</div>
 																	</div>
-																	<p className="text-[10px] text-zinc-555 font-semibold">
-																		Station: S{plan.stationNo} | Duration: {plan.numberOfDays} Days | Dates: {formatDate(plan.startDate)} to {formatDate(plan.endDate)}
-																	</p>
-																	{plan.evaluationRemarks && (
-																		<p className="text-[10px] text-zinc-500 italic mt-1 bg-white p-2 rounded-lg border border-zinc-100/70">
-																			Remarks: {plan.evaluationRemarks}
-																		</p>
+																);
+															};
+
+															return (
+																<div key={lineageKey} className="space-y-1">
+																	{renderPlanRow(mainPlan, false)}
+																	{hasRetest && isExpanded && (
+																		<div className="space-y-1.5 animate-fade-in">
+																			{retestPlans.map((rp: any) => renderPlanRow(rp, true))}
+																		</div>
 																	)}
 																</div>
-
-																<div className="shrink-0 flex items-center gap-2">
-																	<button
-																		onClick={() => {
-																			window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank');
-																		}}
-																		className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-[#11236a] hover:text-white px-3 py-2 rounded-xl border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none shadow-sm active:scale-95"
-																	>
-																		<Eye className="w-3.5 h-3.5" />
-																		<span>View Test Report</span>
-																	</button>
-																	{plan.testType?.name?.toLowerCase().includes('reliability') && (() => {
-																		const tdInfo = getTearDownInfo(plan, selectedReq);
-																		return (
-																			<button
-																				disabled={!tdInfo}
-																				onClick={() => handleTearDownAction(plan, selectedReq)}
-																				title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-																				className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-3 py-2 rounded-xl border transition-all outline-none shadow-sm ${tdInfo
-																						? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
-																						: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-																					}`}
-																			>
-																				<FileText className="w-3.5 h-3.5" />
-																				<span>Tear Down Report</span>
-																			</button>
-																		);
-																	})()}
-																</div>
-															</div>
-														);
-													})}
+															);
+														});
+													})()}
 												</div>
 											)}
 

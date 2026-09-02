@@ -109,7 +109,7 @@ export default function HeadReportDetails() {
 				<AlertTriangle className="w-12 h-12 text-rose-500 mx-auto" />
 				<h3 className="text-base font-black text-zinc-800">Request Not Found</h3>
 				<p className="text-xs text-zinc-550">The requested test report details could not be found or has been removed.</p>
-				<button 
+				<button
 					onClick={() => navigate('/head/completed-reports')}
 					className="px-4 py-2 bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all hover:bg-zinc-900 active:scale-95"
 				>
@@ -126,13 +126,24 @@ export default function HeadReportDetails() {
 		if (approving) return;
 		setApproving(true);
 		try {
+			// Check if any retest plans or tests remain un-evaluated
+			const allPlans = request.testPlans || [];
+			const hasPendingRetestOrTest = allPlans.some((p: any) => {
+				const isRetest = Boolean(p.parentPlanId || p.isRetest);
+				const isEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+				return isRetest && !isEvaluated;
+			});
+
+			const newStatus = hasPendingRetestOrTest ? 'RETEST' : 'COMPLETED';
+			const remarks = `Report Approved by Head of Laboratory (${new Date().toLocaleDateString()})`;
+
 			const op = updateTestRequestStatus(
-				request.id, 
-				'COMPLETED', 
-				undefined
+				request.id,
+				newStatus,
+				remarks
 			);
 			await op();
-			toast.success('Final report successfully certified!');
+			toast.success(newStatus === 'COMPLETED' ? 'Final report successfully certified & completed!' : 'Retest report approved; awaiting remaining retest plans.');
 			await loadRequestDetails();
 		} catch (e) {
 			console.error(e);
@@ -173,11 +184,10 @@ export default function HeadReportDetails() {
 									Request Specifications
 								</h3>
 							</div>
-							<span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-								isAlreadyApproved
+							<span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isAlreadyApproved
 									? 'bg-emerald-50 text-emerald-700 border-emerald-100'
 									: 'bg-amber-50 text-amber-700 border-amber-100'
-							}`}>
+								}`}>
 								{isAlreadyApproved ? 'APPROVED & CERTIFIED' : 'PENDING SIGN-OFF'}
 							</span>
 						</div>
@@ -229,7 +239,12 @@ export default function HeadReportDetails() {
 						</div>
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
-								const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === idx);
+								const samplePlansList = (request.testPlans || []).filter((p: any) => {
+									if (Number(p.sampleIndex) !== idx) return false;
+									const isPassed = (p.evaluationStatus || '').toUpperCase() === 'PASSED';
+									const isRetestEvaluated = Boolean(p.parentPlanId || p.isRetest) && ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+									return isPassed || isRetestEvaluated;
+								});
 								const inspection = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === idx);
 
 								let statusColor = 'bg-zinc-50 text-zinc-500 border-zinc-200';
@@ -285,36 +300,44 @@ export default function HeadReportDetails() {
 
 										{inspection?.status === 'PASSED' && samplePlansList.length > 0 && (
 											<div className="pl-4 border-l-2 border-zinc-150 space-y-2 mt-1">
-												{samplePlansList.map((p: any) => {
-													const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
-													const planStatusColor = p.evaluationStatus === 'PASSED'
-														? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-														: p.evaluationStatus === 'FAILED'
-															? 'bg-rose-50 text-rose-700 border-rose-100'
-															: 'bg-blue-50 text-blue-700 border-blue-100';
-													return (
-														<div key={p.id} className="flex items-center justify-between gap-4 py-1 text-xs">
-															<div className="flex items-center gap-2">
-																<span className="font-bold text-zinc-500">
-																	{p.testType?.name || 'General'}:
-																</span>
-																<span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${planStatusColor}`}>
-																	{p.evaluationStatus || 'TESTING'}
-																</span>
-																{p.evaluationRemarks && (
-																	<span className="text-[10px] text-zinc-555 font-medium italic">
-																		({p.evaluationRemarks})
+												{(() => {
+													const lineageGroupsMap = new Map<number, any[]>();
+													samplePlansList.forEach((p: any) => {
+														const lineageKey = p.parentPlanId ? Number(p.parentPlanId) : Number(p.id);
+														if (!lineageGroupsMap.has(lineageKey)) {
+															lineageGroupsMap.set(lineageKey, []);
+														}
+														lineageGroupsMap.get(lineageKey)!.push(p);
+													});
+
+													return Array.from(lineageGroupsMap.values()).map((lineagePlans) => {
+														const parentPlan = lineagePlans.find((p: any) => !p.parentPlanId) || lineagePlans[0];
+														const childRetestPlan = lineagePlans.find((p: any) => Boolean(p.parentPlanId));
+														const testTypeName = parentPlan.testType?.name || childRetestPlan?.testType?.name || 'General';
+
+														const renderPlanButtons = (p: any, isRetest: boolean) => {
+															const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+															const isPlanFailed = (p.evaluationStatus || '').toUpperCase() === 'FAILED';
+
+															if (!isPlanEvaluated) {
+																return (
+																	<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded uppercase tracking-wider">
+																		{isRetest ? 'Retest In Progress' : 'In Testing'}
 																	</span>
-																)}
-															</div>
-															{isPlanEvaluated && (
-																<div className="flex items-center gap-1.5">
+																);
+															}
+
+															return (
+																<div className="flex items-center gap-1.5 flex-wrap">
 																	<button
 																		onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
-																		className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+																		className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all cursor-pointer outline-none active:scale-95 ${isPlanFailed
+																			? 'text-rose-700 hover:text-white border-rose-200 bg-white hover:bg-rose-600'
+																			: 'text-emerald-600 hover:text-white border-emerald-200 bg-white hover:bg-emerald-600'
+																		}`}
 																	>
 																		<FileText className="w-2.5 h-2.5" />
-																		<span>Report</span>
+																		<span>{isPlanFailed ? 'Failed Report' : (isRetest ? 'Retest Report' : 'Report')}</span>
 																	</button>
 																	{p.testType?.name?.toLowerCase().includes('reliability') && (() => {
 																		const tdInfo = getTearDownInfo(p, request);
@@ -323,11 +346,10 @@ export default function HeadReportDetails() {
 																				disabled={!tdInfo}
 																				onClick={() => handleTearDownAction(p, request)}
 																				title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-																				className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all outline-none ${
-																					tdInfo
+																				className={`inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all outline-none ${tdInfo
 																						? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
 																						: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-																				}`}
+																					}`}
 																			>
 																				<FileText className="w-2.5 h-2.5" />
 																				<span>Tear Down</span>
@@ -335,10 +357,33 @@ export default function HeadReportDetails() {
 																		);
 																	})()}
 																</div>
-															)}
-														</div>
-													);
-												})}
+															);
+														};
+
+														return (
+															<div key={`lineage-${parentPlan.id}`} className="flex items-center gap-2 flex-nowrap whitespace-nowrap bg-zinc-50/80 p-1.5 rounded-lg border border-zinc-200/60 max-w-full overflow-x-auto no-scrollbar">
+																<span className="text-[9px] font-bold text-zinc-700 shrink-0">
+																	{testTypeName}:
+																</span>
+
+																{/* Parent / Initial Plan */}
+																<div className="shrink-0">
+																	{renderPlanButtons(parentPlan, false)}
+																</div>
+
+																{/* Child Retest Plan on the same line */}
+																{childRetestPlan && (
+																	<div className="flex items-center gap-1 border-l border-zinc-200 pl-2 ml-0.5 shrink-0">
+																		<span className="text-[8px] font-black px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded uppercase shrink-0">
+																			Retest
+																		</span>
+																		{renderPlanButtons(childRetestPlan, true)}
+																	</div>
+																)}
+															</div>
+														);
+													});
+												})()}
 											</div>
 										)}
 									</div>
@@ -352,7 +397,7 @@ export default function HeadReportDetails() {
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
 							Head Certification
 						</h3>
-						
+
 						{isAlreadyApproved ? (
 							<div className="space-y-3">
 								<div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 flex items-start gap-2.5">

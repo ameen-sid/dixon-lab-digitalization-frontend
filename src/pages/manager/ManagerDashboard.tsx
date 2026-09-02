@@ -11,7 +11,9 @@ import AssignedSamples from './AssignedSamples';
 import ManagerCapaManagement from './ManagerCapaManagement';
 import ManagerCapaDetails from './ManagerCapaDetails';
 import ManagerTestPlans from './ManagerTestPlans';
+import ManagerRetesting from './ManagerRetesting';
 import ManagerCompletedRequests from './ManagerCompletedRequests';
+import ManagerFailedPlans from './ManagerFailedPlans';
 
 
 import { getTestRequests, getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
@@ -62,7 +64,7 @@ interface InspectionTask {
 	testMethodRef: string;
 	sampleDescription: string;
 	sampleQty: number;
-	status: string; 
+	status: string;
 	assignedDate: string;
 	completedDate?: string;
 	remarks?: string;
@@ -153,97 +155,7 @@ export default function ManagerDashboard() {
 				assignedDate: req.assignedDate ? req.assignedDate.split('T')[0] : null
 			}));
 
-			for (const req of mapped) {
-				if (['UNDER_TESTING', 'UNDER_TEST', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
-					const qty = req.sampleQty || 1;
-					let allSamplesComplete = true;
-					let hasPlans = false;
 
-					for (let i = 0; i < qty; i++) {
-						const dbReport = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
-						const plansForSample = (req.testPlans || []).filter((p: any) => Number(p.sampleIndex) === i);
-
-						if (plansForSample.length > 0) {
-							hasPlans = true;
-						}
-
-						if (dbReport) {
-							if (dbReport.status === 'FAILED') {
-								continue;
-							} else if (dbReport.status === 'PASSED') {
-								if (plansForSample.length > 0 && plansForSample.every((p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED')) {
-									continue;
-								}
-							}
-						}
-						allSamplesComplete = false;
-						break;
-					}
-
-					if (allSamplesComplete && hasPlans) {
-						let passedCount = 0;
-						let failedCount = 0;
-
-						const requestPlans = req.testPlans || [];
-						requestPlans.forEach((p: any) => {
-							if (p.evaluationStatus === 'PASSED') {
-								passedCount++;
-							} else if (p.evaluationStatus === 'FAILED') {
-								failedCount++;
-							}
-						});
-
-						const passedSampleIndices: number[] = [];
-						for (let i = 0; i < qty; i++) {
-							const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i && (r.testPlanId === null || r.testPlanId === undefined));
-							if (req.status === 'RETEST' || (report && report.status === 'PASSED')) {
-								passedSampleIndices.push(i);
-							} else if (report && report.status === 'FAILED') {
-								failedCount++;
-							}
-						}
-
-						let finalStatus = 'TESTING_COMPLETED';
-						const totalAllocationsCount = requestPlans.length + (qty - passedSampleIndices.length);
-
-						if (passedCount === totalAllocationsCount) {
-							finalStatus = 'TESTING_PASSED';
-						} else if (failedCount === totalAllocationsCount) {
-							finalStatus = 'TESTING_FAILED';
-						} else {
-							finalStatus = 'TESTING_PARTIAL';
-						}
-
-						if (req.status !== finalStatus) {
-							try {
-								const statusUpdateOp = updateTestRequestStatus(
-									Number(req.id),
-									finalStatus,
-									undefined
-								);
-								await statusUpdateOp();
-								req.status = finalStatus;
-							} catch (e) {
-								console.error(`Failed to auto-update request ${req.id} status to ${finalStatus}:`, e);
-							}
-						}
-					} else if (!allSamplesComplete) {
-						if (['TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL'].includes(req.status)) {
-							try {
-								const statusUpdateOp = updateTestRequestStatus(
-									Number(req.id),
-									'UNDER_TESTING',
-									undefined
-								);
-								await statusUpdateOp();
-								req.status = 'UNDER_TESTING';
-							} catch (e) {
-								console.error(`Failed to reset request ${req.id} status to UNDER_TESTING:`, e);
-							}
-						}
-					}
-				}
-			}
 
 			let filtered = mapped.filter((r: any) => r.status !== 'PENDING_APPROVAL' && r.status !== 'REJECTED');
 			const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -519,6 +431,9 @@ export default function ManagerDashboard() {
 	else if (pathSegment.startsWith('capa-management/')) activeTab = 'capa-details';
 	else if (pathSegment === 'test-plans') activeTab = 'test-plans';
 	else if (pathSegment.startsWith('test-plans/')) activeTab = 'test-plan-details';
+	else if (pathSegment === 'retesting') activeTab = 'retesting';
+	else if (pathSegment.startsWith('retesting/')) activeTab = 'retesting-details';
+	else if (pathSegment === 'failed-plans') activeTab = 'failed-plans';
 	else if (pathSegment === 'completed-requests' || pathSegment.startsWith('completed-requests/')) activeTab = 'completed-requests';
 
 	const getTabHeaders = () => {
@@ -539,6 +454,11 @@ export default function ManagerDashboard() {
 				return { title: 'Test Plan Configurations', desc: 'Create, schedule, and allocate physical station testing parameters for successfully inspected samples.' };
 			case 'test-plan-details':
 				return { title: 'Configure Test Plan Specifications', desc: 'Define physical testing parameters, platforms grid, NABL cycles, and begin physical testing.' };
+			case 'retesting':
+			case 'retesting-details':
+				return { title: 'Retesting Plans Registry', desc: 'Review, reconfigure, and schedule test plans returned by the Head of Lab for retesting.' };
+			case 'failed-plans':
+				return { title: 'Failed Test Plans (Lab Manager CAPA)', desc: 'Review failed test plans returned by the Head of Laboratory for internal Lab Manager CAPA resolution.' };
 			case 'completed-requests':
 				return { title: 'Completed & Failed Requests Registry', desc: 'Centralized view of finalized test reports, failed inspects, and evaluation details.' };
 			default:
@@ -688,11 +608,93 @@ export default function ManagerDashboard() {
 						}}
 					/>
 				);
+
+			case 'retesting':
+				return (
+					<ManagerRetesting
+						requests={approvedRequests}
+						onRefreshRequests={loadApprovedRequests}
+						onUpdateStatus={async (requestId, status, remarks) => {
+							const numId = Number(requestId);
+							if (isNaN(numId)) return;
+							try {
+								const updateOp = updateTestRequestStatus(numId, status, remarks);
+								await updateOp();
+								await loadApprovedRequests();
+							} catch (e) {
+								console.error('Failed to update request testing status:', e);
+								throw e;
+							}
+						}}
+					/>
+				);
+
+			case 'retesting-details':
+				return (
+					<ManagerRetesting
+						requests={approvedRequests}
+						selectedRequestId={id}
+						onRefreshRequests={loadApprovedRequests}
+						onUpdateStatus={async (requestId, status, remarks) => {
+							const numId = Number(requestId);
+							if (isNaN(numId)) return;
+							try {
+								const updateOp = updateTestRequestStatus(numId, status, remarks);
+								await updateOp();
+								await loadApprovedRequests();
+							} catch (e) {
+								console.error('Failed to update request testing status:', e);
+								throw e;
+							}
+						}}
+					/>
+				);
 			case 'completed-requests':
 				return (
 					<ManagerCompletedRequests
 						requests={approvedRequests}
 						selectedRequestId={id}
+					/>
+				);
+
+			case 'failed-plans':
+				return (
+					<ManagerFailedPlans
+						onFillCapa={(req, plan) => {
+							const cleanRemarks = (plan.evaluationRemarks || '').replace(/\[HEAD_ACTION:[^\]]+\]/g, '').trim();
+							const initialCapa = {
+								relatedRequest: req.requestId || `REQ-${String(req.dbId || req.id).padStart(3, '0')}`,
+								partProduct: req.brandName || '',
+								modelName: req.modelNo || '',
+								customerSupplier: req.customerNameAddress || '',
+								partName: req.sampleDescription || '',
+								title: `Lab Manager CAPA for Failed Test: ${plan.testType?.name || 'Test Plan'} (Sample #${plan.sampleIndex + 1})`,
+								problem: `Internal Lab CAPA for Sample #${plan.sampleIndex + 1} (${plan.testType?.name || 'Test Plan'}). Remarks: ${cleanRemarks}`
+							};
+							navigate('/manager/capa-management', { state: { initialCapa } });
+						}}
+						onViewCapa={(req, plan) => {
+							const matchedCapa = capas.find((c: any) => {
+								const relReq = (c.relatedRequest || '').toLowerCase();
+								const reqId = (req.requestId || `REQ-00${req.id}`).toLowerCase();
+								const reqIdNumOnly = String(req.id || req.dbId || '');
+								const matchesReq = relReq.includes(reqId) || reqId.includes(relReq) || (reqIdNumOnly && relReq.includes(reqIdNumOnly));
+								if (!matchesReq) return false;
+
+								const text = `${c.title || ''} ${c.problem || ''} ${c.nonConformity || ''}`.toLowerCase();
+								const planName = (plan.testType?.name || '').toLowerCase();
+								const sampleStr = `sample #${plan.sampleIndex + 1}`;
+								const matchesPlanName = planName ? text.includes(planName) : true;
+								const matchesSampleNum = text.includes(sampleStr);
+								return matchesPlanName && matchesSampleNum;
+							});
+
+							if (matchedCapa) {
+								navigate(`/manager/capa-management/${matchedCapa.id}`);
+							} else {
+								navigate('/manager/capa-management');
+							}
+						}}
 					/>
 				);
 

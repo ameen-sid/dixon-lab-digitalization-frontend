@@ -908,47 +908,76 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 										}
 
 										return (
-											<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-												<div className="flex items-center gap-3">
-													<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-													<div>
-														<p className="text-[11px] font-bold text-zinc-900">
-															Sample #{sampleNumber}
-														</p>
-														<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
-															ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
-														</p>
+											<div key={index} className="py-3.5 first:pt-0 last:pb-0">
+												<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+													<div className="flex items-center gap-3 shrink-0">
+														<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+														<div>
+															<div className="flex items-center gap-2">
+																<p className="text-[11px] font-bold text-zinc-900">
+																	Sample #{sampleNumber}
+																</p>
+																<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+																	? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+																	: 'bg-rose-50 border border-rose-100 text-rose-700'
+																	}`}>
+																	{report.status}
+																</span>
+															</div>
+															<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
+																ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
+															</p>
+														</div>
 													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-														: 'bg-rose-50 border border-rose-100 text-rose-700'
-														}`}>
-														{report.status}
-													</span>
-													{report.status === 'PASSED' && (
-														<div className="flex flex-col gap-1.5 items-end">
-															{(() => {
-																const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === index);
-																if (samplePlansList.length === 0) {
-																	return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
-																}
-																return samplePlansList.map((p: any) => {
-																	const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
-																	return (
-																		<div key={p.id} className="flex items-center gap-1.5 font-bold text-xs">
-																			<span className="text-[9px] text-zinc-500">
-																				{p.testType?.name || 'General'}:
-																			</span>
-																			{isPlanEvaluated ? (
-																				<div className="flex items-center gap-1.5">
+
+													<div className="flex-1 flex flex-col items-start sm:items-end gap-1.5 min-w-0">
+														{report.status === 'PASSED' && (
+															<div className="flex flex-col gap-1.5 items-start sm:items-end w-full">
+																{(() => {
+																	const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === index);
+																	if (samplePlansList.length === 0) {
+																		return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
+																	}
+
+																	// Group test plans by test lineage
+																	const lineageGroupsMap = new Map<number, any[]>();
+																	samplePlansList.forEach((p: any) => {
+																		const lineageKey = p.parentPlanId ? Number(p.parentPlanId) : Number(p.id);
+																		if (!lineageGroupsMap.has(lineageKey)) {
+																			lineageGroupsMap.set(lineageKey, []);
+																		}
+																		lineageGroupsMap.get(lineageKey)!.push(p);
+																	});
+
+																	return Array.from(lineageGroupsMap.values()).map((lineagePlans) => {
+																		const parentPlan = lineagePlans.find((p: any) => !p.parentPlanId) || lineagePlans[0];
+																		const childRetestPlan = lineagePlans.find((p: any) => Boolean(p.parentPlanId));
+																		const testTypeName = parentPlan.testType?.name || childRetestPlan?.testType?.name || 'General';
+
+																		const renderPlanButtons = (p: any, isRetest: boolean) => {
+																			const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+																			const isPlanFailed = (p.evaluationStatus || '').toUpperCase() === 'FAILED';
+
+																			if (!isPlanEvaluated) {
+																				return (
+																					<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded uppercase tracking-wider">
+																						{isRetest ? 'Retest In Progress' : 'In Testing'}
+																					</span>
+																				);
+																			}
+
+																			return (
+																				<div className="flex items-center gap-1.5 flex-wrap">
 																					<button
 																						type="button"
 																						onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
-																						className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																						className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all cursor-pointer outline-none flex items-center gap-0.5 ${isPlanFailed
+																							? 'text-rose-700 hover:text-white border-rose-200 bg-white hover:bg-rose-600'
+																							: 'text-emerald-600 hover:text-white border-emerald-200 bg-white hover:bg-emerald-600'
+																						}`}
 																					>
-																						<FileText className="w-2.5 h-2.5" /> Report
+																						<FileText className="w-2.5 h-2.5" />
+																						<span>{isPlanFailed ? 'Failed Report' : (isRetest ? 'Retest Report' : 'Report')}</span>
 																					</button>
 																					{p.testType?.name?.toLowerCase().includes('reliability') && (() => {
 																						const tdInfo = getTearDownInfo(p, request);
@@ -958,44 +987,57 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 																								disabled={!tdInfo}
 																								onClick={() => handleTearDownAction(p, request)}
 																								title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-																								className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all flex items-center gap-0.5 ${
-																									tdInfo
+																								className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all flex items-center gap-0.5 ${tdInfo
 																										? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer outline-none active:scale-95'
 																										: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-																								}`}
+																									}`}
 																							>
 																								<FileText className="w-2.5 h-2.5" /> Tear Down
 																							</button>
 																						);
 																					})()}
 																				</div>
-																			) : (
-																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
-																					Testing
-																				</span>
-																			)}
-																		</div>
-																	);
-																});
-															})()}
+																			);
+																		};
+
+																		return (
+																			<div key={`lineage-${parentPlan.id}`} className="bg-zinc-50/90 p-2 rounded-xl border border-zinc-200/80 w-full space-y-1.5">
+																				<div className="flex items-center justify-between gap-2 border-b border-zinc-200/50 pb-1">
+																					<span className="text-[10px] font-extrabold text-zinc-800">
+																						{testTypeName}
+																					</span>
+																					<div className="shrink-0">
+																						{renderPlanButtons(parentPlan, false)}
+																					</div>
+																				</div>
+
+																				{/* Child Retest Plan row */}
+																				{childRetestPlan && (
+																					<div className="flex items-center justify-between gap-2 pt-0.5">
+																						<span className="text-[8px] font-black px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded uppercase shrink-0">
+																							Retest Attempt
+																						</span>
+																						<div className="shrink-0">
+																							{renderPlanButtons(childRetestPlan, true)}
+																						</div>
+																					</div>
+																				)}
+																			</div>
+																		);
+																	});
+																})()}
+															</div>
+														)}
+														{report.status === 'FAILED' && (
 															<button
 																type="button"
-																onClick={() => setActiveTimelineSampleIndex(index)}
-																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none mt-1"
+																onClick={() => window.open(`/reports/preview?type=sample&key=${request.id}-sample-${index}`, '_blank')}
+																className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5 active:scale-95"
 															>
-																View Timeline
+																<FileText className="w-2.5 h-2.5" /> View Report
 															</button>
-														</div>
-													)}
-													{report.status === 'FAILED' && request.status === 'INSPECTION_FAILED' && !(request.remarks || '').includes('Submitted to Head') && (
-														<button
-															type="button"
-															onClick={() => window.open(`/reports/preview?type=sample&key=${request.id}-sample-${index}`, '_blank')}
-															className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
-														>
-															View Report
-														</button>
-													)}
+														)}
+													</div>
 												</div>
 											</div>
 										);
@@ -1009,7 +1051,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 			</div>
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto animate-scale-up">
+					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto no-scrollbar animate-scale-up">
 						<button
 							onClick={() => setActiveTimelineSampleIndex(null)}
 							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-555 hover:text-slate-850 cursor-pointer border-none outline-none"

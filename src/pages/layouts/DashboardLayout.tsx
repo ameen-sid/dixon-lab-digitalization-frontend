@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle, ClipboardList, Mail } from 'lucide-react';
+import { LogOut, User, Compass, Server, Activity, Layers, Users, Settings, FolderOpen, FileText, Cpu, Briefcase, Wrench, CheckSquare, CheckCircle, ClipboardList, Mail, AlertTriangle, RotateCcw } from 'lucide-react';
 import { logout } from '../../services/operations/authService';
 
 interface DashboardLayoutProps {
@@ -16,7 +16,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
-	
+
 	const userStr = localStorage.getItem('user');
 	const user = userStr ? JSON.parse(userStr) : { name: 'System User', role: 'Requester', username: 'user' };
 
@@ -39,6 +39,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 	if (user.role.toLowerCase() === 'requester') {
 		if (path.includes('/requester/my-requests') || path.includes('/requester/requests/new') || path.includes('/requester/requests/track')) {
 			derivedActiveTab = 'my-requests';
+		} else if (path.includes('/requester/failed-plans')) {
+			derivedActiveTab = 'failed-plans';
 		} else if (path.includes('/requester/capa') || path.includes('/requester/capa/new') || path.includes('/requester/capa/details')) {
 			derivedActiveTab = 'capa-management';
 		} else {
@@ -61,6 +63,10 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			derivedActiveTab = 'completed-requests';
 		} else if (path.includes('/manager/test-plans')) {
 			derivedActiveTab = 'test-plans';
+		} else if (path.includes('/manager/retesting')) {
+			derivedActiveTab = 'retesting';
+		} else if (path.includes('/manager/failed-plans')) {
+			derivedActiveTab = 'failed-plans';
 		} else {
 			derivedActiveTab = 'dashboard';
 		}
@@ -131,6 +137,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 		if (userRoleLower === 'requester') {
 			if (itemId === 'dashboard') navigate('/requester/dashboard');
 			else if (itemId === 'my-requests') navigate('/requester/my-requests');
+			else if (itemId === 'failed-plans') navigate('/requester/failed-plans');
 			else if (itemId === 'capa-management') navigate('/requester/capa');
 		} else if (userRoleLower === 'admin') {
 			if (itemId === 'dashboard') navigate('/admin/dashboard');
@@ -154,8 +161,10 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 			else if (itemId === 'equipment-availability') navigate('/admin/equipment-availability');
 			else if (itemId === 'approved-requests') navigate('/manager/approved-requests');
 			else if (itemId === 'assigned-samples') navigate('/manager/assigned-samples');
-			else if (itemId === 'capa-management') navigate('/manager/capa-management');
 			else if (itemId === 'test-plans') navigate('/manager/test-plans');
+			else if (itemId === 'retesting') navigate('/manager/retesting');
+			else if (itemId === 'failed-plans') navigate('/manager/failed-plans');
+			else if (itemId === 'capa-management') navigate('/manager/capa-management');
 			else if (itemId === 'completed-requests') navigate('/manager/completed-requests');
 		} else if (userRoleLower === 'engineer') {
 			if (itemId === 'dashboard') navigate('/engineer/dashboard');
@@ -211,7 +220,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 				<div className="flex flex-col gap-6 min-h-0 flex-1">
 					<div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
 						{!isCollapsed && <img src="/logo.png" alt="Dixon Logo" className="h-14 w-75 object-contain" />}
-						<button 
+						<button
 							onClick={() => setIsCollapsed(!isCollapsed)}
 							className="w-8 h-8 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg flex items-center justify-center text-zinc-500 hover:text-[#11236a] transition-all cursor-pointer border-none outline-none"
 						>
@@ -305,6 +314,8 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 											{ id: 'approved-requests', label: 'Approved Requests', icon: FileText },
 											{ id: 'assigned-samples', label: 'Assigned Samples', icon: Users },
 											{ id: 'test-plans', label: 'Test Plans', icon: Settings },
+											{ id: 'retesting', label: 'Retesting Plans', icon: RotateCcw },
+											{ id: 'failed-plans', label: 'Failed Test Plans (CAPA)', icon: AlertTriangle },
 											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
 											{ id: 'completed-requests', label: 'Completed/Failed Registry', icon: FolderOpen },
 										]
@@ -460,6 +471,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										items: [
 											{ id: 'dashboard', label: 'Dashboard', icon: Compass },
 											{ id: 'my-requests', label: 'My Requests', icon: FileText },
+											{ id: 'failed-plans', label: 'Failed Test Plans', icon: AlertTriangle },
 											{ id: 'capa-management', label: 'CAPA Management', icon: Layers },
 										]
 									}
@@ -472,7 +484,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 										)}
 										{cat.items.map((item) => {
 											const Icon = item.icon;
-											const isActive = derivedActiveTab === item.id || 
+											const isActive = derivedActiveTab === item.id ||
 												(item.id === 'my-requests' && (derivedActiveTab === 'new-request' || derivedActiveTab === 'view-request-details')) ||
 												(item.id === 'capa-management' && (derivedActiveTab === 'new-capa' || derivedActiveTab === 'view-capa-details'));
 											return (
@@ -507,7 +519,7 @@ export default function DashboardLayout({ children, title, activeTab, onTabChang
 								</div>
 							)}
 						</div>
-						
+
 						<button
 							onClick={handleLogout}
 							title="Disconnect Portal"

@@ -136,11 +136,11 @@ export default function InspectorDashboard() {
 	const reliabilityPlans = Object.entries(plans).map(([key, plan]) => {
 		const [reqIdStr] = key.split('-plan-');
 		const request = requests.find(r => String(r.id) === String(reqIdStr));
-		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
-		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
-		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId));
+		const testType = testTypes.find(t => String(t.id) === String(plan.testTypeId)) || plan.testType;
+		const testCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId)) || plan.testCategory;
+		const protocol = testProtocols.find(p => String(p.id) === String(plan.testProtocolId)) || plan.testProtocol;
 
-		const isReliability = !!(testType && testType.name.toLowerCase().includes('reliability'));
+		const isReliability = !!(testType && (testType.name || '').toLowerCase().includes('reliability'));
 
 		return {
 			key,

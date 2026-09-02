@@ -36,8 +36,8 @@ function App() {
 					!['button', 'submit', 'image', 'reset'].includes((target as HTMLInputElement).type)
 				) {
 					const isSearch = (target.getAttribute('type') === 'search') ||
-									 (target.getAttribute('placeholder')?.toLowerCase().includes('search')) ||
-									 (target.getAttribute('name')?.toLowerCase().includes('search'));
+						(target.getAttribute('placeholder')?.toLowerCase().includes('search')) ||
+						(target.getAttribute('name')?.toLowerCase().includes('search'));
 					if (!isSearch) {
 						e.preventDefault();
 					}
@@ -94,6 +94,9 @@ function App() {
 				<Route path="/manager/capa-management/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans" element={<ManagerDashboard />} />
 				<Route path="/manager/test-plans/:id" element={<ManagerDashboard />} />
+				<Route path="/manager/retesting" element={<ManagerDashboard />} />
+				<Route path="/manager/retesting/:id" element={<ManagerDashboard />} />
+				<Route path="/manager/failed-plans" element={<ManagerDashboard />} />
 				<Route path="/manager/completed-requests" element={<ManagerDashboard />} />
 				<Route path="/manager/completed-requests/:id" element={<ManagerDashboard />} />
 				<Route path="/manager/evaluate-checksheet/:planKey" element={<ManagerEvaluateChecksheet />} />
@@ -124,6 +127,7 @@ function App() {
 				<Route path="/requester/my-requests" element={<RequesterDashboard />} />
 				<Route path="/requester/requests/new" element={<RequesterDashboard />} />
 				<Route path="/requester/requests/track" element={<RequesterDashboard />} />
+				<Route path="/requester/failed-plans" element={<RequesterDashboard />} />
 				<Route path="/requester/capa" element={<RequesterDashboard />} />
 				<Route path="/requester/capa/new" element={<RequesterDashboard />} />
 				<Route path="/requester/capa/details" element={<RequesterDashboard />} />

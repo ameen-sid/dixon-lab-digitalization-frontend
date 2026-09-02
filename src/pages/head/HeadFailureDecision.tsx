@@ -34,61 +34,130 @@ export default function HeadFailureDecision() {
 		loadRequests();
 	}, []);
 
-	const failedRequests = requests.filter((req: any) => {
-		const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
-		const isAlreadyFailedDecided = (req.status || '').toLowerCase() === 'failed' || (req.status || '').toLowerCase() === 'retest';
-		if (!isSubmittedToHead && !isAlreadyFailedDecided) return false;
-		if (isAlreadyFailedDecided) return true;
+	const allFailedItems = requests.flatMap((req: any) => {
+		const reqDate = req.createdAt || req.updatedAt;
+		const year = reqDate ? new Date(reqDate).getFullYear() : new Date().getFullYear();
+		let rawReqId = req.requestId || String(req.id || '');
+		rawReqId = rawReqId.replace(/^REQ-/i, '');
 
-		let passedCount = 0;
-		let failedCount = 0;
+		let reqWithYear = rawReqId;
+		if (!/^\d{4}-/.test(rawReqId)) {
+			const idPart = /^\d+$/.test(rawReqId) ? String(Number(rawReqId)).padStart(3, '0') : rawReqId;
+			reqWithYear = `${year}-${idPart}`;
+		}
+
+		const items: any[] = [];
 
 		const requestPlans = req.testPlans || [];
-		requestPlans.forEach((p: any) => {
-			if (p.evaluationStatus === 'PASSED') {
-				passedCount++;
-			} else if (p.evaluationStatus === 'FAILED') {
-				failedCount++;
-			}
-		});
+		const remarksLower = (req.remarks || '').toLowerCase();
+		const statusLower = (req.status || '').toLowerCase();
+		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
+			remarksLower.includes('submitted to head panel') ||
+			['retest', 'completed'].includes(statusLower);
+
+		if (isSubmittedToHead) {
+			requestPlans.forEach((p: any) => {
+				const isRetestPlan = Boolean(p.parentPlanId || p.isRetest);
+				if (!isRetestPlan && (p.evaluationStatus || '').toUpperCase() === 'FAILED') {
+					const sampleSuffix = `S${String(p.sampleIndex + 1).padStart(2, '0')}`;
+					const allottedCode = (p.allottedId && /REQ-\d{4}-/i.test(p.allottedId))
+						? p.allottedId
+						: `REQ-${reqWithYear}-${sampleSuffix}`;
+
+					const currentHeadAction = p.headAction || (
+						(p.evaluationRemarks || '').includes('[HEAD_ACTION:RETURNED_TO_REQUESTER]')
+							? 'RETURNED_TO_REQUESTER'
+							: (p.evaluationRemarks || '').includes('[HEAD_ACTION:RETURNED_TO_LAB_MANAGER]')
+								? 'RETURNED_TO_LAB_MANAGER'
+								: (p.evaluationRemarks || '').includes('[HEAD_ACTION:RETURNED_TO_TESTING]')
+									? 'RETURNED_TO_TESTING'
+									: (p.evaluationRemarks || '').includes('[HEAD_ACTION:APPROVED_BY_HEAD]')
+										? 'APPROVED_BY_HEAD'
+										: (req.status === 'RETEST' ? 'RETURNED_TO_TESTING' : null)
+					);
+
+					items.push({
+						id: `${req.id}-plan-${p.id}`,
+						reqId: req.id,
+						planId: p.id,
+						sampleIndex: p.sampleIndex,
+						allottedCode,
+						type: 'TEST_PLAN_FAILURE',
+						testTypeName: p.testType?.name || 'Test Plan',
+						brandName: req.brandName,
+						modelNo: req.modelNo,
+						customerName: req.customerNameAddress,
+						date: p.evaluatedAt || p.updatedAt || req.updatedAt || req.createdAt,
+						headAction: currentHeadAction,
+						request: req,
+						plan: p
+					});
+				}
+			});
+		}
 
 		const qty = req.sampleQty || 1;
 		for (let i = 0; i < qty; i++) {
-			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-			if (report && report.status === 'FAILED') {
-				failedCount++;
+			const insp = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+			if (insp && insp.status === 'FAILED') {
+				const sampleSuffix = `S${String(i + 1).padStart(2, '0')}`;
+				const allottedCode = insp.allottedId || `REQ-${reqWithYear}-${sampleSuffix}`;
+
+				const currentHeadAction = insp.headAction || (
+					(insp.remarks || '').includes('[HEAD_ACTION:RETURNED_TO_REQUESTER]')
+						? 'RETURNED_TO_REQUESTER'
+						: (insp.remarks || '').includes('[HEAD_ACTION:RETURNED_TO_LAB_MANAGER]')
+							? 'RETURNED_TO_LAB_MANAGER'
+							: (insp.remarks || '').includes('[HEAD_ACTION:RETURNED_TO_TESTING]')
+								? 'RETURNED_TO_TESTING'
+								: (insp.remarks || '').includes('[HEAD_ACTION:APPROVED_BY_HEAD]')
+									? 'APPROVED_BY_HEAD'
+									: (req.status === 'RETEST' ? 'RETURNED_TO_TESTING' : null)
+				);
+
+				items.push({
+					id: `${req.id}-inspection-${i}`,
+					reqId: req.id,
+					sampleIndex: i,
+					allottedCode,
+					type: 'INSPECTION_FAILURE',
+					testTypeName: 'Visual Inspection Failure',
+					brandName: req.brandName,
+					modelNo: req.modelNo,
+					customerName: req.customerNameAddress,
+					date: insp.updatedAt || insp.createdAt || req.updatedAt || req.createdAt,
+					headAction: currentHeadAction,
+					request: req,
+					inspection: insp
+				});
 			}
 		}
 
-		return failedCount > passedCount;
+		return items;
 	});
 
-	const filtered = failedRequests.filter((r: any) => {
+	const filtered = allFailedItems.filter((item: any) => {
 		const q = search.toLowerCase();
 		const matchesSearch = (
-			(r.requestId || '').toLowerCase().includes(q) ||
-			(r.brandName || '').toLowerCase().includes(q) ||
-			(r.modelNo || '').toLowerCase().includes(q) ||
-			(r.customerNameAddress || '').toLowerCase().includes(q)
+			(item.allottedCode || '').toLowerCase().includes(q) ||
+			(item.request.requestId || '').toLowerCase().includes(q) ||
+			(item.brandName || '').toLowerCase().includes(q) ||
+			(item.modelNo || '').toLowerCase().includes(q) ||
+			(item.customerName || '').toLowerCase().includes(q) ||
+			(item.testTypeName || '').toLowerCase().includes(q)
 		);
 
-		const statusLower = (r.status || '').toLowerCase();
-		const isRetest = statusLower === 'retest';
-		const isCompleted = ['completed', 'failed'].includes(statusLower);
-		const isPendingHead = (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') &&
-							  (r.remarks || '').includes('Submitted to Head') &&
-							  !(r.remarks || '').includes('Approved by Head');
-		const hasDecisionBeenTaken = isRetest || isCompleted || ((statusLower === 'inspection_failed' || statusLower === 'inspection_completed') && !isPendingHead);
+		const isDecisionTaken = Boolean(item.headAction) || (item.request.status || '').toLowerCase() === 'retest';
 
 		let matchesStatus = true;
 		if (statusFilter === 'PENDING_DECISION') {
-			matchesStatus = !hasDecisionBeenTaken;
+			matchesStatus = !isDecisionTaken;
 		} else if (statusFilter === 'DECISION_TAKEN') {
-			matchesStatus = hasDecisionBeenTaken;
+			matchesStatus = isDecisionTaken;
 		}
 
 		let matchesDate = true;
-		const reqDate = (r.updatedAt || r.createdAt || '').split('T')[0];
+		const reqDate = (item.date || '').split('T')[0];
 		if (startDate) {
 			matchesDate = matchesDate && reqDate >= startDate;
 		}
@@ -111,25 +180,35 @@ export default function HeadFailureDecision() {
 
 	const maxPage = Math.ceil(filtered.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
-	
+
 	const startIndex = (activePage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedFiltered = filtered.slice(startIndex, endIndex);
 
+	const pendingCount = allFailedItems.filter((item: any) => {
+		return !item.headAction && (item.request.status || '').toLowerCase() !== 'retest';
+	}).length;
+
 	return (
 		<div className="space-y-5">
-			<div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex items-center justify-between gap-3">
+			<div className={`${pendingCount > 0 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'} border rounded-2xl p-4 flex items-center justify-between gap-3`}>
 				<div className="flex items-center gap-3">
-					<div className="w-9 h-9 bg-rose-100 rounded-xl flex items-center justify-center shrink-0">
-						<AlertTriangle className="w-5 h-5 text-rose-600" />
+					<div className={`w-9 h-9 ${pendingCount > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'} rounded-xl flex items-center justify-center shrink-0`}>
+						<AlertTriangle className="w-5 h-5" />
 					</div>
 					<div>
-						<p className="text-xs font-bold text-rose-800">{failedRequests.length} Failed Requests Pending Adjudication</p>
-						<p className="text-[10px] text-rose-600 font-medium mt-0.5">Review failed test outcomes, choose to authorize a retest or certify the failure report to the requester.</p>
+						<p className={`text-xs font-bold ${pendingCount > 0 ? 'text-rose-800' : 'text-emerald-800'}`}>
+							{pendingCount} Failed Sample Test Plans Pending Adjudication
+						</p>
+						<p className={`text-[10px] ${pendingCount > 0 ? 'text-rose-600' : 'text-emerald-600'} font-medium mt-0.5`}>
+							{pendingCount > 0 
+								? 'Review individual failed test outcomes, choose to return to requester or return to lab manager for CAPA.'
+								: 'All failed test plans have been adjudicated by Head of Laboratory.'}
+						</p>
 					</div>
 				</div>
-				<button 
-					onClick={loadRequests} 
+				<button
+					onClick={loadRequests}
 					disabled={loading}
 					className="p-2 text-zinc-555 hover:text-[#11236a] hover:bg-zinc-100 rounded-lg cursor-pointer transition-all border-none outline-none disabled:opacity-50"
 				>
@@ -142,7 +221,7 @@ export default function HeadFailureDecision() {
 						<Search className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
 						<input
 							type="text"
-							placeholder="Search by ID, brand, model or customer..."
+							placeholder="Search by code, brand, model or test type..."
 							value={search}
 							onChange={e => {
 								setSearch(e.target.value);
@@ -167,8 +246,8 @@ export default function HeadFailureDecision() {
 					/>
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
-						<input 
-							type="date" 
+						<input
+							type="date"
 							value={startDate}
 							onChange={(e) => {
 								setStartDate(e.target.value);
@@ -180,8 +259,8 @@ export default function HeadFailureDecision() {
 
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
-						<input 
-							type="date" 
+						<input
+							type="date"
 							value={endDate}
 							onChange={(e) => {
 								setEndDate(e.target.value);
@@ -194,7 +273,7 @@ export default function HeadFailureDecision() {
 
 				<div className="flex items-center gap-3 shrink-0">
 					{(search || statusFilter !== 'ALL' || startDate || endDate) && (
-						<button 
+						<button
 							onClick={() => {
 								setSearch('');
 								setStatusFilter('ALL');
@@ -207,7 +286,7 @@ export default function HeadFailureDecision() {
 							Reset Filters
 						</button>
 					)}
-					<span className="text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} requests found</span>
+					<span className="text-[10px] font-bold text-zinc-400 uppercase">{filtered.length} failed items found</span>
 				</div>
 			</div>
 			<div className="bg-white border border-zinc-200/50 rounded-2xl shadow-sm overflow-hidden">
@@ -221,31 +300,30 @@ export default function HeadFailureDecision() {
 						<table className="w-full text-xs">
 							<thead>
 								<tr className="bg-zinc-50 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-100">
-									<th className="py-3 px-5 text-left">Request ID</th>
+									<th className="py-3 px-5 text-left">Allotted Code</th>
 									<th className="py-3 px-5 text-left">Brand / Model</th>
+									<th className="py-3 px-5 text-left">Test Type / Component</th>
 									<th className="py-3 px-5 text-left">Customer</th>
-									<th className="py-3 px-5 text-left">Report No.</th>
 									<th className="py-3 px-5 text-left">Result Status</th>
 									<th className="py-3 px-5 text-left">Date</th>
 									<th className="py-3 px-5 text-right">Actions</th>
 								</tr>
 							</thead>
 							<tbody>
-								{paginatedFiltered.map((rep, i) => {
-									const statusLower = (rep.status || '').toLowerCase();
-									const isRetest = statusLower === 'retest';
-									const isCompleted = ['completed', 'failed'].includes(statusLower);
+								{paginatedFiltered.map((item, i) => {
+									let badgeClass = 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse';
+									let badgeText = 'FAILED (PENDING DECISION)';
 
-									let badgeClass = 'bg-rose-50 text-rose-700 border-rose-100';
-									let badgeText = 'ALL SAMPLES FAILED';
-
-									if (statusLower === 'inspection_completed' || statusLower === 'inspection_failed') {
-										badgeClass = 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse';
-										badgeText = 'INSPECTION FAILED (PENDING DECISION)';
-									} else if (isRetest) {
-										badgeClass = 'bg-amber-50 text-amber-700 border-amber-100 animate-pulse';
+									if (item.headAction === 'RETURNED_TO_REQUESTER') {
+										badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+										badgeText = 'RETURNED TO REQUESTER';
+									} else if (item.headAction === 'RETURNED_TO_LAB_MANAGER') {
+										badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+										badgeText = 'RETURNED TO LAB MANAGER';
+									} else if (item.headAction === 'RETURNED_TO_TESTING') {
+										badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
 										badgeText = 'RETURNED FOR RETEST';
-									} else if (isCompleted) {
+									} else if (item.headAction === 'APPROVED_BY_HEAD') {
 										badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
 										badgeText = 'FINALIZED & RELEASED';
 									}
@@ -253,27 +331,34 @@ export default function HeadFailureDecision() {
 									return (
 										<tr key={i} className="border-t border-zinc-100 hover:bg-zinc-50/50 transition-colors">
 											<td className="py-4 px-5 font-bold text-[#11236a]">
-												{rep.requestId || `REQ-00${rep.id}`}
+												{item.allottedCode}
 											</td>
 											<td className="py-4 px-5">
-												<p className="font-bold text-zinc-800">{rep.brandName}</p>
-												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{rep.modelNo}</p>
+												<p className="font-bold text-zinc-800">{item.brandName}</p>
+												<p className="text-zinc-400 text-[10px] font-semibold mt-0.5">{item.modelNo}</p>
 											</td>
-											<td className="py-4 px-5 text-zinc-600 font-medium truncate max-w-[150px]">{rep.customerNameAddress}</td>
-											<td className="py-4 px-5 font-bold text-zinc-700">RPT-{rep.requestId || `00${rep.id}`}</td>
+											<td className="py-4 px-5 font-bold text-zinc-700">
+												<span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-700 rounded-full border border-rose-100">
+													{item.testTypeName}
+												</span>
+											</td>
+											<td className="py-4 px-5 text-zinc-600 font-medium truncate max-w-[150px]">{item.customerName}</td>
 											<td className="py-4 px-5">
 												<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
 													{badgeText}
 												</span>
 											</td>
-											<td className="py-4 px-5 text-zinc-400 font-medium">{formatDate(rep.updatedAt || rep.createdAt)}</td>
+											<td className="py-4 px-5 text-zinc-400 font-medium">{formatDate(item.date)}</td>
 											<td className="py-4 px-5 text-right">
 												<div className="flex items-center justify-end gap-2">
-													<button 
-														onClick={() => navigate(`/head/failure-decision/${rep.id}`)}
+													<button
+														onClick={() => {
+															const queryParam = item.planId ? `?planId=${item.planId}` : (item.sampleIndex !== undefined ? `?sampleIndex=${item.sampleIndex}` : '');
+															navigate(`/head/failure-decision/${item.reqId}${queryParam}`);
+														}}
 														className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#11236a] hover:text-white px-2.5 py-1.5 rounded-lg border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
 													>
-														<Eye className="w-3.5 h-3.5" /> Details
+														<Eye className="w-3.5 h-3.5" /> View Details
 													</button>
 												</div>
 											</td>
@@ -285,7 +370,7 @@ export default function HeadFailureDecision() {
 						{filtered.length === 0 && (
 							<div className="py-16 text-center bg-white">
 								<AlertTriangle className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-								<p className="text-sm font-bold text-zinc-400">No requests found matching your filter criteria.</p>
+								<p className="text-sm font-bold text-zinc-400">No failed sample test plans found matching your filter criteria.</p>
 							</div>
 						)}
 						<Pagination
@@ -297,7 +382,7 @@ export default function HeadFailureDecision() {
 								setItemsPerPage(limit);
 								setCurrentPage(1);
 							}}
-							itemNamePlural="requests"
+							itemNamePlural="failed plans"
 						/>
 					</>
 				)}

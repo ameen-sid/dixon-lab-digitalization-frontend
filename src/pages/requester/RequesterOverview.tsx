@@ -62,7 +62,8 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 	const inspectionCompletedCount = requests.filter(r => ['INSPECTION_COMPLETED'].includes(r.status)).length;
 	const inspectionFailedCount = requests.filter(r => ['INSPECTION_FAILED'].includes(r.status)).length;
 	const rejectedCount = requests.filter(r => ['REJECTED'].includes(r.status)).length;
-	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING', 'RETEST'].includes(r.status)).length;
+	const underTestingCount = requests.filter(r => ['UNDER_TEST', 'UNDER_TESTING'].includes(r.status)).length;
+	const retestCount = requests.filter(r => ['RETEST'].includes(r.status)).length;
 	const completedCount = requests.filter(r => ['COMPLETED', 'PASS', 'TESTING_PASSED', 'PARTIAL', 'TESTING_PARTIAL'].includes(r.status)).length;
 	const failedCount = requests.filter(r => ['FAIL', 'TESTING_FAILED', 'FAILED'].includes(r.status)).length;
 
@@ -74,7 +75,7 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 		<div className="space-y-6">
 			<div className="bg-white border border-zinc-200/50 rounded-2xl p-5 shadow-sm">
 				<h3 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-4">Requests Status Overview</h3>
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3">
 					<div 
 						onClick={() => handleStatusCardClick('ALL')}
 						className="cursor-pointer bg-zinc-50 border border-zinc-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-zinc-300 transition-all active:scale-[0.98]"
@@ -123,6 +124,13 @@ export default function RequesterOverview({ requests, capas, setActiveTab, setSe
 					>
 						<span className="text-[10px] text-indigo-600 font-extrabold uppercase tracking-wider">Under Testing</span>
 						<span className="text-xl font-black text-indigo-700 mt-1">{underTestingCount}</span>
+					</div>
+					<div 
+						onClick={() => handleStatusCardClick('RETEST')}
+						className="cursor-pointer bg-amber-50/60 border border-amber-200/80 p-3.5 rounded-xl flex flex-col justify-center text-center hover:shadow-md hover:border-amber-300 transition-all active:scale-[0.98]"
+					>
+						<span className="text-[10px] text-amber-700 font-extrabold uppercase tracking-wider">Retest</span>
+						<span className="text-xl font-black text-amber-800 mt-1">{retestCount}</span>
 					</div>
 					<div 
 						onClick={() => handleStatusCardClick('COMPLETED')}

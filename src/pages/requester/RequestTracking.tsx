@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { ChevronLeft, Clipboard, CheckCircle, Eye, FileText, XCircle, X } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Eye, FileText, XCircle, X } from 'lucide-react';
 
 import { TearDownViewerModal } from '../../components/TearDownViewerModal';
 
@@ -51,10 +51,10 @@ const formatCompletionDate = (dateString: string | null | undefined) => {
 interface RequestTrackingProps {
 	selectedRequest: RequestRecord | null;
 	setActiveTab: (tab: string) => void;
-	onInitiateCapa: (req: RequestRecord) => void;
+	onInitiateCapa?: (req: RequestRecord) => void;
 }
 
-export default function RequestTracking({ selectedRequest, setActiveTab, onInitiateCapa }: RequestTrackingProps) {
+export default function RequestTracking({ selectedRequest, setActiveTab, onInitiateCapa: _onInitiateCapa }: RequestTrackingProps) {
 	const [realSampleInspections, setRealSampleInspections] = useState<any[]>([]);
 	const [realTestPlans, setRealTestPlans] = useState<any[]>([]);
 	const [activeTimelineSampleIndex, setActiveTimelineSampleIndex] = useState<number | null>(null);
@@ -151,7 +151,24 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 
 	const samplePlans = (() => {
 		if (activeTimelineSampleIndex === null) return [];
-		return realTestPlans.filter((p: any) => Number(p.sampleIndex) === activeTimelineSampleIndex);
+		return realTestPlans.filter((p: any) => {
+			if (Number(p.sampleIndex) !== activeTimelineSampleIndex) return false;
+			const status = (p.evaluationStatus || '').toUpperCase();
+			if (status === 'PASSED') {
+				const isApproved = selectedRequest?.status === 'COMPLETED' ||
+					p.headAction === 'APPROVED_BY_HEAD' ||
+					(p.evaluationRemarks || '').includes('[HEAD_ACTION:APPROVED_BY_HEAD]') ||
+					(selectedRequest?.remarks || '').includes('Approved by Head');
+				return isApproved;
+			}
+			if (status === 'FAILED') {
+				const isActionedByHeadForThisPlan =
+					!!p.headAction ||
+					(p.evaluationRemarks || '').includes('[HEAD_ACTION:');
+				return isActionedByHeadForThisPlan;
+			}
+			return true;
+		});
 	})();
 
 	const sampleReport = (() => {
@@ -206,7 +223,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				failed: isSampleFailed
 			},
 			...(!isSampleFailed ? (
-				samplePlans.length > 0 
+				samplePlans.length > 0
 					? samplePlans.flatMap((p: any) => {
 						const planName = p.testType?.name || 'General Test';
 						const isCompleted = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
@@ -283,17 +300,6 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 				>
 					<ChevronLeft className="w-4 h-4" /> Back to Submission Register
 				</button>
-
-				<div className="flex items-center gap-2">
-					{['COMPLETED', 'FAILED', 'FAIL', 'REJECTED', 'INSPECTION_FAILED'].includes(selectedRequest.status) && (
-						<button
-							onClick={() => onInitiateCapa(selectedRequest)}
-							className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 transition-all border-none outline-none cursor-pointer active:scale-95 shadow-sm animate-pulse"
-						>
-							<Clipboard className="w-4 h-4" /> Initiate CAPA Report
-						</button>
-					)}
-				</div>
 			</div>
 			{selectedRequest.status === 'REJECTED' && selectedRequest.remarks && (
 				<div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 shadow-sm flex flex-col gap-2">
@@ -303,6 +309,17 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 					</div>
 					<p className="text-xs font-semibold text-rose-750 leading-relaxed bg-white/60 rounded-xl p-3 border border-rose-100/50">
 						{selectedRequest.remarks}
+					</p>
+				</div>
+			)}
+			{selectedRequest.status === 'RETEST' && (
+				<div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 shadow-sm flex flex-col gap-2">
+					<div className="flex items-center gap-2 text-amber-800 font-extrabold text-sm">
+						<span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+						Returned for Retesting by Head of Lab
+					</div>
+					<p className="text-xs font-semibold text-amber-800 leading-relaxed bg-white/60 rounded-xl p-3 border border-amber-100/50">
+						Head of Lab authorized retesting for failed test plans. Released evaluation report(s) can be viewed below while retesting is in progress.
 					</p>
 				</div>
 			)}
@@ -336,6 +353,8 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											return 'bg-indigo-50 text-indigo-600 border-indigo-100';
 										case 'TESTING_COMPLETED':
 											return 'bg-blue-50 text-blue-700 border-blue-150';
+										case 'RETEST':
+											return 'bg-amber-50 text-amber-700 border-amber-200';
 										case 'UNDER_INSPECTION':
 											return 'bg-blue-50 text-blue-600 border-blue-100';
 										case 'PENDING_APPROVAL':
@@ -348,7 +367,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									<span className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusStyle(selectedRequest.status)}`}>
 										{['COMPLETED', 'PASS', 'TESTING_PASSED', 'INSPECTION_COMPLETED'].includes(selectedRequest.status) && <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />}
 										{['FAIL', 'TESTING_FAILED', 'REJECTED', 'FAILED', 'INSPECTION_FAILED'].includes(selectedRequest.status) && <XCircle className="w-3 h-3 text-rose-600 shrink-0" />}
-										{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL'].includes(selectedRequest.status) && (
+										{['UNDER_TEST', 'UNDER_TESTING', 'UNDER_INSPECTION', 'PENDING_APPROVAL', 'PARTIAL', 'TESTING_PARTIAL', 'RETEST'].includes(selectedRequest.status) && (
 											<span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse shrink-0" />
 										)}
 										{selectedRequest.status === 'PASS' || selectedRequest.status === 'TESTING_PASSED'
@@ -357,7 +376,9 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 												? 'TESTING FAILED'
 												: selectedRequest.status === 'PARTIAL' || selectedRequest.status === 'TESTING_PARTIAL'
 													? 'TESTING PARTIAL'
-													: selectedRequest.status.replace('_', ' ')}
+													: selectedRequest.status === 'RETEST'
+														? 'RETURNED FOR RETESTING'
+														: selectedRequest.status.replace('_', ' ')}
 									</span>
 								);
 							})()}
@@ -504,7 +525,8 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 							{(() => {
 								const isRejected = selectedRequest.status === 'REJECTED';
 								const isInspectionFailed = selectedRequest.status === 'INSPECTION_FAILED';
-								const isRetest = selectedRequest.status === 'RETEST';
+								const hasRetestPlans = (realTestPlans || []).some((p: any) => Boolean(p.parentPlanId || p.isRetest));
+								const isRetest = selectedRequest.status === 'RETEST' || (hasRetestPlans && !['COMPLETED', 'FAILED', 'REJECTED'].includes(selectedRequest.status));
 								const isFailedStatus = ['FAIL', 'TESTING_FAILED', 'FAILED', 'INSPECTION_FAILED'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail'));
 								const isFinalFailedStatus = ['FAIL', 'FAILED', 'INSPECTION_FAILED'].includes(selectedRequest.status) || (selectedRequest.status === 'COMPLETED' && selectedRequest.remarks?.toLowerCase().includes('fail'));
 
@@ -619,17 +641,17 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											},
 											{
 												step: 'Test Plan Created',
-												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
+												date: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED", "RETEST"].includes(selectedRequest.status) || Boolean(planCreatedDate)
 													? formatCompletionDate(planCreatedDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: 'Awaiting plan',
-												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
+												completed: ["UNDER_TESTING", "TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED", "RETEST"].includes(selectedRequest.status) || !!(realTestPlans && realTestPlans.length > 0)
 											},
 											{
 												step: 'Testing',
-												date: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
+												date: (["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status) || (realTestPlans && realTestPlans.some((p: any) => p.evaluationStatus)))
 													? formatCompletionDate(testingStartDate || selectedRequest.updatedAt || selectedRequest.createdAt)
 													: (selectedRequest.status === 'UNDER_TESTING' ? 'In testing phase' : 'Awaiting start'),
-												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status)
+												completed: ["TESTING_PASSED", "TESTING_FAILED", "TESTING_PARTIAL", "COMPLETED", "REJECTED", "FAILED", "FAIL", "TESTING_COMPLETED"].includes(selectedRequest.status) || !!(realTestPlans && realTestPlans.some((p: any) => p.evaluationStatus))
 											},
 											{
 												step: selectedRequest.status === 'TESTING_COMPLETED'
@@ -648,7 +670,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											{
 												step: 'Report Generation',
 												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
-													? formatCompletionDate(testingCompletionDate || selectedRequest.updatedAt)
+													? formatCompletionDate(selectedRequest.updatedAt)
 													: 'Pending release',
 												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
 												failed: isFinalFailedStatus
@@ -741,47 +763,103 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										}
 
 										return (
-											<div key={index} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0">
-												<div className="flex items-center gap-3">
-													<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-													<div>
-														<p className="text-[11px] font-bold text-zinc-900">
-															Sample #{sampleNumber}
-														</p>
-														<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
-															ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
-														</p>
+											<div key={index} className="py-3.5 first:pt-0 last:pb-0">
+												<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+													<div className="flex items-center gap-3 shrink-0">
+														<div className={`w-2 h-2 rounded-full shrink-0 ${report.status === 'PASSED' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+														<div>
+															<div className="flex items-center gap-2">
+																<p className="text-[11px] font-bold text-zinc-900">
+																	Sample #{sampleNumber}
+																</p>
+																<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
+																	? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
+																	: 'bg-rose-50 border border-rose-100 text-rose-700'
+																	}`}>
+																	{report.status}
+																</span>
+															</div>
+															<p className="text-[9px] text-zinc-400 font-bold uppercase mt-0.5">
+																ID: <span className="text-zinc-650 font-semibold">{report.allottedId}</span>
+															</p>
+														</div>
 													</div>
-												</div>
-												<div className="flex items-center gap-2">
-													<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${report.status === 'PASSED'
-														? 'bg-emerald-50 border border-emerald-100 text-emerald-700'
-														: 'bg-rose-50 border border-rose-100 text-rose-700'
-														}`}>
-														{report.status}
-													</span>
-													{report.status === 'PASSED' && (
-														<div className="flex flex-col gap-1.5 items-end">
-															{(() => {
-																const samplePlans = realTestPlans.filter((p: any) => Number(p.sampleIndex) === index);
-																if (samplePlans.length === 0) {
-																	return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
-																}
-																return samplePlans.map((p: any) => {
-																	const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
-																	return (
-																		<div key={p.id} className="flex items-center gap-1.5">
-																			<span className="text-[9px] font-bold text-zinc-500">
-																				{p.testType?.name || 'General'}:
-																			</span>
-																			{isPlanEvaluated ? (
-																				<div className="flex items-center gap-1.5">
+
+													<div className="flex-1 flex flex-col items-start sm:items-end gap-1.5 min-w-0">
+														{report.status === 'PASSED' && (
+															<div className="flex flex-col gap-1.5 items-start sm:items-end w-full">
+																{(() => {
+																	const samplePlans = realTestPlans.filter((p: any) => Number(p.sampleIndex) === index);
+																	if (samplePlans.length === 0) {
+																		return <span className="text-[9px] text-zinc-400 italic">No plans allocated</span>;
+																	}
+
+																	// Group test plans by test lineage (key: original failed plan ID or own ID)
+																	const lineageGroupsMap = new Map<number, any[]>();
+																	samplePlans.forEach((p: any) => {
+																		const lineageKey = p.parentPlanId ? Number(p.parentPlanId) : Number(p.id);
+																		if (!lineageGroupsMap.has(lineageKey)) {
+																			lineageGroupsMap.set(lineageKey, []);
+																		}
+																		lineageGroupsMap.get(lineageKey)!.push(p);
+																	});
+
+																	return Array.from(lineageGroupsMap.values()).map((lineagePlans) => {
+																		const parentPlan = lineagePlans.find((p: any) => !p.parentPlanId) || lineagePlans[0];
+																		const childRetestPlan = lineagePlans.find((p: any) => Boolean(p.parentPlanId));
+																		const testTypeName = parentPlan.testType?.name || childRetestPlan?.testType?.name || 'General';
+
+																		const renderPlanButtons = (p: any, isRetest: boolean) => {
+																			const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+																			const isPlanFailed = (p.evaluationStatus || '').toUpperCase() === 'FAILED';
+																			
+																			// Specific approval flags
+																			const isApprovedByHeadDirect = p.headAction === 'APPROVED_BY_HEAD' || (p.evaluationRemarks || '').includes('[HEAD_ACTION:APPROVED_BY_HEAD]');
+																			const isRequestCompleted = ['COMPLETED', 'HEAD_APPROVED'].includes((selectedRequest?.status || '').toUpperCase());
+
+																			// Initial parent tests approval
+																			const isInitialApproved = !isRetest && isPlanEvaluated && (isApprovedByHeadDirect || isRequestCompleted || (selectedRequest?.remarks || '').includes('Approved by Head'));
+
+																			// Check if Head has taken action on this failed plan (Returned to Requester, Returned to Lab Manager, Returned to Testing, or Approved)
+																			const hasHeadDecisionOnFailure = Boolean(p.headAction) ||
+																				(p.evaluationRemarks || '').includes('[HEAD_ACTION:');
+
+																			if (!isPlanEvaluated) {
+																				return (
+																					<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded uppercase tracking-wider">
+																						{isRetest ? 'Retest In Progress' : 'In Testing'}
+																					</span>
+																				);
+																			}
+
+																			if (!isRetest && isPlanFailed && !hasHeadDecisionOnFailure) {
+																				return (
+																					<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded uppercase tracking-wider whitespace-nowrap">
+																						Awaiting Head Decision
+																					</span>
+																				);
+																			}
+
+																			if (!isRetest && !isInitialApproved && !isPlanFailed) {
+																				return (
+																					<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded uppercase tracking-wider whitespace-nowrap">
+																						Awaiting Head Release
+																					</span>
+																				);
+																			}
+
+																			return (
+																				<div className="flex items-center gap-1.5 flex-wrap">
 																					<button
 																						type="button"
 																						onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
-																						className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5"
+																						className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all cursor-pointer outline-none flex items-center gap-0.5 ${isPlanFailed
+																							? 'text-rose-700 hover:text-white border-rose-200 bg-white hover:bg-rose-600'
+																							: 'text-emerald-600 hover:text-white border-emerald-200 bg-white hover:bg-emerald-600'
+																						}`}
 																					>
-																						<FileText className="w-2.5 h-2.5" /> Report
+																						<FileText className="w-2.5 h-2.5" />
+																						<span>{isPlanFailed ? 'Failed Report' : (isRetest ? 'Retest Report' : 'Report')}</span>
 																					</button>
 																					{p.testType?.name?.toLowerCase().includes('reliability') && (() => {
 																						const tdInfo = getTearDownInfo(p, selectedRequest);
@@ -791,44 +869,64 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 																								disabled={!tdInfo}
 																								onClick={() => handleTearDownAction(p, selectedRequest)}
 																								title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-																								className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all flex items-center gap-0.5 ${
-																									tdInfo
+																								className={`text-[9px] font-extrabold px-2 py-0.5 rounded border transition-all flex items-center gap-0.5 ${tdInfo
 																										? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer shadow-sm active:scale-95'
 																										: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-																								}`}
+																									}`}
 																							>
 																								<FileText className="w-2.5 h-2.5" /> Tear Down
 																							</button>
 																						);
 																					})()}
 																				</div>
-																			) : (
-																				<span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-100 rounded uppercase">
-																					Testing
-																				</span>
-																			)}
-																		</div>
-																	);
-																});
-															})()}
+																			);
+																		};
+
+																		return (
+																			<div key={`lineage-${parentPlan.id}`} className="bg-zinc-50/90 p-2 rounded-xl border border-zinc-200/80 w-full space-y-1.5">
+																				<div className="flex items-center justify-between gap-2 border-b border-zinc-200/50 pb-1">
+																					<span className="text-[10px] font-extrabold text-zinc-800">
+																						{testTypeName}
+																					</span>
+																					<div className="shrink-0">
+																						{renderPlanButtons(parentPlan, false)}
+																					</div>
+																				</div>
+
+																				{/* Child Retest Plan row */}
+																				{childRetestPlan && (
+																					<div className="flex items-center justify-between gap-2 pt-0.5">
+																						<span className="text-[8px] font-black px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded uppercase shrink-0">
+																							Retest Attempt
+																						</span>
+																						<div className="shrink-0">
+																							{renderPlanButtons(childRetestPlan, true)}
+																						</div>
+																					</div>
+																				)}
+																			</div>
+																		);
+																	});
+																})()}
+																<button
+																	type="button"
+																	onClick={() => setActiveTimelineSampleIndex(index)}
+																	className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none mt-1"
+																>
+																	View Timeline
+																</button>
+															</div>
+														)}
+														{report.status === 'FAILED' && selectedRequest.status === 'INSPECTION_FAILED' && !(selectedRequest.remarks || '').includes('Submitted to Head') && (
 															<button
 																type="button"
-																onClick={() => setActiveTimelineSampleIndex(index)}
-																className="text-[9px] font-extrabold text-[#11236a] hover:text-white px-2 py-0.5 rounded border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none mt-1"
+																onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
+																className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5 active:scale-95"
 															>
-																View Timeline
+																<FileText className="w-2.5 h-2.5" /> View Report
 															</button>
-														</div>
-													)}
-													{report.status === 'FAILED' && selectedRequest.status === 'INSPECTION_FAILED' && !(selectedRequest.remarks || '').includes('Submitted to Head') && (
-														<button
-															type="button"
-															onClick={() => window.open(`/reports/preview?type=sample&key=${reqDbIdVal}-sample-${index}`, '_blank')}
-															className="text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none flex items-center gap-0.5 active:scale-95"
-														>
-															<FileText className="w-2.5 h-2.5" /> View Report
-														</button>
-													)}
+														)}
+													</div>
 												</div>
 											</div>
 										);
@@ -842,7 +940,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 			</div>
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto animate-scale-up">
+					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto no-scrollbar animate-scale-up">
 						<button
 							onClick={() => setActiveTimelineSampleIndex(null)}
 							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-555 hover:text-slate-850 cursor-pointer border-none outline-none"
@@ -860,7 +958,12 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 										Sample #{activeTimelineSampleIndex + 1} Testing Timeline
 									</h3>
 									<div className="flex flex-wrap gap-2">
-										{samplePlans.filter((p: any) => ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase())).map((p: any) => (
+										{samplePlans.filter((p: any) => {
+											const isEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+											if (!isEvaluated) return false;
+											const isApprovedByHead = ['COMPLETED', 'HEAD_APPROVED', 'APPROVED'].includes((selectedRequest?.status || '').toUpperCase()) || (selectedRequest?.remarks || '').includes('Approved by Head') || p.headAction === 'APPROVED_BY_HEAD' || (p.evaluationRemarks || '').includes('[HEAD_ACTION:APPROVED_BY_HEAD]');
+											return isApprovedByHead;
+										}).map((p: any) => (
 											<div key={p.id} className="flex items-center gap-1.5">
 												<button
 													onClick={() => window.open(`/reports/preview?type=plan&key=${reqDbIdVal}-plan-${p.id}`, '_blank')}
@@ -876,11 +979,10 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 															disabled={!tdInfo}
 															onClick={() => handleTearDownAction(p, selectedRequest)}
 															title={tdInfo ? "View Uploaded Tear Down Report" : "Tear Down Report Not Uploaded Yet"}
-															className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-1.5 rounded-lg border transition-all outline-none shadow-sm ${
-																tdInfo
+															className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-1.5 rounded-lg border transition-all outline-none shadow-sm ${tdInfo
 																	? 'text-emerald-700 hover:text-white border-emerald-250 bg-white hover:bg-emerald-600 cursor-pointer active:scale-95'
 																	: 'text-zinc-400 border-zinc-200 bg-zinc-100 opacity-60 cursor-not-allowed'
-															}`}
+																}`}
 														>
 															<FileText className="w-3 h-3" />
 															<span>Tear Down</span>

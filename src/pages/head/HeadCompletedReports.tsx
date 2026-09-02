@@ -35,32 +35,20 @@ export default function HeadCompletedReports() {
 	}, []);
 
 	const completedOrPartialRequests = requests.filter((req: any) => {
-		const isSubmittedToHead = (req.remarks || '').includes('Submitted to Head');
-		const isAlreadyApproved = (req.status || '').toLowerCase() === 'completed';
-		if (!isSubmittedToHead && !isAlreadyApproved) return false;
+		const statusLower = (req.status || '').toLowerCase();
+		const remarksLower = (req.remarks || '').toLowerCase();
+		const isAlreadyApproved = statusLower === 'completed';
 		if (isAlreadyApproved) return true;
-		
-		let passedCount = 0;
-		let failedCount = 0;
 
-		const requestPlans = req.testPlans || [];
-		requestPlans.forEach((p: any) => {
-			if (p.evaluationStatus === 'PASSED') {
-				passedCount++;
-			} else if (p.evaluationStatus === 'FAILED') {
-				failedCount++;
-			}
-		});
+		const hasPassedPlan = (req.testPlans || []).some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
+		const hasPassedInsp = (req.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
 
-		const qty = req.sampleQty || 1;
-		for (let i = 0; i < qty; i++) {
-			const report = (req.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-			if (report && report.status === 'FAILED') {
-				failedCount++;
-			}
-		}
+		if (!hasPassedPlan && !hasPassedInsp) return false;
 
-		return passedCount >= failedCount;
+		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
+			remarksLower.includes('submitted to head panel');
+
+		return isSubmittedToHead;
 	});
 
 	const filtered = completedOrPartialRequests.filter((r: any) => {
@@ -119,7 +107,7 @@ export default function HeadCompletedReports() {
 
 	const maxPage = Math.ceil(filtered.length / itemsPerPage);
 	const activePage = maxPage > 0 ? Math.min(currentPage, maxPage) : 1;
-	
+
 	const startIndex = (activePage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedFiltered = filtered.slice(startIndex, endIndex);
@@ -136,8 +124,8 @@ export default function HeadCompletedReports() {
 						<p className="text-[10px] text-emerald-600 font-medium mt-0.5">All NABL test reports and partial outcomes approved by the Head of Lab.</p>
 					</div>
 				</div>
-				<button 
-					onClick={loadRequests} 
+				<button
+					onClick={loadRequests}
 					disabled={loading}
 					className="p-2 text-zinc-550 hover:text-[#11236a] hover:bg-zinc-100 rounded-lg cursor-pointer transition-all border-none outline-none disabled:opacity-50"
 				>
@@ -175,8 +163,8 @@ export default function HeadCompletedReports() {
 					/>
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">From</span>
-						<input 
-							type="date" 
+						<input
+							type="date"
 							value={startDate}
 							onChange={(e) => {
 								setStartDate(e.target.value);
@@ -188,8 +176,8 @@ export default function HeadCompletedReports() {
 
 					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1">
 						<span className="text-[9px] font-extrabold text-zinc-700 uppercase tracking-wider">To</span>
-						<input 
-							type="date" 
+						<input
+							type="date"
 							value={endDate}
 							onChange={(e) => {
 								setEndDate(e.target.value);
@@ -202,7 +190,7 @@ export default function HeadCompletedReports() {
 
 				<div className="flex items-center gap-3 shrink-0">
 					{(search || statusFilter !== 'ALL' || startDate || endDate) && (
-						<button 
+						<button
 							onClick={() => {
 								setSearch('');
 								setStatusFilter('ALL');
@@ -260,7 +248,7 @@ export default function HeadCompletedReports() {
 											<td className="py-4 px-5 text-zinc-400 font-medium">{formatDate(rep.updatedAt || rep.createdAt)}</td>
 											<td className="py-4 px-5 text-right">
 												<div className="flex items-center justify-end gap-2">
-													<button 
+													<button
 														onClick={() => navigate(`/head/completed-reports/${rep.id}`)}
 														className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#11236a] hover:text-white px-2.5 py-1.5 rounded-lg border border-[#11236a]/20 bg-white hover:bg-[#11236a] transition-all cursor-pointer outline-none"
 													>

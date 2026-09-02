@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Clipboard, CheckCircle, Search, Eye } from 'lucide-react';
 import CustomSelect from '../../components/CustomSelect';
 import Pagination from '../../components/Pagination';
+import { getTestTypes } from '../../services/operations/testTypeService';
 
 interface EngineerFilledReportsProps {
 	requests: any[];
@@ -12,8 +13,29 @@ interface EngineerFilledReportsProps {
 export default function EngineerFilledReports({ requests, currentEngineerId, currentEngineerIsNabl }: EngineerFilledReportsProps) {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [statusFilter, setStatusFilter] = useState('ALL');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
+	const [testTypes, setTestTypes] = useState<any[]>([]);
+
+	useEffect(() => {
+		let isMounted = true;
+		const loadTestTypes = async () => {
+			try {
+				const types = await getTestTypes()();
+				if (isMounted && types) {
+					setTestTypes(types);
+				}
+			} catch (e) {
+				console.error('Failed to load test types in EngineerFilledReports', e);
+			}
+		};
+		loadTestTypes();
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	const filledPlans = useMemo(() => {
 		const list: any[] = [];
@@ -22,7 +44,9 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 			const inspections = Array.isArray(req.sampleInspections) ? req.sampleInspections : [];
 
 			requestPlans.forEach((plan: any) => {
-				const planTestTypeName = String(plan.testType?.name || req.testType?.name || '').toLowerCase();
+				const masterTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
+				const planTestType = masterTestType || plan.testType || req.testType;
+				const planTestTypeName = String(planTestType?.name || '').toLowerCase();
 				const isReliability = planTestTypeName.includes('reliability');
 				if (isReliability) return;
 
@@ -101,6 +125,22 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 				const isEvaluated = ['PASSED', 'FAILED'].includes((plan.evaluationStatus || '').toUpperCase());
 
 				if (isReportStatus && hasReportData) {
+					const reqDate = req.createdAt || req.updatedAt;
+					const year = reqDate ? new Date(reqDate).getFullYear() : new Date().getFullYear();
+					let rawReqId = req.requestId || String(req.id || '');
+					rawReqId = rawReqId.replace(/^REQ-/i, '');
+
+					let reqWithYear = rawReqId;
+					if (!/^\d{4}-/.test(rawReqId)) {
+						const idPart = /^\d+$/.test(rawReqId) ? String(Number(rawReqId)).padStart(3, '0') : rawReqId;
+						reqWithYear = `${year}-${idPart}`;
+					}
+
+					const sampleSuffix = `S${String(sampleIdx + 1).padStart(2, '0')}`;
+					const fullAllottedId = (insp?.allottedId && /REQ-\d{4}-/i.test(insp.allottedId))
+						? insp.allottedId
+						: `REQ-${reqWithYear}-${sampleSuffix}`;
+
 					list.push({
 						key: `${req.id}-sample-${sampleIdx}`,
 						plan,
@@ -110,15 +150,15 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 						status: getReportStatus(),
 						isEvaluated,
 						createdAt: insp.updatedAt || insp.createdAt,
-						testType: req.testType,
-						allottedId: plan.allottedId || `REQ-${req.id}-S${String(sampleIdx + 1).padStart(2, '0')}`,
+						testType: planTestType,
+						allottedId: fullAllottedId,
 						submittedBy: checksObj.submittedByName || req.engineerName || 'Unknown',
 					});
 				}
 			});
 		});
 		return list;
-	}, [requests, currentEngineerId, currentEngineerIsNabl]);
+	}, [requests, currentEngineerId, currentEngineerIsNabl, testTypes]);
 
 	const filteredPlans = useMemo(() => {
 		return filledPlans.filter(item => {
@@ -133,13 +173,22 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 				statusFilter === 'ALL' ||
 				item.status.toUpperCase() === statusFilter.toUpperCase();
 
-			return matchesSearch && matchesStatus;
+			let matchesDate = true;
+			const itemDate = (item.createdAt || item.request.createdAt || '').split('T')[0];
+			if (startDate) {
+				matchesDate = matchesDate && itemDate >= startDate;
+			}
+			if (endDate) {
+				matchesDate = matchesDate && itemDate <= endDate;
+			}
+
+			return matchesSearch && matchesStatus && matchesDate;
 		});
-	}, [filledPlans, searchQuery, statusFilter]);
+	}, [filledPlans, searchQuery, statusFilter, startDate, endDate]);
 
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [searchQuery, statusFilter]);
+	}, [searchQuery, statusFilter, startDate, endDate]);
 
 	const paginatedPlans = useMemo(() => {
 		const startIndex = (currentPage - 1) * itemsPerPage;
@@ -178,6 +227,26 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 				</div>
 
 				<div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5">
+						<span className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-wider">From</span>
+						<input
+							type="date"
+							value={startDate}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
+
+					<div className="flex items-center gap-2 bg-[#f8fafc] border border-zinc-200 rounded-xl px-3 py-1.5">
+						<span className="text-[9px] font-extrabold text-zinc-500 uppercase tracking-wider">To</span>
+						<input
+							type="date"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="bg-transparent border-none text-xs font-semibold text-zinc-700 outline-none cursor-pointer"
+						/>
+					</div>
+
 					<div className="flex items-center gap-1.5">
 						<span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
 							Report Status:
@@ -196,12 +265,14 @@ export default function EngineerFilledReports({ requests, currentEngineerId, cur
 						/>
 					</div>
 
-					{(searchQuery || statusFilter !== 'ALL') && (
+					{(searchQuery || statusFilter !== 'ALL' || startDate || endDate) && (
 						<button
 							type="button"
 							onClick={() => {
 								setSearchQuery('');
 								setStatusFilter('ALL');
+								setStartDate('');
+								setEndDate('');
 							}}
 							className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/50 px-3 py-2 rounded-xl cursor-pointer transition-all"
 						>

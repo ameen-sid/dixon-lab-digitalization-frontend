@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, FileText, ExternalLink, Bookmark, RefreshCw } from 'lucide-react';
-import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
+import { getTestRequestDetails } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
 
 export default function HeadFailureDetails() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
+
+	const targetPlanId = searchParams.get('planId');
+	const targetSampleIndex = searchParams.get('sampleIndex');
 
 	const [request, setRequest] = useState<any>(null);
 	const [loading, setLoading] = useState(true);
@@ -58,57 +62,56 @@ export default function HeadFailureDetails() {
 
 	const qty = request.sampleQty || 1;
 
-	const isActioned = ['completed', 'failed', 'fail', 'retest'].includes((request.status || '').toLowerCase()) ||
-		(((request.status || '').toLowerCase() === 'inspection_failed' || (request.status || '').toLowerCase() === 'inspection_completed') && 
-		 !(request.remarks || '').includes('Submitted to Head'));
+	const activePlan = targetPlanId
+		? (request.testPlans || []).find((p: any) => String(p.id) === String(targetPlanId))
+		: null;
+
+	const currentPlanHeadAction = activePlan
+		? (activePlan.headAction || (
+			activePlan.evaluationRemarks?.includes('[HEAD_ACTION:RETURNED_TO_REQUESTER]') ? 'RETURNED_TO_REQUESTER' :
+				activePlan.evaluationRemarks?.includes('[HEAD_ACTION:RETURNED_TO_LAB_MANAGER]') ? 'RETURNED_TO_LAB_MANAGER' :
+					activePlan.evaluationRemarks?.includes('[HEAD_ACTION:RETURNED_TO_TESTING]') ? 'RETURNED_TO_TESTING' :
+						activePlan.evaluationRemarks?.includes('[HEAD_ACTION:APPROVED_BY_HEAD]') ? 'APPROVED_BY_HEAD' :
+							(request.status === 'RETEST' ? 'RETURNED_TO_TESTING' : null)
+		))
+		: null;
+
+	const failedPlansInReq = (request.testPlans || []).filter((p: any) => (p.evaluationStatus || '').toUpperCase() === 'FAILED');
+
+	const isActioned = activePlan
+		? !!currentPlanHeadAction
+		: (failedPlansInReq.length > 0 && failedPlansInReq.every((p: any) => !!p.headAction || (p.evaluationRemarks || '').includes('[HEAD_ACTION:') || request.status === 'RETEST')) || request.status === 'RETEST';
 
 	const handleReturnToTesting = async () => {
 		if (processing) return;
 		setProcessing(true);
 		try {
-			const remarksText = request.remarks ? `${request.remarks}` : '';
-			const newRemarks = remarksText.replace('Submitted to Head', 'Returned for Retest');
-			const op = updateTestRequestStatus(
-				request.id,
-				'RETEST',
-				newRemarks
-			);
-			await op();
+			const token = localStorage.getItem('token');
+			const targetPlans = (request.testPlans || []).filter((p: any) => {
+				if ((p.evaluationStatus || '').toUpperCase() !== 'FAILED') return false;
+				if (targetPlanId) return String(p.id) === String(targetPlanId);
+				return true;
+			});
 
-			for (let idx = 0; idx < qty; idx++) {
-				const planObj = (request.testPlans || []).find((p: any) => Number(p.sampleIndex) === idx);
-				if (planObj) {
-					let platformNosParsed = [];
-					if (planObj.platformNos) {
-						try {
-							platformNosParsed = typeof planObj.platformNos === 'string' ? JSON.parse(planObj.platformNos) : planObj.platformNos;
-						} catch (e) {
-							platformNosParsed = [];
-						}
-					}
-					await fetch(`/api/v1/test-requests/${request.id}/test-plans`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-						body: JSON.stringify({
-							sampleIndex: idx,
-							testTypeId: planObj.testTypeId,
-							testCategoryId: planObj.testCategoryId,
-							testProtocolId: planObj.testProtocolId,
-							stationNo: planObj.stationNo,
-							platformNos: platformNosParsed,
-							equipmentId: planObj.equipmentId,
-							numberOfDays: planObj.numberOfDays,
-							startDate: planObj.startDate,
-							endDate: planObj.endDate,
-							remarks: planObj.remarks,
-							evaluationStatus: null,
-							evaluationRemarks: null
-						})
-					});
-				}
+			for (const p of targetPlans) {
+				const tag = '[HEAD_ACTION:RETURNED_TO_TESTING]';
+				const clean = (p.evaluationRemarks || '').replace(/\[HEAD_ACTION:[^\]]+\]/g, '').trim();
+				const finalRemarks = clean ? `${clean} ${tag}` : tag;
+				await fetch(`/api/v1/test-requests/${request.id}/test-plans`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({
+						id: p.id,
+						sampleIndex: p.sampleIndex,
+						evaluationStatus: 'FAILED',
+						headAction: 'RETURNED_TO_TESTING',
+						evaluationRemarks: finalRemarks
+					})
+				});
 			}
 
-			toast.success('Request returned to testing for Retest successfully!');
+			toast.success('Test plan returned to testing for Retest successfully!');
+			await loadRequestDetails();
 			navigate('/head/failure-decision');
 		} catch (e) {
 			console.error(e);
@@ -122,31 +125,75 @@ export default function HeadFailureDetails() {
 		if (processing) return;
 		setProcessing(true);
 		try {
-			const targetStatus = request.status === 'INSPECTION_FAILED'
-				? 'INSPECTION_FAILED'
-				: request.status === 'INSPECTION_COMPLETED'
-					? 'INSPECTION_FAILED'
-					: 'FAILED';
+			const token = localStorage.getItem('token');
+			const targetPlans = (request.testPlans || []).filter((p: any) => {
+				if ((p.evaluationStatus || '').toUpperCase() !== 'FAILED') return false;
+				if (targetPlanId) return String(p.id) === String(targetPlanId);
+				return true;
+			});
 
-			const remarksText = request.remarks ? `${request.remarks}` : '';
-			let newRemarks = remarksText;
-			if (remarksText.includes('Submitted to Head')) {
-				newRemarks = remarksText.replace('Submitted to Head', 'Approved by Head');
-			} else if (!remarksText.includes('Approved by Head')) {
-				newRemarks = remarksText ? `Approved by Head. ${remarksText}` : 'Approved by Head';
+			for (const p of targetPlans) {
+				const tag = '[HEAD_ACTION:RETURNED_TO_REQUESTER]';
+				const clean = (p.evaluationRemarks || '').replace(/\[HEAD_ACTION:[^\]]+\]/g, '').trim();
+				const finalRemarks = clean ? `${clean} ${tag}` : tag;
+				await fetch(`/api/v1/test-requests/${request.id}/test-plans`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({
+						id: p.id,
+						sampleIndex: p.sampleIndex,
+						evaluationStatus: 'FAILED',
+						headAction: 'RETURNED_TO_REQUESTER',
+						evaluationRemarks: finalRemarks
+					})
+				});
 			}
 
-			const op = updateTestRequestStatus(
-				request.id,
-				targetStatus,
-				newRemarks
-			);
-			await op();
-			toast.success('Test request failure approved & returned to requester!');
+			toast.success('Failed test plan returned to requester for CAPA successfully!');
+			await loadRequestDetails();
 			navigate('/head/failure-decision');
 		} catch (e) {
 			console.error(e);
-			toast.error('Failed to finalize request failure.');
+			toast.error('Failed to return plan to requester.');
+		} finally {
+			setProcessing(false);
+		}
+	};
+
+	const handleReturnToLabManager = async () => {
+		if (processing) return;
+		setProcessing(true);
+		try {
+			const token = localStorage.getItem('token');
+			const targetPlans = (request.testPlans || []).filter((p: any) => {
+				if ((p.evaluationStatus || '').toUpperCase() !== 'FAILED') return false;
+				if (targetPlanId) return String(p.id) === String(targetPlanId);
+				return true;
+			});
+
+			for (const p of targetPlans) {
+				const tag = '[HEAD_ACTION:RETURNED_TO_LAB_MANAGER]';
+				const clean = (p.evaluationRemarks || '').replace(/\[HEAD_ACTION:[^\]]+\]/g, '').trim();
+				const finalRemarks = clean ? `${clean} ${tag}` : tag;
+				await fetch(`/api/v1/test-requests/${request.id}/test-plans`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+					body: JSON.stringify({
+						id: p.id,
+						sampleIndex: p.sampleIndex,
+						evaluationStatus: 'FAILED',
+						headAction: 'RETURNED_TO_LAB_MANAGER',
+						evaluationRemarks: finalRemarks
+					})
+				});
+			}
+
+			toast.success('Failed test plan returned to Lab Manager for internal CAPA successfully!');
+			await loadRequestDetails();
+			navigate('/head/failure-decision');
+		} catch (e) {
+			console.error(e);
+			toast.error('Failed to return plan to Lab Manager.');
 		} finally {
 			setProcessing(false);
 		}
@@ -164,37 +211,39 @@ export default function HeadFailureDetails() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<button
-					onClick={() => navigate('/head/failure-decision')}
-					className="flex items-center gap-1.5 text-xs font-extrabold text-zinc-600 hover:text-[#11236a] transition-all cursor-pointer border-none bg-transparent outline-none"
-				>
-					<ArrowLeft className="w-4 h-4" />
-					<span>Back to Failure Decision Board</span>
-				</button>
-			</div>
+			<button
+				onClick={() => navigate('/head/failure-decision')}
+				className="inline-flex items-center gap-1.5 text-xs font-bold text-[#11236a] hover:text-[#0c1a52] transition-colors cursor-pointer bg-transparent border-none outline-none"
+			>
+				<ArrowLeft className="w-4 h-4" />
+				<span>Back to Failure Decision Board</span>
+			</button>
+
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				<div className="lg:col-span-2 space-y-6">
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<div className="flex items-center gap-2">
-								<Bookmark className="w-4.5 h-4.5 text-[#11236a]" />
-								<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
+								<Bookmark className="w-4 h-4 text-[#11236a]" />
+								<h2 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider">
 									Request Specifications
-								</h3>
+								</h2>
 							</div>
-							<span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${isActioned
-								? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-								: 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse'
-								}`}>
-								{request.status === 'RETEST' ? 'RETURNED FOR RETEST' : ['COMPLETED', 'FAILED', 'FAIL', 'INSPECTION_FAILED'].includes(request.status) ? 'FINALIZED & RELEASED' : 'AWAITING FAILURE DECISION'}
-							</span>
+							{isActioned ? (
+								<span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wider">
+									Decision Taken
+								</span>
+							) : (
+								<span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100 uppercase tracking-wider">
+									Awaiting Failure Decision
+								</span>
+							)}
 						</div>
 
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
+						<div className="grid grid-cols-2 gap-4 text-xs">
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Request ID</span>
-								<span className="text-[#11236a] font-extrabold">{request.requestId || `REQ-00${request.id}`}</span>
+								<span className="text-[#11236a] font-black">{request.requestId || `REQ-00${request.id}`}</span>
 							</div>
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Customer Name</span>
@@ -206,7 +255,11 @@ export default function HeadFailureDetails() {
 							</div>
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Test Type</span>
-								<span className="text-zinc-800 font-extrabold">{request.testType?.name || 'N/A'}</span>
+								<span className="text-zinc-800 font-extrabold">
+									{targetPlanId
+										? ((request.testPlans || []).find((p: any) => String(p.id) === String(targetPlanId))?.testType?.name || request.testType?.name || 'N/A')
+										: (request.testType?.name || 'N/A')}
+								</span>
 							</div>
 							<div>
 								<span className="block text-zinc-400 text-[10px] uppercase font-bold">Sample Quantity</span>
@@ -229,6 +282,7 @@ export default function HeadFailureDetails() {
 							</button>
 						</div>
 					</div>
+
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<div className="flex items-center justify-between border-b border-zinc-100 pb-3">
 							<h3 className="text-sm font-extrabold text-zinc-900 uppercase tracking-wider">
@@ -239,7 +293,21 @@ export default function HeadFailureDetails() {
 
 						<div className="divide-y divide-zinc-100 space-y-4">
 							{Array.from({ length: qty }).map((_, idx) => {
-								const samplePlansList = (request.testPlans || []).filter((p: any) => Number(p.sampleIndex) === idx);
+								if (targetSampleIndex !== null && targetSampleIndex !== undefined && String(idx) !== String(targetSampleIndex)) {
+									return null;
+								}
+
+								const samplePlansList = (request.testPlans || []).filter((p: any) => {
+									if (Number(p.sampleIndex) !== idx) return false;
+									if ((p.evaluationStatus || '').toUpperCase() !== 'FAILED') return false;
+									if (targetPlanId) return String(p.id) === String(targetPlanId);
+									return true;
+								});
+
+								if (targetPlanId && samplePlansList.length === 0) {
+									return null;
+								}
+
 								const inspection = (request.sampleInspections || []).find((si: any) => Number(si.sampleIndex) === idx);
 
 								let statusColor = 'bg-zinc-50 text-zinc-500 border-zinc-200';
@@ -288,43 +356,42 @@ export default function HeadFailureDetails() {
 													className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
 												>
 													<FileText className="w-3.5 h-3.5" />
-													<span>Inspection Report</span>
+													<span>View Report</span>
 												</button>
 											)}
 										</div>
 
 										{inspection?.status === 'PASSED' && samplePlansList.length > 0 && (
-											<div className="pl-4 border-l-2 border-zinc-150 space-y-2 mt-1">
+											<div className="pl-4 border-l-2 border-zinc-150 space-y-3 mt-1">
 												{samplePlansList.map((p: any) => {
 													const isPlanEvaluated = ['PASSED', 'FAILED'].includes((p.evaluationStatus || '').toUpperCase());
+
 													const planStatusColor = p.evaluationStatus === 'PASSED'
 														? 'bg-emerald-50 text-emerald-700 border-emerald-100'
 														: p.evaluationStatus === 'FAILED'
 															? 'bg-rose-50 text-rose-700 border-rose-100'
 															: 'bg-blue-50 text-blue-700 border-blue-100';
+
 													return (
-														<div key={p.id} className="flex items-center justify-between gap-4 py-1 text-xs">
-															<div className="flex items-center gap-2">
-																<span className="font-bold text-zinc-500">
+														<div key={p.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-2 border-b border-zinc-100 last:border-0 text-xs">
+															<div className="flex flex-wrap items-center gap-2">
+																<span className="font-bold text-zinc-700">
 																	{p.testType?.name || 'General'}:
 																</span>
 																<span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider ${planStatusColor}`}>
 																	{p.evaluationStatus || 'TESTING'}
 																</span>
-																{p.evaluationRemarks && (
-																	<span className="text-[10px] text-zinc-500 font-medium italic">
-																		({p.evaluationRemarks})
-																	</span>
-																)}
 															</div>
 															{isPlanEvaluated && (
-																<button
-																	onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
-																	className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 hover:text-white px-2 py-0.5 rounded border border-emerald-200 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
-																>
-																	<FileText className="w-2.5 h-2.5" />
-																	<span>Report</span>
-																</button>
+																<div className="flex flex-wrap items-center gap-2 shrink-0">
+																	<button
+																		onClick={() => window.open(`/reports/preview?type=plan&key=${request.id}-plan-${p.id}`, '_blank')}
+																		className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600 hover:text-white px-3 py-1.5 rounded-lg border border-emerald-250 bg-white hover:bg-emerald-600 transition-all cursor-pointer outline-none active:scale-95"
+																	>
+																		<FileText className="w-3.5 h-3.5" />
+																		<span>View Report</span>
+																	</button>
+																</div>
 															)}
 														</div>
 													);
@@ -337,6 +404,7 @@ export default function HeadFailureDetails() {
 						</div>
 					</div>
 				</div>
+
 				<div className="space-y-6">
 					<div className="bg-white border border-zinc-200/60 rounded-2xl p-6 shadow-sm space-y-4">
 						<h3 className="text-xs font-extrabold text-zinc-900 uppercase tracking-wider border-b border-zinc-100 pb-3">
@@ -352,7 +420,7 @@ export default function HeadFailureDetails() {
 										<p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
 											{request.status === 'RETEST'
 												? 'This request was returned to testing for a complete retest.'
-												: 'This request was certified as FAILED and returned to requester.'}
+												: 'This request failure was adjudicated and actioned.'}
 										</p>
 									</div>
 								</div>
@@ -364,15 +432,15 @@ export default function HeadFailureDetails() {
 							<div className="space-y-3.5">
 								<p className="text-xs text-zinc-655 font-semibold leading-relaxed">
 									{request.status === 'INSPECTION_COMPLETED' || request.status === 'INSPECTION_FAILED'
-										? 'All samples in this request have failed the inspection phase. Please review the results and return the request to the requester.'
-										: 'All samples in this request have failed testing. Please choose one of the options below to adjudicate this failure.'}
+										? 'All samples in this request have failed the inspection phase. Please review the results and choose an adjudication decision below.'
+										: 'Please review the failed test outcomes and select an adjudication decision below.'}
 								</p>
 
 								{request.status !== 'INSPECTION_COMPLETED' && request.status !== 'INSPECTION_FAILED' && (
 									<button
 										onClick={handleReturnToTesting}
 										disabled={processing}
-										className="w-full py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50"
+										className="w-full py-2.5 bg-[#11236a] hover:bg-[#0c1a52] text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50 text-xs"
 									>
 										<RefreshCw className="w-4 h-4 text-white" />
 										<span>{processing ? 'Processing...' : 'Return to Testing (Retest)'}</span>
@@ -382,10 +450,19 @@ export default function HeadFailureDetails() {
 								<button
 									onClick={handleReturnToRequester}
 									disabled={processing}
-									className="w-full py-2.5 bg-rose-600 hover:bg-rose-750 text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50"
+									className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50 text-xs"
 								>
 									<CheckCircle className="w-4 h-4 text-white" />
 									<span>{processing ? 'Processing...' : 'Return to Requester'}</span>
+								</button>
+
+								<button
+									onClick={handleReturnToLabManager}
+									disabled={processing}
+									className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none disabled:opacity-50 text-xs"
+								>
+									<CheckCircle className="w-4 h-4 text-white" />
+									<span>{processing ? 'Processing...' : 'Return to Lab Manager'}</span>
 								</button>
 							</div>
 						)}

@@ -189,8 +189,14 @@ export default function AdminDashboard() {
 	const nablAvailableCount = Object.values(nablPlatformSlots).filter(v => v === true).length;
 	const nablOccupiedCount = Object.values(nablPlatformSlots).filter(v => v === false).length;
 
-	const availableEq = equipmentList.filter(e => e.isAvailable && e.status === 'ACTIVE').length;
-	const occupiedEq = equipmentList.filter(e => !e.isAvailable && e.status === 'ACTIVE').length;
+	const availableEq = equipmentList.filter(e => {
+		const isMaint = e.status === 'MAINTENANCE' || e.status === 'UNDER_MAINTENANCE';
+		return !isMaint && e.isAvailable;
+	}).length;
+	const occupiedEq = equipmentList.filter(e => {
+		const isMaint = e.status === 'MAINTENANCE' || e.status === 'UNDER_MAINTENANCE';
+		return !isMaint && !e.isAvailable;
+	}).length;
 	const maintenanceEq = equipmentList.filter(e => e.status === 'MAINTENANCE' || e.status === 'UNDER_MAINTENANCE').length;
 
 	const getTabHeaders = () => {

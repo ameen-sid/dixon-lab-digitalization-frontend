@@ -10,6 +10,7 @@ import RequestTracking from './RequestTracking';
 import CapaManagement from './CapaManagement';
 import CreateCapa from './CreateCapa';
 import CapaReports from './CapaReports';
+import RequesterFailedPlans from './RequesterFailedPlans';
 
 import { getTestRequests, createTestRequest } from '../../services/operations/testRequestService';
 import { getCapas, createCapa } from '../../services/operations/capaService';
@@ -114,6 +115,7 @@ export default function RequesterDashboard() {
 	if (path === '/requester/my-requests') activeTab = 'my-requests';
 	else if (path === '/requester/requests/new') activeTab = 'new-request';
 	else if (path === '/requester/requests/track') activeTab = 'view-request-details';
+	else if (path === '/requester/failed-plans') activeTab = 'failed-plans';
 	else if (path === '/requester/capa') activeTab = 'capa-management';
 	else if (path === '/requester/capa/new') activeTab = 'new-capa';
 	else if (path === '/requester/capa/details') activeTab = 'view-capa-details';
@@ -207,7 +209,7 @@ export default function RequesterDashboard() {
 
 	const queryParams = new URLSearchParams(location.search);
 	const reqIdFromUrl = queryParams.get('id');
-	const currentTrackedRequest = reqIdFromUrl 
+	const currentTrackedRequest = reqIdFromUrl
 		? (requests.find(r => r.id === reqIdFromUrl) || selectedRequest)
 		: (selectedRequest || (requests.length > 0 ? requests[0] : null));
 
@@ -298,6 +300,8 @@ export default function RequesterDashboard() {
 				return { title: 'Initiate Testing Plan', desc: 'Complete product metadata, attach hardware details, and define required calibration procedures.' };
 			case 'view-request-details':
 				return { title: 'Laboratory Request Review', desc: 'Analyze live telemetry feedback, testing phase progression, and laboratory engineer logs.' };
+			case 'failed-plans':
+				return { title: 'Failed Test Plans (CAPA Action Required)', desc: 'Review failed test plans returned by the Head of Laboratory and submit Corrective & Preventive Action (CAPA).' };
 			case 'capa-management':
 				return { title: 'CAPA Action Plans', desc: 'Manage Corrective and Preventive Actions (CAPAs) addressing testing discrepancies or non-conformity failures.' };
 			case 'new-capa':
@@ -314,7 +318,7 @@ export default function RequesterDashboard() {
 	const renderContent = () => {
 		if (path === '/requester/dashboard' || path === '/requester') {
 			return (
-				<RequesterOverview 
+				<RequesterOverview
 					requests={requests}
 					capas={capas}
 					setActiveTab={(tab) => {
@@ -331,7 +335,7 @@ export default function RequesterDashboard() {
 		}
 		if (path === '/requester/my-requests') {
 			return (
-				<MyRequests 
+				<MyRequests
 					requests={requests}
 					setActiveTab={(tab) => {
 						if (tab === 'new-request') navigate('/requester/requests/new');
@@ -346,7 +350,7 @@ export default function RequesterDashboard() {
 		}
 		if (path === '/requester/requests/new') {
 			return (
-				<CreateRequest 
+				<CreateRequest
 					onSubmit={handleCreateRequestSubmit}
 					setActiveTab={(tab) => {
 						if (tab === 'my-requests') navigate('/requester/my-requests');
@@ -356,7 +360,7 @@ export default function RequesterDashboard() {
 		}
 		if (path === '/requester/requests/track') {
 			return (
-				<RequestTracking 
+				<RequestTracking
 					selectedRequest={currentTrackedRequest}
 					setActiveTab={(tab) => {
 						if (tab === 'my-requests') navigate('/requester/my-requests');
@@ -365,9 +369,48 @@ export default function RequesterDashboard() {
 				/>
 			);
 		}
+		if (path === '/requester/failed-plans') {
+			return (
+				<RequesterFailedPlans
+					onFillCapa={(req, plan) => {
+						setInitialCapaInput({
+							relatedRequest: req.requestId || `REQ-${String(req.dbId || req.id).padStart(3, '0')}`,
+							partProduct: req.brandName || '',
+							modelName: req.modelNo || '',
+							customerSupplier: req.customerNameAddress || '',
+							partName: req.sampleDescription || '',
+							title: `CAPA for Failed Test: ${plan.testType?.name || 'Test Plan'} (Sample #${plan.sampleIndex + 1})`,
+							problem: `Test Plan Failure for Sample #${plan.sampleIndex + 1} (${plan.testType?.name || 'Test Plan'}). Remarks: ${(plan.evaluationRemarks || '').replace(/\[HEAD_ACTION:[^\]]+\]/g, '').trim()}`
+						});
+						navigate('/requester/capa/new');
+					}}
+					onViewCapa={(req, plan) => {
+						const matchedCapa = capas.find((c: any) => {
+							const relReq = (c.relatedRequest || '').toLowerCase();
+							const reqId = (req.requestId || `REQ-00${req.id}`).toLowerCase();
+							const reqIdNumOnly = String(req.id || req.dbId || '');
+							const matchesReq = relReq.includes(reqId) || reqId.includes(relReq) || (reqIdNumOnly && relReq.includes(reqIdNumOnly));
+							if (!matchesReq) return false;
+
+							const text = `${c.title || ''} ${c.problem || ''} ${c.nonConformity || ''}`.toLowerCase();
+							const planName = (plan.testType?.name || '').toLowerCase();
+							const sampleStr = `sample #${plan.sampleIndex + 1}`;
+							return (planName && text.includes(planName)) || text.includes(sampleStr);
+						});
+
+						if (matchedCapa) {
+							setSelectedCapa(matchedCapa);
+							navigate('/requester/capa/details');
+						} else {
+							navigate('/requester/capa');
+						}
+					}}
+				/>
+			);
+		}
 		if (path === '/requester/capa') {
 			return (
-				<CapaManagement 
+				<CapaManagement
 					capas={capas}
 					setActiveTab={(tab) => {
 						if (tab === 'new-capa') navigate('/requester/capa/new');
@@ -382,7 +425,7 @@ export default function RequesterDashboard() {
 		}
 		if (path === '/requester/capa/new') {
 			return (
-				<CreateCapa 
+				<CreateCapa
 					requests={requests}
 					onSubmit={handleCreateCapaSubmit}
 					setActiveTab={(tab) => {
@@ -394,7 +437,7 @@ export default function RequesterDashboard() {
 		}
 		if (path === '/requester/capa/details') {
 			return (
-				<CapaReports 
+				<CapaReports
 					selectedCapa={selectedCapa}
 					setActiveTab={(tab) => {
 						if (tab === 'capa-management') navigate('/requester/capa');
@@ -422,11 +465,10 @@ export default function RequesterDashboard() {
 			}}
 		>
 			{notification && (
-				<div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 shadow-md flex items-center gap-2 text-xs font-bold transition-all border animate-fade-in ${
-					notification.type === 'success' 
-						? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
+				<div className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-3 shadow-md flex items-center gap-2 text-xs font-bold transition-all border animate-fade-in ${notification.type === 'success'
+						? 'bg-emerald-50 text-emerald-800 border-emerald-100'
 						: 'bg-indigo-50 text-indigo-800 border-indigo-100'
-				}`}>
+					}`}>
 					<CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
 					<span>{notification.message}</span>
 				</div>

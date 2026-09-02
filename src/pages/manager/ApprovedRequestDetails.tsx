@@ -199,10 +199,10 @@ export default function ApprovedRequestDetails({
 								? `Scheduled to start: ${new Date(testPlan.startDate).toLocaleDateString()}`
 								: `Testing duration ended on ${new Date(testPlan.endDate).toLocaleDateString()}`)
 						: 'Awaiting start',
-				completed: request.status === 'COMPLETED' || 
-						   ['TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'COMPLETED', 'FAILED', 'FAIL'].includes(request.status) ||
-						   !!(testPlan && testPlan.evaluationStatus) ||
-						   !!(testPlan && new Date() > new Date(testPlan.endDate))
+				completed: request.status === 'COMPLETED' ||
+					['TESTING_COMPLETED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'COMPLETED', 'FAILED', 'FAIL'].includes(request.status) ||
+					!!(testPlan && testPlan.evaluationStatus) ||
+					!!(testPlan && new Date() > new Date(testPlan.endDate))
 			},
 			{
 				step: 'Reliability Evaluation',
@@ -224,14 +224,14 @@ export default function ApprovedRequestDetails({
 
 	const userStr = localStorage.getItem('user');
 	const currentUser = userStr ? JSON.parse(userStr) : null;
-	const managerId = currentUser ? String(currentUser.id) : '4'; 
+	const managerId = currentUser ? String(currentUser.id) : '4';
 	const managerName = currentUser ? currentUser.name : 'Lab Manager One';
 
 	const activeEngineers = engineers || [];
 
 	const selectOptions = [
 		...activeEngineers
-			.filter(eng => String(eng.id) !== managerId) 
+			.filter(eng => String(eng.id) !== managerId)
 			.map(eng => ({
 				value: String(eng.id),
 				label: `${eng.name} (${eng.role})`
@@ -420,7 +420,7 @@ export default function ApprovedRequestDetails({
 							</p>
 						</div>
 					)}
-				</div>	
+				</div>
 				<div className="space-y-6">
 					<div className="bg-white border border-zinc-200/60 rounded-3xl p-6 shadow-sm">
 						<h4 className="text-sm font-bold text-zinc-950 uppercase tracking-wider border-b border-zinc-100 pb-2 flex items-center gap-1.5">
@@ -557,7 +557,7 @@ export default function ApprovedRequestDetails({
 			</div>
 			{activeTimelineSampleIndex !== null && (
 				<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto">
+					<div className="bg-white border border-zinc-200 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative flex flex-col max-h-[90vh] overflow-y-auto no-scrollbar">
 						<button
 							onClick={() => setActiveTimelineSampleIndex(null)}
 							className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-555 hover:text-slate-850 cursor-pointer border-none outline-none"

@@ -117,7 +117,11 @@ export default function EngineerTestReports({
 					requestTestType: req.testType
 				};
 
-				plansMap[`${req.id}-sample-${p.sampleIndex}`] = planData;
+				// If there are multiple plans for the same sampleIndex (e.g. initial failed vs retest), prefer the active retest plan for sampleKey
+				const existingSamplePlan = plansMap[`${req.id}-sample-${p.sampleIndex}`];
+				if (!existingSamplePlan || Boolean(p.parentPlanId) || !existingSamplePlan.parentPlanId) {
+					plansMap[`${req.id}-sample-${p.sampleIndex}`] = planData;
+				}
 				plansMap[`${req.id}-plan-${p.id}`] = planData;
 			}
 		}
@@ -418,7 +422,7 @@ export default function EngineerTestReports({
 	const nonReliabilityPlans = Object.entries(plans)
 		.filter(([key]) => key.includes('-plan-'))
 		.map(([key, plan]) => {
-			const reqIdStr = String(plan.testRequestId);
+			const reqIdStr = String(plan.testRequestId || plan.requestId || key.split('-plan-')[0]);
 			const sampleIdx = Number(plan.sampleIndex);
 
 			const request = requests.find(r => String(r.id) === String(reqIdStr));
@@ -459,8 +463,12 @@ export default function EngineerTestReports({
 				'TESTING_FAILED',
 				'TESTING_PARTIAL',
 				'RETEST',
-				'INSPECTION_COMPLETED'
-			].includes(requestStatus);
+				'INSPECTION_COMPLETED',
+				'COMPLETED',
+				'APPROVED',
+				'PENDING',
+				'SCHEDULED'
+			].includes(requestStatus) || !requestStatus;
 
 			const isNotEvaluated = ![
 				'PASSED',
@@ -503,8 +511,20 @@ export default function EngineerTestReports({
 		if (!planKey || !plans[planKey]) return;
 
 		const plan = plans[planKey];
-		const reqIdStr = String(plan.testRequestId);
 		const sampleIdx = Number(plan.sampleIndex);
+		const reqDate = plan.request?.createdAt || plan.request?.updatedAt || plan.createdAt;
+		const year = reqDate ? new Date(reqDate).getFullYear() : new Date().getFullYear();
+		let rawReqId = String(plan.requestId || plan.testRequestId || '');
+		rawReqId = rawReqId.replace(/^REQ-/i, '');
+		let reqWithYear = rawReqId;
+		if (!/^\d{4}-/.test(rawReqId)) {
+			const idPart = /^\d+$/.test(rawReqId) ? String(Number(rawReqId)).padStart(3, '0') : rawReqId;
+			reqWithYear = `${year}-${idPart}`;
+		}
+		const sampleSuffix = `S${String(sampleIdx + 1).padStart(2, '0')}`;
+		const computedAllottedId = (plan.allottedId && /REQ-\d{4}-/i.test(plan.allottedId))
+			? plan.allottedId
+			: `REQ-${reqWithYear}-${sampleSuffix}`;
 
 		if (!reportForm.observationResults.trim()) {
 			toast.error('Please fill in Observation / Results.');
@@ -516,7 +536,7 @@ export default function EngineerTestReports({
 
 			formData.append('sampleIndex', String(sampleIdx));
 			formData.append('testPlanId', String(plan.id));
-			formData.append('allottedId', plan.allottedId || `REQ-${reqIdStr}-S${String(sampleIdx + 1).padStart(2, '0')}`);
+			formData.append('allottedId', computedAllottedId);
 			formData.append('remarks', reportForm.observationResults);
 			formData.append('status', 'UNDER_REVIEW');
 
@@ -582,10 +602,11 @@ export default function EngineerTestReports({
 				}
 			});
 
-			await saveSampleReport(reqIdStr, formData)();
+			await saveSampleReport(String(plan.testRequestId), formData)();
 
-			if (onUpdateStatus) {
-				await onUpdateStatus(reqIdStr, 'UNDER_TESTING', undefined);
+			const currentReqStatus = (plan.requestStatus || plan.request?.status || '').toUpperCase();
+			if (onUpdateStatus && !['COMPLETED', 'RETEST', 'FAILED'].includes(currentReqStatus)) {
+				await onUpdateStatus(String(plan.testRequestId), 'UNDER_TESTING', undefined);
 			}
 
 			if (plan.stationNo && plan.platformNos && plan.platformNos.length > 0) {
@@ -866,7 +887,17 @@ export default function EngineerTestReports({
 								<div>
 									<span className="text-[9px] text-zinc-400 font-bold block uppercase">Allotted ID</span>
 									<span className="text-[#11236a] font-black">
-										{plan.allottedId || `REQ-${reqIdStr}-S${String(plan.sampleIndex + 1).padStart(2, '0')}`}
+										{(() => {
+											if (plan.allottedId && /REQ-\d{4}-/i.test(plan.allottedId)) return plan.allottedId;
+											const reqDate = plan.request?.createdAt || plan.request?.updatedAt || plan.createdAt;
+											const yr = reqDate ? new Date(reqDate).getFullYear() : new Date().getFullYear();
+											let rId = String(plan.requestId || plan.testRequestId || '').replace(/^REQ-/i, '');
+											if (!/^\d{4}-/.test(rId)) {
+												const idP = /^\d+$/.test(rId) ? String(Number(rId)).padStart(3, '0') : rId;
+												rId = `${yr}-${idP}`;
+											}
+											return `REQ-${rId}-S${String(plan.sampleIndex + 1).padStart(2, '0')}`;
+										})()}
 									</span>
 								</div>
 
@@ -928,7 +959,7 @@ export default function EngineerTestReports({
 					</div>
 				</form>
 				{previewModalImage && (
-					<div 
+					<div
 						className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
 						onClick={() => setPreviewModalImage(null)}
 					>
@@ -1101,7 +1132,7 @@ export default function EngineerTestReports({
 				)}
 			</div>
 			{previewModalImage && (
-				<div 
+				<div
 					className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
 					onClick={() => setPreviewModalImage(null)}
 				>

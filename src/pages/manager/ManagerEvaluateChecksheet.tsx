@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clipboard, CheckCircle, XCircle } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { getTestRequests, updateTestRequestStatus, saveSampleInspection } from '../../services/operations/testRequestService';
+import { getTestRequests, saveSampleInspection } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
 import { getTestCategories } from '../../services/operations/testCategoryService';
 import { getTestProtocols } from '../../services/operations/testProtocolService';
@@ -414,86 +414,12 @@ export default function ManagerEvaluateChecksheet() {
 				}
 			}
 
-			const freshReqRes = await fetch(`/api/v1/test-requests/${requestId}`, {
-				headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-			});
-			if (!freshReqRes.ok) {
-				throw new Error('Failed to fetch latest request details from database');
-			}
-			const freshRequest = (await freshReqRes.json()).data;
-
-			if (freshRequest) {
-				const qty = freshRequest.sampleQty || 1;
-				let allSamplesComplete = true;
-
-				const passedSampleIndices: number[] = [];
-				for (let i = 0; i < qty; i++) {
-					const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-					if (freshRequest.status === 'RETEST' || (report && report.status === 'PASSED')) {
-						passedSampleIndices.push(i);
-					}
-				}
-
-				const requestPlans = freshRequest.testPlans || [];
-				if (passedSampleIndices.length > 0) {
-					const hasPlansForAllPassed = passedSampleIndices.every(idx => 
-						requestPlans.some((p: any) => Number(p.sampleIndex) === idx)
-					);
-					if (!hasPlansForAllPassed) {
-						allSamplesComplete = false;
-					} else {
-						const allPlansEvaluated = requestPlans.every((p: any) => 
-							p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
-						);
-						if (!allPlansEvaluated) {
-							allSamplesComplete = false;
-						}
-					}
-				} else {
-					allSamplesComplete = true;
-				}
-
-				if (allSamplesComplete) {
-					let passedCount = 0;
-					let failedCount = 0;
-
-					requestPlans.forEach((p: any) => {
-						if (p.evaluationStatus === 'PASSED') {
-							passedCount++;
-						} else if (p.evaluationStatus === 'FAILED') {
-							failedCount++;
-						}
-					});
-
-					for (let i = 0; i < qty; i++) {
-						const report = (freshRequest.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
-						if (report && report.status === 'FAILED') {
-							failedCount++;
-						}
-					}
-
-					let finalStatus = 'TESTING_COMPLETED';
-					const totalAllocationsCount = requestPlans.length + (qty - passedSampleIndices.length);
-
-					if (passedCount === totalAllocationsCount) {
-						finalStatus = 'TESTING_PASSED';
-					} else if (failedCount === totalAllocationsCount) {
-						finalStatus = 'TESTING_FAILED';
-					} else {
-						finalStatus = 'TESTING_PARTIAL';
-					}
-
-					const statusUpdateOp = updateTestRequestStatus(
-						Number(requestId),
-						finalStatus,
-						undefined
-					);
-					await statusUpdateOp();
-				}
-			}
-
 			toast.success(`Sample test evaluated as ${status}!`);
-			navigate(`/manager/test-plans/${requestId}`);
+			if (planInfo?.plan?.parentPlanId) {
+				navigate(`/manager/retesting/${requestId}`);
+			} else {
+				navigate(`/manager/test-plans/${requestId}`);
+			}
 		} catch (error) {
 			console.error('Failed to save sample evaluation status:', error);
 			toast.error('Failed to save evaluation.');

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, FileText, Printer, Upload, Download, Eye } from 'lucide-react';
+import { ArrowLeft, Clipboard, CheckCircle, AlertTriangle, X, Search, ChevronRight, ChevronDown, RotateCcw, FileText, Printer, Upload, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Pagination from '../../components/Pagination';
@@ -195,6 +195,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 						endDate: p.endDate ? toYYYYMMDD(p.endDate) : (p.startDate ? calculateEndDate(p.startDate, p.numberOfDays) : ''),
 						remarks: p.remarks || '',
 						equipmentId: String(p.equipmentId || ''),
+						parentPlanId: p.parentPlanId,
+						headAction: p.headAction,
 						evaluationStatus: p.evaluationStatus || undefined,
 						evaluationRemarks: p.evaluationRemarks || undefined
 					});
@@ -204,21 +206,36 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		return plansMap;
 	}, [requests]);
 
-	const isSubmittedToHead = selectedReq ? (selectedReq.remarks || '').includes('Submitted to Head') : false;
+	const isSubmittedToHead = selectedReq ? (
+		(selectedReq.remarks || '').includes('Submitted to Head') ||
+		(selectedReq.remarks || '').includes('Approved by Head') ||
+		(selectedReq.remarks || '').includes('Returned for Retest') ||
+		['COMPLETED', 'HEAD_APPROVED', 'APPROVED', 'REPORT_RELEASED', 'REPORT_GENERATED', 'UNDER_REVIEW'].includes((selectedReq.status || '').toUpperCase())
+	) : false;
+
 	const canSubmitToHead = (() => {
 		if (!selectedReq) return false;
+		if (isSubmittedToHead) return false;
 		if (isAllInspectionFailed) return false;
 		const qty = selectedReq.sampleQty || 1;
 
+		let totalPlansCount = 0;
 		for (let i = 0; i < qty; i++) {
-			const plansForSample = savedPlans[`${selectedReq.id}-sample-${i}`] || [];
-			if (plansForSample.length === 0) return false;
-			const hasEvaluated = plansForSample.some(
-				(p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
-			);
-			if (!hasEvaluated) return false;
+			const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+			const isSampleInspectionFailed = report?.status === 'FAILED';
+
+			if (!isSampleInspectionFailed) {
+				const plansForSample = savedPlans[`${selectedReq.id}-sample-${i}`] || [];
+				if (plansForSample.length === 0) return false;
+
+				const allPlansEvaluated = plansForSample.every(
+					(p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED'
+				);
+				if (!allPlansEvaluated) return false;
+				totalPlansCount += plansForSample.length;
+			}
 		}
-		return true;
+		return totalPlansCount > 0;
 	})();
 
 	const [form, setForm] = useState<TestPlanForm>({
@@ -235,6 +252,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		remarks: '',
 		equipmentId: ''
 	});
+
+	const [expandedRetestLineages, setExpandedRetestLineages] = useState<{ [key: string]: boolean }>({});
+
+	const toggleRetestLineage = (lineageKey: string) => {
+		setExpandedRetestLineages(prev => ({
+			...prev,
+			[lineageKey]: !prev[lineageKey]
+		}));
+	};
 
 	const handleDownloadTearDownExcel = async (plan: any, request: any) => {
 		try {
@@ -399,7 +425,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 		const filteredProtos = testProtocols.filter(
 			p => String(p.testCategoryId) === String(catId) &&
-			String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
+				String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
 		);
 		const firstProto = filteredProtos[0] || null;
 		const protoId = firstProto ? String(firstProto.id) : '';
@@ -415,7 +441,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const handleTestCategoryChange = (catId: string) => {
 		const filteredProtos = testProtocols.filter(
 			p => String(p.testCategoryId) === String(catId) &&
-			String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
+				String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
 		);
 		const firstProto = filteredProtos[0] || null;
 		const protoId = firstProto ? String(firstProto.id) : '';
@@ -430,7 +456,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 	const handleProductTypeChange = (pType: string) => {
 		const filteredProtos = testProtocols.filter(
 			p => String(p.testCategoryId) === String(form.testCategoryId) &&
-			String(p.productType).toLowerCase() === String(pType).toLowerCase()
+				String(p.productType).toLowerCase() === String(pType).toLowerCase()
 		);
 		const firstProto = filteredProtos[0] || null;
 		const protoId = firstProto ? String(firstProto.id) : '';
@@ -681,6 +707,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				startDate: form.startDate,
 				endDate: finalEndDate,
 				remarks: form.remarks,
+				evaluationStatus: null,
+				evaluationRemarks: null
 			};
 
 			const planRes = await fetch(`/api/v1/test-requests/${selectedReq.id}/test-plans`, {
@@ -729,6 +757,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 		const isCompleted = ['TESTING_PASSED', 'PASS', 'COMPLETED', 'TESTING_PARTIAL', 'PARTIAL', 'TESTING_COMPLETED'].includes((r.status || '').toUpperCase());
 		const isFailed = ['TESTING_FAILED', 'FAIL', 'FAILED'].includes((r.status || '').toUpperCase());
 		const isTesting = ['UNDER_TESTING', 'UNDER_TEST'].includes((r.status || '').toUpperCase());
+		const isRetest = (r.status || '').toUpperCase() === 'RETEST' || (r.testPlans || []).some((p: any) => p.headAction === 'RETURNED_TO_TESTING' || (p.evaluationRemarks || '').includes('[HEAD_ACTION:RETURNED_TO_TESTING]'));
 		const isSubmittedToHead = (r.remarks || '').includes('Submitted to Head');
 		const isInspectionFailed = (r.status || '').toUpperCase() === 'INSPECTION_FAILED' || isSubmittedToHead;
 		const isPending = !isCompleted && !isFailed && !isTesting && !isInspectionFailed;
@@ -750,7 +779,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 
 		let matchStatus = true;
 		if (statusFilter === 'PENDING') {
-			matchStatus = isPending;
+			matchStatus = isPending || isRetest;
 		} else if (statusFilter === 'PENDING_EVALUATION') {
 			matchStatus = isPendingEvaluation;
 		} else if (statusFilter === 'UNDER_TEST') {
@@ -761,6 +790,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 			matchStatus = isFailed;
 		} else if (statusFilter === 'INSPECTION_FAILED') {
 			matchStatus = isInspectionFailed;
+		} else if (statusFilter === 'RETEST') {
+			matchStatus = isRetest;
 		}
 
 		let matchDate = true;
@@ -823,6 +854,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 										{ value: 'ALL', label: 'All Statuses' },
 										{ value: 'PENDING_EVALUATION', label: 'Pending Evaluation' },
 										{ value: 'PENDING', label: 'Pending Setup' },
+										{ value: 'RETEST', label: 'Retest Authorized' },
 										{ value: 'UNDER_TEST', label: 'Under Testing' },
 										{ value: 'COMPLETED', label: 'Completed' },
 										{ value: 'FAILED', label: 'Failed' },
@@ -1019,9 +1051,32 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 																Inspection Failed
 															</span>
 														) : req.status === 'RETEST' ? (
-															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded-full uppercase tracking-wider">
-																Pending Reconfigure Retest
-															</span>
+															(() => {
+																const reqPlans = req.testPlans || [];
+																const retestPlans = reqPlans.filter((p: any) => Boolean(p.parentPlanId || p.isRetest));
+																const hasEvaluatedRetest = retestPlans.some((p: any) => p.evaluationStatus === 'PASSED' || p.evaluationStatus === 'FAILED');
+																const hasConfiguredRetest = retestPlans.length > 0;
+
+																if (hasEvaluatedRetest) {
+																	return (
+																		<span className="text-[9px] font-bold px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full uppercase tracking-wider">
+																			Retest Evaluated
+																		</span>
+																	);
+																}
+																if (hasConfiguredRetest) {
+																	return (
+																		<span className="text-[9px] font-bold px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full uppercase tracking-wider">
+																			Retest Configured
+																		</span>
+																	);
+																}
+																return (
+																	<span className="text-[9px] font-bold px-2.5 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded-full uppercase tracking-wider">
+																		Pending Reconfigure Retest
+																	</span>
+																);
+															})()
 														) : req.status === 'TESTING_FAILED' || req.status === 'FAILED' ? (
 															<span className="text-[9px] font-bold px-2.5 py-0.5 bg-rose-100 text-rose-700 border border-rose-200 rounded-full uppercase tracking-wider">
 																Testing Failed
@@ -1179,29 +1234,6 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 									<span>View More Details</span>
 									<ChevronRight className="w-3.5 h-3.5" />
 								</button>
-								{selectedReq.status === 'RETEST' && (
-									<button
-										onClick={() => {
-											navigate('/manager/capa-management', {
-												state: {
-													initialCapa: {
-														relatedRequest: String(selectedReq.id),
-														productName: `${selectedReq.brandName} ${selectedReq.modelNo}`,
-														nonConformity: `Test failure observed under ${selectedReq.testMethodRef} testing cycles. Details: ${selectedReq.sampleDescription}`,
-														rootCause: '',
-														correctiveAction: '',
-														preventiveAction: '',
-														targetedDate: ''
-													}
-												}
-											});
-										}}
-										className="w-full py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
-									>
-										<AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-										<span>Initiate CAPA Report</span>
-									</button>
-								)}
 							</div>
 						</div>
 						<div className="bg-white border border-zinc-200/50 rounded-2xl p-6 shadow-sm space-y-6 lg:col-span-2">
@@ -1283,185 +1315,256 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 													</div>
 												) : (
 													<div className="space-y-3">
-														{planList.length > 0 ? (
-															planList.map((plan: any) => {
-																const todayStr = getLocalTodayStr();
-																const isTesting = plan.startDate <= todayStr;
-																const planTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
-																const planTestCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
+														{(() => {
+															if (planList.length === 0) return null;
 
-																const hideEditTestPlanButton = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+															// Group plans by lineage (parentPlanId or own id)
+															const lineageMap = new Map<number, { parentPlan: any; retestPlans: any[] }>();
+															planList.forEach((p: any) => {
+																if (p.parentPlanId) {
+																	const pId = Number(p.parentPlanId);
+																	if (!lineageMap.has(pId)) {
+																		const foundParent = planList.find((x: any) => Number(x.id) === pId);
+																		lineageMap.set(pId, { parentPlan: foundParent || null, retestPlans: [] });
+																	}
+																	lineageMap.get(pId)!.retestPlans.push(p);
+																} else {
+																	const pId = Number(p.id);
+																	if (!lineageMap.has(pId)) {
+																		lineageMap.set(pId, { parentPlan: p, retestPlans: [] });
+																	} else {
+																		lineageMap.get(pId)!.parentPlan = p;
+																	}
+																}
+															});
+
+															const lineages = Array.from(lineageMap.entries());
+
+															return lineages.map(([lineageKey, { parentPlan, retestPlans }]) => {
+																const mainPlan = parentPlan || retestPlans[0];
+																if (!mainPlan) return null;
+
+																const hasRetest = retestPlans.length > 0;
+																const isExpanded = !!expandedRetestLineages[`${selectedReq.id}-${lineageKey}`];
+
+																const renderPlanRow = (plan: any, isChildRetest = false) => {
+																	const todayStr = getLocalTodayStr();
+																	const isTesting = plan.startDate <= todayStr;
+																	const planTestType = testTypes.find(t => String(t.id) === String(plan.testTypeId));
+																	const planTestCategory = testCategories.find(c => String(c.id) === String(plan.testCategoryId));
+
+																	const isRetestPlan = plan.headAction === 'RETURNED_TO_TESTING' ||
+																		(plan.evaluationRemarks || '').includes('[HEAD_ACTION:RETURNED_TO_TESTING]') ||
+																		(plan.evaluationRemarks || '').includes('[RETEST]') ||
+																		(plan.remarks || '').includes('[RETEST]') ||
+																		Boolean(plan.isRetest) ||
+																		Boolean(plan.parentPlanId) ||
+																		(selectedReq.status || '').toUpperCase() === 'RETEST';
+
+																	const hideEditTestPlanButton = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+
+																	return (
+																		<div key={plan.id} className={`${isChildRetest ? 'bg-indigo-50/40 border-indigo-200/80 mt-2 ml-4' : 'bg-zinc-50/50 border-zinc-200/60'} border rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:bg-zinc-50`}>
+																			<div className="space-y-1">
+																				<div className="flex items-center gap-2 flex-wrap">
+																					{isChildRetest && (
+																						<span className="text-[9px] font-extrabold px-2 py-0.5 bg-indigo-600 text-white rounded-full flex items-center gap-1 shadow-xs">
+																							<RotateCcw className="w-2.5 h-2.5" />
+																							Retesting Cycle
+																						</span>
+																					)}
+																					<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+																						{planTestType?.name || 'General'}
+																					</span>
+																					{planTestCategory?.name && (
+																						<span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100">
+																							{planTestCategory.name}
+																						</span>
+																					)}
+																					<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
+																						? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+																						: plan.evaluationStatus === 'FAILED'
+																							? 'bg-rose-50 text-rose-700 border border-rose-100'
+																							: isTesting
+																								? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
+																								: 'bg-amber-50 text-amber-700 border border-amber-100'
+																						}`}>
+																						{plan.evaluationStatus === 'PASSED'
+																							? 'Testing Passed'
+																							: plan.evaluationStatus === 'FAILED'
+																								? (isRetestPlan && !isChildRetest ? 'Testing Failed (Retest Authorized)' : 'Testing Failed')
+																								: isTesting
+																									? 'Testing'
+																									: 'Scheduled'}
+																					</span>
+																				</div>
+																				<div className="text-[9px] text-zinc-600 font-bold space-y-0.5 mt-1">
+																					<p>Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})</p>
+																					{plan.equipmentId && (
+																						<p>Equipment: {equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}</p>
+																					)}
+																					<p>Duration: {plan.numberOfDays} Days ({formatDateToDMY(plan.startDate)} to {formatDateToDMY(plan.endDate)})</p>
+																					{plan.remarks && (
+																						<p className="italic text-zinc-500 font-medium">Remarks: {plan.remarks}</p>
+																					)}
+																				</div>
+																			</div>
+
+																			<div className="flex flex-wrap items-center gap-2 shrink-0">
+																				{!hideEditTestPlanButton && !isRetestPlan && !isChildRetest && (
+																					<button
+																						onClick={() => handleOpenPlanForm(index, plan)}
+																						className="border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+																					>
+																						<Clipboard className="w-3 h-3 shrink-0" />
+																						Edit
+																					</button>
+																				)}
+
+																				{!hideEditTestPlanButton && !isRetestPlan && !isChildRetest && (
+																					<button
+																						onClick={() => handleDeletePlan(plan.id, Number(plan.stationNo), plan.platformNos, plan.equipmentId, plan.testTypeId)}
+																						className="px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+																					>
+																						Delete
+																					</button>
+																				)}
+
+																				{(() => {
+																					const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
+																					if (isEvaluated || (isRetestPlan && !isChildRetest)) {
+																						const isReliabilityPlan = planTestType?.name?.toLowerCase().includes('reliability');
+																						const tearDownInfo = getTearDownInfo(plan, selectedReq);
+
+																						return (
+																							<div className="flex items-center gap-2 flex-wrap">
+																								<button
+																									onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
+																									className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
+																								>
+																									<FileText className="w-3 h-3" />
+																									<span>{plan.evaluationStatus === 'FAILED' ? 'Failed Report' : (Boolean(plan.parentPlanId || plan.isRetest) ? 'Retest Report' : (isRetestPlan && !isChildRetest ? 'Previous Report' : 'Report'))}</span>
+																								</button>
+																								{isReliabilityPlan && (
+																									<>
+																										{tearDownInfo ? (
+																											<div className="flex items-center gap-1.5">
+																												<button
+																													onClick={() => setViewTearDownFile({ url: tearDownInfo.url, filename: tearDownInfo.filename })}
+																													className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all"
+																												>
+																													<Eye className="w-3 h-3" />
+																													<span>View Tear Down Report</span>
+																												</button>
+
+																												<label className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-[10px] border border-emerald-250 cursor-pointer transition-all flex items-center gap-1">
+																													<Upload className="w-3 h-3 text-emerald-600" />
+																													<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Re-upload'}</span>
+																													<input
+																														type="file"
+																														accept=".xlsx,.xls,.pdf"
+																														className="hidden"
+																														onChange={(e) => {
+																															if (e.target.files && e.target.files[0]) {
+																																handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
+																															}
+																														}}
+																													/>
+																												</label>
+
+																												<button
+																													onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																													title="Download Tear Down Format"
+																													className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[10px] transition-all cursor-pointer"
+																												>
+																													<Download className="w-3 h-3" />
+																												</button>
+																											</div>
+																										) : (
+																											<div className="flex items-center gap-1.5">
+																												<button
+																													onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
+																													className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-emerald-250 cursor-pointer shadow-sm active:scale-95 transition-all"
+																												>
+																													<Download className="w-3 h-3" />
+																													<span>Download Tear Down Format</span>
+																												</button>
+
+																												<label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all">
+																													<Upload className="w-3 h-3" />
+																													<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Upload Filled Tear Down'}</span>
+																													<input
+																														type="file"
+																														accept=".xlsx,.xls,.pdf"
+																														className="hidden"
+																														onChange={(e) => {
+																															if (e.target.files && e.target.files[0]) {
+																																handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
+																															}
+																														}}
+																													/>
+																												</label>
+																											</div>
+																										)}
+																									</>
+																								)}
+																							</div>
+																						);
+																					}
+
+																					const planReport = selectedReq.sampleInspections?.find(
+																						(si: any) => si.testPlanId === plan.id
+																					);
+																					const planIsUnderReview = planReport?.status === 'UNDER_REVIEW';
+
+																					const showEvaluate = (isTesting || planIsUnderReview) && !isRetestPlan;
+																					if (showEvaluate) {
+																						return (
+																							<button
+																								onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-plan-${plan.id}`)}
+																								className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
+																							>
+																								<span>Evaluate</span>
+																							</button>
+																						);
+																					}
+
+																					return null;
+																				})()}
+
+																				{hasRetest && !isChildRetest && (
+																					<button
+																						type="button"
+																						onClick={() => toggleRetestLineage(`${selectedReq.id}-${lineageKey}`)}
+																						className="px-2.5 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[10px] font-extrabold rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+																					>
+																						<span>{isExpanded ? 'Hide Retest' : 'Show Retest Plan'}</span>
+																						{isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+																					</button>
+																				)}
+																			</div>
+																		</div>
+																	);
+																};
 
 																return (
-																	<div key={plan.id} className="bg-zinc-50/50 border border-zinc-200/60 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:bg-zinc-50">
-																		<div className="space-y-1">
-																			<div className="flex items-center gap-2 flex-wrap">
-																				<span className="text-[10px] font-extrabold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
-																					{planTestType?.name || 'General'}
-																				</span>
-																				{planTestCategory?.name && (
-																					<span className="text-[10px] font-extrabold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100">
-																						{planTestCategory.name}
-																					</span>
-																				)}
-																				<span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider ${plan.evaluationStatus === 'PASSED'
-																					? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-																					: plan.evaluationStatus === 'FAILED'
-																						? 'bg-rose-50 text-rose-700 border border-rose-100'
-																						: isTesting
-																							? 'bg-blue-50 text-blue-700 border border-blue-100 animate-pulse'
-																							: 'bg-amber-50 text-amber-700 border border-amber-100'
-																					}`}>
-																					{plan.evaluationStatus === 'PASSED'
-																						? 'Testing Passed'
-																						: plan.evaluationStatus === 'FAILED'
-																							? 'Testing Failed'
-																							: isTesting
-																								? 'Testing'
-																								: 'Scheduled'}
-																				</span>
+																	<div key={lineageKey} className="space-y-1">
+																		{renderPlanRow(mainPlan, false)}
+																		{hasRetest && isExpanded && (
+																			<div className="space-y-1.5 animate-fade-in">
+																				{retestPlans.map((rp: any) => renderPlanRow(rp, true))}
 																			</div>
-																			<div className="text-[9px] text-zinc-600 font-bold space-y-0.5 mt-1">
-																				<p>Product: {plan.productType} | Station Unit: S{plan.stationNo} (Platforms: {plan.platformNos.join(', ') || 'None'})</p>
-																				{plan.equipmentId && (
-																					<p>Equipment: {equipments.find(e => String(e.id) === String(plan.equipmentId))?.name || 'Assigned Equipment'}</p>
-																				)}
-																				<p>Duration: {plan.numberOfDays} Days ({formatDateToDMY(plan.startDate)} to {formatDateToDMY(plan.endDate)})</p>
-																				{plan.remarks && (
-																					<p className="italic text-zinc-500 font-medium">Remarks: {plan.remarks}</p>
-																				)}
-																			</div>
-																		</div>
-
-																		<div className="flex flex-wrap items-center gap-2 shrink-0">
-																			{!hideEditTestPlanButton && (
-																				<button
-																					onClick={() => handleOpenPlanForm(index, plan)}
-																					className="px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-700 cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
-																				>
-																					<Clipboard className="w-3 h-3 shrink-0" />
-																					Edit
-																				</button>
-																			)}
-
-																			{!hideEditTestPlanButton && (
-																				<button
-																					onClick={() => handleDeletePlan(plan.id, Number(plan.stationNo), plan.platformNos, plan.equipmentId, plan.testTypeId)}
-																					className="px-3 py-1.5 text-[10px] font-extrabold rounded-lg transition-all border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
-																				>
-																					Delete
-																				</button>
-																			)}
-
-																			{(() => {
-																				const isEvaluated = plan.evaluationStatus === 'PASSED' || plan.evaluationStatus === 'FAILED';
-																				if (isEvaluated) {
-																					const isReliabilityPlan = planTestType?.name?.toLowerCase().includes('reliability');
-																					const tearDownInfo = getTearDownInfo(plan, selectedReq);
-
-																					return (
-																						<div className="flex items-center gap-2 flex-wrap">
-																							<button
-																								onClick={() => window.open(`/reports/preview?type=plan&key=${selectedReq.id}-plan-${plan.id}`, '_blank')}
-																								className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-sm active:scale-95 transition-all"
-																							>
-																								<FileText className="w-3 h-3" />
-																								<span>Report</span>
-																							</button>
-																							{isReliabilityPlan && (
-																								<>
-																									{tearDownInfo ? (
-																										<div className="flex items-center gap-1.5">
-																											<button
-																												onClick={() => setViewTearDownFile({ url: tearDownInfo.url, filename: tearDownInfo.filename })}
-																												className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all"
-																											>
-																												<Eye className="w-3 h-3" />
-																												<span>View Tear Down Report</span>
-																											</button>
-
-																											<label className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg text-[10px] border border-emerald-250 cursor-pointer transition-all flex items-center gap-1">
-																												<Upload className="w-3 h-3 text-emerald-600" />
-																												<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Re-upload'}</span>
-																												<input
-																													type="file"
-																													accept=".xlsx,.xls,.pdf"
-																													className="hidden"
-																													onChange={(e) => {
-																														if (e.target.files && e.target.files[0]) {
-																															handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
-																														}
-																													}}
-																												/>
-																											</label>
-
-																											<button
-																												onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
-																												title="Download Tear Down Format"
-																												className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 rounded-lg text-[10px] transition-all cursor-pointer"
-																											>
-																												<Download className="w-3 h-3" />
-																											</button>
-																										</div>
-																									) : (
-																										<div className="flex items-center gap-1.5">
-																											<button
-																												onClick={() => handleDownloadTearDownExcel(plan, selectedReq)}
-																												className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold rounded-lg text-[10px] flex items-center gap-1 border border-emerald-250 cursor-pointer shadow-sm active:scale-95 transition-all"
-																											>
-																												<Download className="w-3 h-3" />
-																												<span>Download Tear Down Format</span>
-																											</button>
-
-																											<label className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-lg text-[10px] flex items-center gap-1 cursor-pointer shadow-sm active:scale-95 transition-all">
-																												<Upload className="w-3 h-3" />
-																												<span>{isUploadingTearDown === plan.id ? 'Uploading...' : 'Upload Filled Tear Down'}</span>
-																												<input
-																													type="file"
-																													accept=".xlsx,.xls,.pdf"
-																													className="hidden"
-																													onChange={(e) => {
-																														if (e.target.files && e.target.files[0]) {
-																															handleTearDownFileUpload(plan, selectedReq, e.target.files[0]);
-																														}
-																													}}
-																												/>
-																											</label>
-																										</div>
-																									)}
-																								</>
-																							)}
-																						</div>
-																					);
-																				}
-
-																				const planReport = selectedReq.sampleInspections?.find(
-																					(si: any) => si.testPlanId === plan.id
-																				);
-																				const planIsUnderReview = planReport?.status === 'UNDER_REVIEW';
-
-																				const showEvaluate = isTesting || planIsUnderReview;
-																				if (showEvaluate) {
-																					return (
-																						<button
-																							onClick={() => navigate(`/manager/evaluate-checksheet/${selectedReq.id}-plan-${plan.id}`)}
-																							className="px-3.5 py-1.5 text-[10px] font-extrabold rounded-lg transition-all outline-none border-none cursor-pointer flex items-center gap-1 shadow-sm bg-amber-600 hover:bg-amber-700 text-white active:scale-95"
-																						>
-																							Evaluate
-																						</button>
-																					);
-																				}
-																				return null;
-																			})()}
-																		</div>
+																		)}
 																	</div>
 																);
-															})
-														) : (
+															});
+														})()}
+
+														{(!planList || planList.length === 0) && (
 															<p className="text-[10px] text-zinc-400 italic">No active test plans configured for this sample.</p>
 														)}
 
-														{isPassed && (
+														{isPassed && !isSubmittedToHead && (
 															<button
 																onClick={() => handleOpenPlanForm(index)}
 																className="mt-2 px-3 py-2 bg-[#11236a] hover:bg-[#0c1a52] text-white text-[10px] font-extrabold rounded-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1 border-none shadow-sm"
@@ -1511,7 +1614,9 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								{!isAllInspectionFailed && (
 									isSubmittedToHead ? (
 										<span className="text-xs font-bold text-zinc-500 bg-zinc-100 border border-zinc-200 px-4 py-2 rounded-xl">
-											Submitted to Head Panel
+											{['COMPLETED', 'HEAD_APPROVED', 'APPROVED', 'REPORT_RELEASED'].includes((selectedReq.status || '').toUpperCase())
+												? 'Request Completed'
+												: 'Submitted to Head Panel'}
 										</span>
 									) : (
 										canSubmitToHead && (
@@ -1519,9 +1624,35 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												onClick={async () => {
 													if (onUpdateStatus) {
 														try {
+															const allPlans = selectedReq.testPlans || [];
+															let passedCount = 0;
+															let failedCount = 0;
+															allPlans.forEach((p: any) => {
+																if (p.evaluationStatus === 'PASSED') passedCount++;
+																else if (p.evaluationStatus === 'FAILED') failedCount++;
+															});
+
+															const qty = selectedReq.sampleQty || 1;
+															for (let i = 0; i < qty; i++) {
+																const report = (selectedReq.sampleInspections || []).find((r: any) => Number(r.sampleIndex) === i);
+																if (report && report.status === 'FAILED') failedCount++;
+															}
+
+															const totalAllocations = allPlans.length;
+															let targetStatus = 'TESTING_COMPLETED';
+															if (totalAllocations > 0) {
+																if (passedCount === totalAllocations) {
+																	targetStatus = 'TESTING_PASSED';
+																} else if (failedCount === totalAllocations) {
+																	targetStatus = 'TESTING_FAILED';
+																} else {
+																	targetStatus = 'TESTING_PARTIAL';
+																}
+															}
+
 															const remarksText = selectedReq.remarks ? `${selectedReq.remarks}` : '';
 															const newRemarks = remarksText.includes('Submitted to Head') ? remarksText : `Submitted to Head. ${remarksText}`;
-															await onUpdateStatus(selectedReq.id, selectedReq.status, newRemarks);
+															await onUpdateStatus(selectedReq.id, targetStatus, newRemarks);
 															toast.success('Test reports successfully submitted to Head Panel.');
 															navigate('/manager/test-plans');
 														} catch (e) {
@@ -1856,7 +1987,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 								>
 									<option value="">-- Select Test Protocol --</option>
 									{testProtocols
-										.filter((p: any) => 
+										.filter((p: any) =>
 											String(p.testCategoryId) === String(form.testCategoryId) &&
 											String(p.productType).toLowerCase() === String(form.productType).toLowerCase()
 										)
@@ -2014,8 +2145,8 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 														<td className="p-3 font-medium text-zinc-800 leading-normal">{cp.text}</td>
 														<td className="p-3 text-center">
 															<span className={`inline-block px-2.5 py-1 text-[10px] font-extrabold rounded-lg uppercase tracking-wider text-center min-w-[50px] ${val === 'Yes' ? 'bg-emerald-50 text-emerald-700 border border-emerald-150' :
-																	val === 'No' ? 'bg-rose-50 text-rose-700 border border-rose-150' :
-																		'bg-zinc-100 text-zinc-500 border border-zinc-200'
+																val === 'No' ? 'bg-rose-50 text-rose-700 border border-rose-150' :
+																	'bg-zinc-100 text-zinc-500 border border-zinc-200'
 																}`}>
 																{val || 'N/A'}
 															</span>
