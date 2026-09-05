@@ -84,7 +84,7 @@ export default function MisReportDispatchManagement() {
 						<div>
 							<h3 className="text-lg font-extrabold text-zinc-900 tracking-tight">Weekly Lab MIS Analytics PDF</h3>
 							<p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed">
-								Generates high-resolution PDF summarizing weekly platform load, chamber utilization, reliability test cycle counts, standard safety runs, and NABL request outcomes.
+								Generates high-resolution PDF package (4 section PDFs) covering merged platform loading & reliability lifecycle cycles, equipment chamber utilization, standard safety tests, and NABL request outcomes.
 							</p>
 						</div>
 
