@@ -37,13 +37,22 @@ export default function HeadCompletedReports() {
 	const completedOrPartialRequests = requests.filter((req: any) => {
 		const statusLower = (req.status || '').toLowerCase();
 		const remarksLower = (req.remarks || '').toLowerCase();
+
+		const plans = req.testPlans || [];
+		const hasPlans = plans.length > 0;
+		const hasPassedPlan = plans.some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
+
+		// A request with test plans MUST have at least one passed test plan to be in Completed Reports
+		if (hasPlans && !hasPassedPlan) return false;
+
+		// If it has no test plans allocated, it must have at least one passed sample inspection
+		if (!hasPlans) {
+			const hasPassedInsp = (req.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
+			if (!hasPassedInsp) return false;
+		}
+
 		const isAlreadyApproved = statusLower === 'completed';
 		if (isAlreadyApproved) return true;
-
-		const hasPassedPlan = (req.testPlans || []).some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
-		const hasPassedInsp = (req.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
-
-		if (!hasPassedPlan && !hasPassedInsp) return false;
 
 		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
 			remarksLower.includes('submitted to head panel');

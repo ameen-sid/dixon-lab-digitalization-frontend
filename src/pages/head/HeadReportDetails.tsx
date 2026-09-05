@@ -122,8 +122,19 @@ export default function HeadReportDetails() {
 	const qty = request.sampleQty || 1;
 	const isAlreadyApproved = request.status === 'COMPLETED';
 
+	const requestPlans = request.testPlans || [];
+	const hasPassedPlan = requestPlans.some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
+	const hasPassedInsp = (request.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
+	const hasAnyPassedContent = requestPlans.length > 0 ? hasPassedPlan : hasPassedInsp;
+
 	const handleApproveReport = async () => {
 		if (approving) return;
+
+		if (!hasAnyPassedContent) {
+			toast.error('Cannot certify report: No passed test plans or inspections found for this request. Please review failed tests in the Failure Decision page.');
+			return;
+		}
+
 		setApproving(true);
 		try {
 			// Check if any retest plans or tests remain un-evaluated
@@ -410,6 +421,23 @@ export default function HeadReportDetails() {
 								<div className="text-[10px] font-bold text-zinc-400 italic text-center">
 									Status: COMPLETED (Signed by Lab Head)
 								</div>
+							</div>
+						) : !hasAnyPassedContent ? (
+							<div className="space-y-3.5">
+								<div className="bg-rose-50 border border-rose-150 rounded-xl p-3.5 flex items-start gap-2.5">
+									<AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+									<div>
+										<p className="text-xs font-bold text-rose-800">No Passed Test Reports</p>
+										<p className="text-[10px] text-rose-600 font-semibold mt-0.5">All test plans for this request failed or none have passed. Decision actions must be taken on the Failure Decision page.</p>
+									</div>
+								</div>
+								<button
+									onClick={() => navigate('/head/failure-decision')}
+									className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl transition-all cursor-pointer outline-none active:scale-95 shadow-sm flex items-center justify-center gap-2 border-none"
+								>
+									<AlertTriangle className="w-4 h-4" />
+									<span>Go to Failure Decision Page</span>
+								</button>
 							</div>
 						) : (
 							<div className="space-y-3.5">

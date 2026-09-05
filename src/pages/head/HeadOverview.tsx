@@ -78,10 +78,16 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		const remarksLower = (r.remarks || '').toLowerCase();
 		if (statusLower === 'completed') return false;
 
-		const hasPassedPlan = (r.testPlans || []).some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
-		const hasPassedInsp = (r.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
+		const plans = r.testPlans || [];
+		const hasPlans = plans.length > 0;
+		const hasPassedPlan = plans.some((p: any) => (p.evaluationStatus || '').toUpperCase() === 'PASSED');
 
-		if (!hasPassedPlan && !hasPassedInsp) return false;
+		if (hasPlans && !hasPassedPlan) return false;
+
+		if (!hasPlans) {
+			const hasPassedInsp = (r.sampleInspections || []).some((i: any) => (i.status || '').toUpperCase() === 'PASSED');
+			if (!hasPassedInsp) return false;
+		}
 
 		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
 			remarksLower.includes('submitted to head panel');
@@ -95,7 +101,7 @@ export default function HeadOverview({ navigate }: HeadOverviewProps) {
 		const statusLower = (req.status || '').toLowerCase();
 		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
 			remarksLower.includes('submitted to head panel') ||
-			['retest', 'completed'].includes(statusLower);
+			['retest', 'completed', 'failed', 'testing_failed'].includes(statusLower);
 
 		if (!isSubmittedToHead) return count;
 

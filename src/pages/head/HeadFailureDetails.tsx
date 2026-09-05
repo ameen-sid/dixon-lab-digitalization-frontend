@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, FileText, ExternalLink, Bookmark, RefreshCw } from 'lucide-react';
-import { getTestRequestDetails } from '../../services/operations/testRequestService';
+import { getTestRequestDetails, updateTestRequestStatus } from '../../services/operations/testRequestService';
 import { toast } from 'react-hot-toast';
 
 export default function HeadFailureDetails() {
@@ -110,6 +110,12 @@ export default function HeadFailureDetails() {
 				});
 			}
 
+			await updateTestRequestStatus(
+				request.id,
+				'RETEST',
+				`Returned for Retesting by Head of Laboratory (${new Date().toLocaleDateString()})`
+			)();
+
 			toast.success('Test plan returned to testing for Retest successfully!');
 			await loadRequestDetails();
 			navigate('/head/failure-decision');
@@ -149,6 +155,23 @@ export default function HeadFailureDetails() {
 				});
 			}
 
+			// Check if all failed test plans in this request now have a head decision taken
+			const remainingUndecidedPlans = (request.testPlans || []).filter((p: any) => {
+				const isFailed = (p.evaluationStatus || '').toUpperCase() === 'FAILED';
+				if (!isFailed) return false;
+				const isTarget = targetPlans.some((tp: any) => tp.id === p.id);
+				if (isTarget) return false;
+				const hasAction = Boolean(p.headAction) || (p.evaluationRemarks || '').includes('[HEAD_ACTION:');
+				return !hasAction;
+			});
+
+			if (remainingUndecidedPlans.length === 0) {
+				const currentRemarks = request.remarks || '';
+				const failureDecisionNote = `Testing Failed - Failure Adjudicated by Head of Lab (${new Date().toLocaleDateString()})`;
+				const updatedRemarks = currentRemarks ? `${currentRemarks} | ${failureDecisionNote}` : failureDecisionNote;
+				await updateTestRequestStatus(request.id, 'FAILED', updatedRemarks)();
+			}
+
 			toast.success('Failed test plan returned to requester for CAPA successfully!');
 			await loadRequestDetails();
 			navigate('/head/failure-decision');
@@ -186,6 +209,23 @@ export default function HeadFailureDetails() {
 						evaluationRemarks: finalRemarks
 					})
 				});
+			}
+
+			// Check if all failed test plans in this request now have a head decision taken
+			const remainingUndecidedPlans = (request.testPlans || []).filter((p: any) => {
+				const isFailed = (p.evaluationStatus || '').toUpperCase() === 'FAILED';
+				if (!isFailed) return false;
+				const isTarget = targetPlans.some((tp: any) => tp.id === p.id);
+				if (isTarget) return false;
+				const hasAction = Boolean(p.headAction) || (p.evaluationRemarks || '').includes('[HEAD_ACTION:');
+				return !hasAction;
+			});
+
+			if (remainingUndecidedPlans.length === 0) {
+				const currentRemarks = request.remarks || '';
+				const failureDecisionNote = `Testing Failed - Failure Adjudicated by Head of Lab (${new Date().toLocaleDateString()})`;
+				const updatedRemarks = currentRemarks ? `${currentRemarks} | ${failureDecisionNote}` : failureDecisionNote;
+				await updateTestRequestStatus(request.id, 'FAILED', updatedRemarks)();
 			}
 
 			toast.success('Failed test plan returned to Lab Manager for internal CAPA successfully!');

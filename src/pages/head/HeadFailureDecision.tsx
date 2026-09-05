@@ -53,7 +53,7 @@ export default function HeadFailureDecision() {
 		const statusLower = (req.status || '').toLowerCase();
 		const isSubmittedToHead = remarksLower.includes('submitted to head') ||
 			remarksLower.includes('submitted to head panel') ||
-			['retest', 'completed'].includes(statusLower);
+			['retest', 'completed', 'failed', 'testing_failed'].includes(statusLower);
 
 		if (isSubmittedToHead) {
 			requestPlans.forEach((p: any) => {

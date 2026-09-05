@@ -533,6 +533,13 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 								const hasFailedSample = (realSampleInspections || []).some((r: any) => r.status === 'FAILED') ||
 									(realTestPlans || []).some((p: any) => p.evaluationStatus === 'FAILED');
 
+								const failedPlans = (realTestPlans || []).filter((p: any) => (p.evaluationStatus || '').toUpperCase() === 'FAILED');
+								const allFailureDecisionsTaken = failedPlans.length > 0 && failedPlans.every((p: any) =>
+									Boolean(p.headAction) || (p.evaluationRemarks || '').includes('[HEAD_ACTION:')
+								);
+
+								const isReportReleaseComplete = ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status) || allFailureDecisionsTaken;
+
 								const approvedRequestDate = selectedRequest.approvedDate || selectedRequest.assignedDate;
 
 								const earliestInspectionDate = (() => {
@@ -669,19 +676,19 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 											},
 											{
 												step: 'Report Generation',
-												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
+												date: isReportReleaseComplete
 													? formatCompletionDate(selectedRequest.updatedAt)
 													: 'Pending release',
-												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
-												failed: isFinalFailedStatus
+												completed: isReportReleaseComplete,
+												failed: isFinalFailedStatus || allFailureDecisionsTaken
 											},
 											{
 												step: 'Approved Final Report',
-												date: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status)
+												date: isReportReleaseComplete
 													? formatCompletionDate(selectedRequest.updatedAt)
 													: 'Pending final sign-off',
-												completed: ["COMPLETED", "REJECTED", "FAILED", "FAIL"].includes(selectedRequest.status),
-												failed: isFinalFailedStatus
+												completed: isReportReleaseComplete,
+												failed: isFinalFailedStatus || allFailureDecisionsTaken
 											}
 										]
 									) : [])
