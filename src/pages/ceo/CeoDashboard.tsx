@@ -883,7 +883,8 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
       setRequests(Array.isArray(rawReqs) ? rawReqs : []);
       setNablRequests(rawNablReqs);
       setCapas(Array.isArray(caps) ? caps : []);
-      setEquipment(Array.isArray(eqps) ? eqps : []);
+      const misEquipments = Array.isArray(eqps) ? eqps.filter((e: any) => e.showInMisReport !== false) : [];
+      setEquipment(misEquipments);
       setPlatforms(Array.isArray(plats) ? plats : []);
       setTestTypes(activeTestTypes);
       setPlans(parsedPlans);

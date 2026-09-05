@@ -9,6 +9,7 @@ interface TestingEquipmentRecord {
 	name: string;
 	calibrationDueDate: string;
 	status: string;
+	showInMisReport?: boolean;
 	createdAt: string;
 }
 
@@ -28,6 +29,7 @@ export default function TestingEquipmentManagement() {
 	const [name, setName] = useState("");
 	const [calibrationDueDate, setCalibrationDueDate] = useState("");
 	const [status, setStatus] = useState("ACTIVE");
+	const [showInMisReport, setShowInMisReport] = useState(true);
 	const [editingId, setEditingId] = useState<number | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -56,7 +58,7 @@ export default function TestingEquipmentManagement() {
 		if (!calibrationDueDate) return showNotification('Please select a calibration due date', 'error');
 
 		try {
-			await testingEquipmentService.createTestingEquipment(name, calibrationDueDate, status)();
+			await testingEquipmentService.createTestingEquipment(name, calibrationDueDate, status, showInMisReport)();
 			showNotification(`Testing equipment "${name.trim()}" registered successfully!`, 'success');
 			resetForm();
 			fetchData();
@@ -72,6 +74,7 @@ export default function TestingEquipmentManagement() {
 		const formattedDate = !isNaN(dateObj.getTime()) ? dateObj.toISOString().split('T')[0] : "";
 		setCalibrationDueDate(formattedDate);
 		setStatus(record.status);
+		setShowInMisReport(record.showInMisReport !== false);
 		setShowEditModal(true);
 	};
 
@@ -81,7 +84,7 @@ export default function TestingEquipmentManagement() {
 		if (!calibrationDueDate) return showNotification('Please select a calibration due date', 'error');
 
 		try {
-			await testingEquipmentService.updateTestingEquipment(editingId, name, calibrationDueDate, status)();
+			await testingEquipmentService.updateTestingEquipment(editingId, name, calibrationDueDate, status, showInMisReport)();
 			showNotification(`Testing equipment updated successfully!`, 'success');
 			resetForm();
 			fetchData();
@@ -116,6 +119,7 @@ export default function TestingEquipmentManagement() {
 		setName("");
 		setCalibrationDueDate("");
 		setStatus("ACTIVE");
+		setShowInMisReport(true);
 		setEditingId(null);
 		setShowAddModal(false);
 		setShowEditModal(false);
@@ -255,6 +259,7 @@ export default function TestingEquipmentManagement() {
 									<th className="py-4 px-6">Equipment Name</th>
 									<th className="py-4 px-6">Calibration Due Date</th>
 									<th className="py-4 px-6">Uptime Status</th>
+									<th className="py-4 px-6">MIS / CEO Report</th>
 									<th className="py-4 px-6 text-right">Actions</th>
 								</tr>
 							</thead>
@@ -262,7 +267,7 @@ export default function TestingEquipmentManagement() {
 								{paginatedRecords.length === 0 ? (
 									<tr>
 										<td
-											colSpan={4}
+											colSpan={5}
 											className="py-8 text-center text-zinc-650 font-light"
 										> No registered chambers/assets found.</td>
 									</tr>
@@ -289,6 +294,17 @@ export default function TestingEquipmentManagement() {
 												<span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${getStatusBadge(item.status)}`}>
 													{item.status.replace('_', ' ')}
 												</span>
+											</td>
+											<td className="py-4 px-6">
+												{item.showInMisReport !== false ? (
+													<span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+														<span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Included
+													</span>
+												) : (
+													<span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-500 border border-zinc-250 inline-flex items-center gap-1">
+														<span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span> Excluded
+													</span>
+												)}
 											</td>
 											<td className="py-4 px-6 text-right space-x-2 shrink-0">
 												<button
@@ -379,6 +395,18 @@ export default function TestingEquipmentManagement() {
 									]}
 								/>
 							</div>
+							<div className="flex items-center gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer" onClick={() => setShowInMisReport(!showInMisReport)}>
+								<input
+									type="checkbox"
+									id="add-showInMisReport"
+									checked={showInMisReport}
+									onChange={(e) => setShowInMisReport(e.target.checked)}
+									className="w-4 h-4 text-[#11236a] rounded border-zinc-300 focus:ring-[#11236a] cursor-pointer"
+								/>
+								<label htmlFor="add-showInMisReport" className="text-xs text-zinc-700 font-medium cursor-pointer select-none">
+									Include in MIS Reports & CEO Dashboard
+								</label>
+							</div>
 							<button
 								type="submit"
 								className="w-full bg-[#11236a] text-white text-xs font-bold py-2.5 rounded-xl hover:bg-[#0c1a52] transition-all border-none outline-none cursor-pointer"
@@ -437,6 +465,18 @@ export default function TestingEquipmentManagement() {
 										{ value: "UNDER_MAINTENANCE", label: "Under Maintenance" }
 									]}
 								/>
+							</div>
+							<div className="flex items-center gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer" onClick={() => setShowInMisReport(!showInMisReport)}>
+								<input
+									type="checkbox"
+									id="edit-showInMisReport"
+									checked={showInMisReport}
+									onChange={(e) => setShowInMisReport(e.target.checked)}
+									className="w-4 h-4 text-[#11236a] rounded border-zinc-300 focus:ring-[#11236a] cursor-pointer"
+								/>
+								<label htmlFor="edit-showInMisReport" className="text-xs text-zinc-700 font-medium cursor-pointer select-none">
+									Include in MIS Reports & CEO Dashboard
+								</label>
 							</div>
 							<button
 								type="submit"

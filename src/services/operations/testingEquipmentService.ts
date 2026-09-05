@@ -37,14 +37,15 @@ export const getTestingEquipments = (params?: { page?: number; limit?: number; s
 	};
 };
 
-export const createTestingEquipment = (name: string, calibrationDueDate: string | null, status?: string) => {
+export const createTestingEquipment = (name: string, calibrationDueDate: string | null, status?: string, showInMisReport?: boolean) => {
 	return async () => {
 		const toastId = toast.loading('Creating testing equipment...');
 		try {
 			const response = await apiConnector('POST', CREATE_TESTING_EQUIPMENT_API, {
 				name: name.trim(),
 				calibrationDueDate,
-				status
+				status,
+				showInMisReport
 			});
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to create testing equipment');
@@ -63,14 +64,15 @@ export const createTestingEquipment = (name: string, calibrationDueDate: string 
 	};
 };
 
-export const updateTestingEquipment = (id: number, name?: string, calibrationDueDate?: string | null, status?: string) => {
+export const updateTestingEquipment = (id: number, name?: string, calibrationDueDate?: string | null, status?: string, showInMisReport?: boolean) => {
 	return async () => {
 		const toastId = toast.loading('Updating testing equipment...');
 		try {
 			const response = await apiConnector('PATCH', UPDATE_TESTING_EQUIPMENT_API(id), {
 				...(name !== undefined && { name: name.trim() }),
 				...(calibrationDueDate !== undefined && { calibrationDueDate }),
-				...(status !== undefined && { status })
+				...(status !== undefined && { status }),
+				...(showInMisReport !== undefined && { showInMisReport })
 			});
 			const isSuccess = response.data?.success ?? true;
 			if (!isSuccess) throw new Error(response.data?.message || 'Failed to update testing equipment');
