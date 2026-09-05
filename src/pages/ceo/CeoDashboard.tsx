@@ -980,7 +980,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
 
   const stationOptions = [
     { value: '', label: 'All Stations' },
-    ...Array.from({ length: 14 }, (_, idx) => ({
+    ...Array.from({ length: 13 }, (_, idx) => ({
       value: String(idx + 1),
       label: `Station ${idx + 1}`
     }))
@@ -1090,7 +1090,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     return Number(((eqOccupied / eqTotal) * 100).toFixed(1));
   })();
 
-  const stTotal = 140;
+  const stTotal = 130;
   const stOccupied = platforms.length > 0
     ? platforms.filter((p) => p.isAvailable === false || ['occupied', 'busy', 'reserved', 'in_use', 'testing'].includes(getSafeStatusText(p.status))).length
     : 7;
@@ -1108,7 +1108,7 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
     let end = endDateFilter ? new Date(endDateFilter) : new Date();
 
     const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
-    const slotsCount = selectedPlatform ? 1 : selectedStation ? 10 : 140;
+    const slotsCount = selectedPlatform ? 1 : selectedStation ? 10 : 130;
     const result = [];
 
     if (totalDays <= 35) {
@@ -1696,14 +1696,14 @@ export default function CeoDashboard({ bare = false }: { bare?: boolean }) {
                   <span className="text-[10px] tracking-wider text-zinc-400 font-extrabold uppercase">Stations Utilization</span>
                   <InfoTooltip
                     title="Stations Utilization Formula"
-                    text="Calculated as (Occupied Platform Slots / 140 Total Standard Platform Slots) * 100. Evaluates standard 14-station lab platform loading."
+                    text="Calculated as (Occupied Platform Slots / 130 Total Standard Platform Slots) * 100. Evaluates standard 13-station lab platform loading."
                   />
                 </div>
                 <Layers className="w-4 h-4 text-blue-600" />
               </div>
               <div className="mt-3">
                 <span className="text-3xl font-extrabold text-zinc-900 leading-none">{currentStationsUtilization}%</span>
-                <p className="text-[11px] text-zinc-500 font-bold mt-1">{occupiedPlatformSlotsCount} / 140 Slots Occupied</p>
+                <p className="text-[11px] text-zinc-500 font-bold mt-1">{occupiedPlatformSlotsCount} / 130 Slots Occupied</p>
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-zinc-100">

@@ -396,7 +396,7 @@ export default function AdminDashboard() {
 							</button>
 						</div>
 						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-							{Array.from({ length: 14 }, (_, i) => {
+							{Array.from({ length: 13 }, (_, i) => {
 								const pNum = i + 1;
 								return (
 									<div key={pNum} className="bg-white border border-zinc-200/60 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">

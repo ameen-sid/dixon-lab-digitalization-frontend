@@ -1163,7 +1163,7 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                                         </div>
 
                                         <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar p-3 bg-[#f8fafc] rounded-2xl border border-zinc-150">
-                                            {Array.from({ length: 14 }, (_, stationIdx) => {
+                                            {Array.from({ length: 13 }, (_, stationIdx) => {
                                                 const sNum = stationIdx + 1;
                                                 const isStationActive = form.stationNo === sNum;
 

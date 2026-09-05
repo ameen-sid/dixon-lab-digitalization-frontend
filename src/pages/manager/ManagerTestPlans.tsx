@@ -1886,7 +1886,7 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 											);
 										})()
 									) : (
-										Array.from({ length: 14 }, (_, stationIdx) => {
+										Array.from({ length: 13 }, (_, stationIdx) => {
 											const sNum = stationIdx + 1;
 											const isStationActive = form.stationNo === sNum;
 

@@ -216,7 +216,7 @@ export default function InspectorDailyChecksheet() {
 
 	const stationOptions = [
 		{ value: 'All', label: 'All Stations' },
-		...Array.from({ length: 14 }, (_, i) => ({
+		...Array.from({ length: 13 }, (_, i) => ({
 			value: String(i + 1),
 			label: `Station ${i + 1}`
 		}))
