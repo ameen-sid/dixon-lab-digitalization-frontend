@@ -395,7 +395,7 @@ export default function RequestTracking({ selectedRequest, setActiveTab, onIniti
 									<p className="font-bold text-zinc-855 mt-0.5 break-words">{selectedRequest.customerContactDetails}</p>
 								</div>
 								<div className="sm:col-span-2 border-t border-zinc-200/70 pt-2.5 min-w-0">
-									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Manufacturer Name & Address</p>
+									<p className="text-[9px] text-zinc-600 font-extrabold uppercase">Part / Product</p>
 									<p className="font-bold text-zinc-800 mt-0.5 whitespace-pre-wrap break-words">{selectedRequest.manufacturerNameAddress}</p>
 								</div>
 							</div>

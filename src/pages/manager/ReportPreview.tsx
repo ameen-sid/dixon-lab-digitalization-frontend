@@ -853,7 +853,7 @@ export default function ReportPreview() {
 														<span className="text-zinc-550 mr-2 uppercase">Customer Name & Address:</span> {request.customerNameAddress}
 													</td>
 													<td className="p-2">
-														<span className="text-zinc-550 mr-2 uppercase">Manufacturer Name:</span> {request.manufacturerNameAddress || 'N/A'}
+														<span className="text-zinc-550 mr-2 uppercase">Part / Product:</span> {request.manufacturerNameAddress || 'N/A'}
 													</td>
 												</tr>
 												<tr className="border-b-2 border-black divide-x-2 divide-black">
@@ -1013,7 +1013,7 @@ export default function ReportPreview() {
 												<tbody className="divide-y-2 divide-black">
 													{[
 														{ label: 'Name & Address of Customer/Applicant:', value: request.customerNameAddress },
-														{ label: 'Name & Address of manufacturer:', value: request.manufacturerNameAddress },
+														{ label: 'Part / Product:', value: request.manufacturerNameAddress },
 														{ label: 'Product Description (EUT):', value: request.sampleDescription },
 														{ label: 'Product Ratings:', value: request.productRating },
 														{ label: 'Model / Identification No.:', value: request.modelNo },

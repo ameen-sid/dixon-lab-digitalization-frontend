@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { 
-ChevronLeft, FileText, Download, Eye, CheckCircle, XCircle, Calendar, UserCheck, Clipboard
+import {
+	ChevronLeft, FileText, Download, Eye, CheckCircle, XCircle, Calendar, UserCheck, Clipboard
 } from 'lucide-react';
 
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -156,7 +156,7 @@ export default function NablCompletedTestDetails() {
 		<DashboardLayout title="Completed Test Details">
 			<div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
 				<div className="flex items-center justify-between">
-					<button 
+					<button
 						onClick={() => navigate('/nabl-manager/completed-tests')}
 						className="text-xs font-bold text-zinc-700 hover:text-zinc-955 flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none transition-colors"
 					>

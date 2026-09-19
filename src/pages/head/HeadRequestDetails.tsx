@@ -470,7 +470,7 @@ export default function HeadRequestDetails({ requestId, onBack }: HeadRequestDet
 									<p className="font-bold text-zinc-800 mt-1">{request.customerContactDetails}</p>
 								</div>
 								<div className="sm:col-span-2 border-t border-zinc-50 pt-3">
-									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer Details</p>
+									<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Part / Product</p>
 									<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.manufacturerNameAddress}</p>
 								</div>
 							</div>

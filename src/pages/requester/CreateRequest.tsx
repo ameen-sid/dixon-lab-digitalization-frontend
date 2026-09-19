@@ -108,7 +108,7 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 									<p className="text-xs font-bold text-zinc-950 whitespace-pre-wrap leading-relaxed">{formInput.customerNameAddress}</p>
 								</div>
 								<div className="bg-zinc-50 rounded-xl p-3.5 border border-zinc-200 shadow-sm">
-									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Manufacturer Name & Address</p>
+									<p className="text-[10px] text-zinc-700 font-extrabold uppercase tracking-wider mb-1.5">Part / Product</p>
 									<p className="text-xs font-bold text-zinc-955 whitespace-pre-wrap leading-relaxed">{formInput.manufacturerNameAddress}</p>
 								</div>
 							</div>
@@ -286,12 +286,12 @@ export default function CreateRequest({ onSubmit, setActiveTab }: CreateRequestP
 							</div>
 							<div>
 								<label className="block text-xs font-bold text-zinc-800 mb-1.5">
-									Manufacturer Name and Address <span className="text-rose-500 font-extrabold">*</span>
+									Part / Product <span className="text-rose-500 font-extrabold">*</span>
 								</label>
 								<textarea 
 									required
 									rows={2}
-									placeholder="Enter full manufacturing facility name and location"
+									placeholder="Enter part / product name or details"
 									value={formInput.manufacturerNameAddress}
 									onChange={(e) => setFormInput({...formInput, manufacturerNameAddress: e.target.value})}
 									className="w-full bg-[#f8fafc] border border-zinc-200 rounded-xl p-3 text-xs font-semibold text-zinc-800 placeholder-zinc-600 outline-none focus:bg-white focus:border-[#11236a] transition-all resize-none"

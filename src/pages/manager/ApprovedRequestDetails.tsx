@@ -287,7 +287,7 @@ export default function ApprovedRequestDetails({
 								<p className="font-bold text-zinc-800 mt-1">{request.customerContactDetails || 'Not Provided'}</p>
 							</div>
 							<div className="sm:col-span-2 border-t border-zinc-100 pt-3">
-								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Manufacturer Details</p>
+								<p className="text-[9px] text-zinc-400 font-extrabold uppercase">Part / Product</p>
 								<p className="font-bold text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed">{request.manufacturerNameAddress || 'Not Provided'}</p>
 							</div>
 						</div>
