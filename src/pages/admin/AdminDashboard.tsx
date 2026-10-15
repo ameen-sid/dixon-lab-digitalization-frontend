@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -104,14 +104,12 @@ export default function AdminDashboard() {
 	const [dashTestTypes, setDashTestTypes] = useState<any[]>([]);
 	const [dashTestCats, setDashTestCats] = useState<any[]>([]);
 	const [dashTestProtos, setDashTestProtos] = useState<any[]>([]);
-	const [dashStations, setDashStations] = useState<any[]>([]);
 	const [dashLoading, setDashLoading] = useState(true);
 
 	const loadPlatformTelemetry = async () => {
 		try {
 			const data = await getPlatforms()();
 			setPlatformOccupancies(data || []);
-			setDashStations(data || []);
 			const mapping: { [key: string]: boolean } = {};
 			(data || []).forEach((item: any) => {
 				mapping[`${item.stationNo}-${item.platformNo}`] = item.isAvailable;
