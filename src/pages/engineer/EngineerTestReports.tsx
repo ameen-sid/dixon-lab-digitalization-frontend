@@ -31,6 +31,43 @@ interface TestReportForm {
 	imagePaths?: string[];
 }
 
+// Clean up old or oversized draft entries from localStorage to prevent quota exhaustion
+const cleanupOldDrafts = (currentPlanKey?: string) => {
+	try {
+		const keysToRemove: string[] = [];
+		for (let i = 0; i < localStorage.length; i++) {
+			const key = localStorage.key(i);
+			if (key && key.startsWith('draft_report_')) {
+				if (!currentPlanKey || key !== `draft_report_${currentPlanKey}`) {
+					keysToRemove.push(key);
+				} else {
+					// Clean any large legacy base64 strings from current draft key
+					try {
+						const itemStr = localStorage.getItem(key);
+						if (itemStr) {
+							const parsed = JSON.parse(itemStr);
+							if (parsed.beforeImages || parsed.afterImages) {
+								delete parsed.beforeImages;
+								delete parsed.afterImages;
+								localStorage.setItem(key, JSON.stringify(parsed));
+							}
+						}
+					} catch {
+						keysToRemove.push(key);
+					}
+				}
+			}
+		}
+		keysToRemove.forEach(k => {
+			try {
+				localStorage.removeItem(k);
+			} catch {}
+		});
+	} catch (e) {
+		console.warn('Error cleaning up drafts from localStorage:', e);
+	}
+};
+
 export default function EngineerTestReports({
 	requests,
 	currentEngineerIsNabl,
@@ -287,6 +324,7 @@ export default function EngineerTestReports({
 			});
 			setIsFormInitialized(true);
 		} else {
+			cleanupOldDrafts(planKey);
 			let draft: any = null;
 			try {
 				const savedDraft = localStorage.getItem(`draft_report_${planKey}`);
@@ -333,15 +371,24 @@ export default function EngineerTestReports({
 		const existingReport = savedReports[planKey];
 		if (existingReport) return;
 
+		// Only store text fields in the draft to avoid browser quota exhaustion (QuotaExceededError)
 		const draftData = {
 			testPurpose: reportForm.testPurpose,
-			observationResults: reportForm.observationResults,
-			beforeImages: reportForm.beforeImages,
-			afterImages: reportForm.afterImages
+			observationResults: reportForm.observationResults
 		};
 
-		localStorage.setItem(`draft_report_${planKey}`, JSON.stringify(draftData));
-	}, [planKey, reportForm, isFormInitialized, loading, savedReports]);
+		try {
+			localStorage.setItem(`draft_report_${planKey}`, JSON.stringify(draftData));
+		} catch (err) {
+			console.warn('Could not save draft to localStorage:', err);
+			try {
+				cleanupOldDrafts(planKey);
+				localStorage.setItem(`draft_report_${planKey}`, JSON.stringify(draftData));
+			} catch (retryErr) {
+				console.warn('Draft retry failed:', retryErr);
+			}
+		}
+	}, [planKey, reportForm?.testPurpose, reportForm?.observationResults, isFormInitialized, loading, savedReports]);
 
 
 
@@ -628,7 +675,9 @@ export default function EngineerTestReports({
 			}
 
 			toast.success('Test Report submitted successfully!');
-			localStorage.removeItem(`draft_report_${planKey}`);
+			try {
+				localStorage.removeItem(`draft_report_${planKey}`);
+			} catch {}
 			navigate('/engineer/test-report');
 		} catch (error) {
 			console.error('Failed to submit test report:', error);
