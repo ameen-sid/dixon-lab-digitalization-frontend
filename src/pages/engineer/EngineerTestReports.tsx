@@ -10,6 +10,7 @@ import { getTestingEquipments, releaseEquipment } from '../../services/operation
 import { releasePlatforms } from '../../services/operations/platformAvailabilityService';
 import { saveSampleReport } from '../../services/operations/testRequestService';
 import CustomSelect from '../../components/CustomSelect';
+import ImageEditorModal from '../../components/ImageEditorModal';
 
 interface EngineerTestReportsProps {
 	requests: any[];
@@ -124,6 +125,20 @@ export default function EngineerTestReports({
 		eqMake: '',
 		eqModel: '',
 		eqCalibration: ''
+	});
+
+	const [imageEditorState, setImageEditorState] = useState<{
+		isOpen: boolean;
+		imageSrc: string | null;
+		fileName: string;
+		target: 'before' | 'after';
+		fileQueue: File[];
+	}>({
+		isOpen: false,
+		imageSrc: null,
+		fileName: '',
+		target: 'before',
+		fileQueue: []
 	});
 
 	const plans = useMemo(() => {
@@ -409,17 +424,21 @@ export default function EngineerTestReports({
 		}
 
 		const filesToUpload = files.slice(0, availableSlots);
-		filesToUpload.forEach(file => {
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				setReportForm(prev => ({
-					...prev,
-					beforeImages: [...(prev.beforeImages || []), reader.result as string]
-				}));
-			};
-			reader.readAsDataURL(file);
-		});
 		e.target.value = '';
+
+		const firstFile = filesToUpload[0];
+		const remaining = filesToUpload.slice(1);
+		const reader = new FileReader();
+		reader.onload = () => {
+			setImageEditorState({
+				isOpen: true,
+				imageSrc: reader.result as string,
+				fileName: firstFile.name,
+				target: 'before',
+				fileQueue: remaining
+			});
+		};
+		reader.readAsDataURL(firstFile);
 	};
 
 	const removeBeforeImage = (idx: number) => {
@@ -446,17 +465,53 @@ export default function EngineerTestReports({
 		}
 
 		const filesToUpload = files.slice(0, availableSlots);
-		filesToUpload.forEach(file => {
+		e.target.value = '';
+
+		const firstFile = filesToUpload[0];
+		const remaining = filesToUpload.slice(1);
+		const reader = new FileReader();
+		reader.onload = () => {
+			setImageEditorState({
+				isOpen: true,
+				imageSrc: reader.result as string,
+				fileName: firstFile.name,
+				target: 'after',
+				fileQueue: remaining
+			});
+		};
+		reader.readAsDataURL(firstFile);
+	};
+
+	const handleSaveEditedReportImage = (result: { dataUrl: string; file?: File }) => {
+		const targetField = imageEditorState.target === 'before' ? 'beforeImages' : 'afterImages';
+		setReportForm(prev => ({
+			...prev,
+			[targetField]: [...(prev[targetField] || []), result.dataUrl]
+		}));
+
+		if (imageEditorState.fileQueue.length > 0) {
+			const nextFile = imageEditorState.fileQueue[0];
+			const remaining = imageEditorState.fileQueue.slice(1);
 			const reader = new FileReader();
-			reader.onloadend = () => {
-				setReportForm(prev => ({
+			reader.onload = () => {
+				setImageEditorState(prev => ({
 					...prev,
-					afterImages: [...(prev.afterImages || []), reader.result as string]
+					isOpen: true,
+					imageSrc: reader.result as string,
+					fileName: nextFile.name,
+					fileQueue: remaining
 				}));
 			};
-			reader.readAsDataURL(file);
-		});
-		e.target.value = '';
+			reader.readAsDataURL(nextFile);
+		} else {
+			setImageEditorState({
+				isOpen: false,
+				imageSrc: null,
+				fileName: '',
+				target: 'before',
+				fileQueue: []
+			});
+		}
 	};
 
 	const removeAfterImage = (idx: number) => {
@@ -1201,6 +1256,22 @@ export default function EngineerTestReports({
 					</div>
 				</div>
 			)}
+			<ImageEditorModal
+				isOpen={imageEditorState.isOpen}
+				imageSrc={imageEditorState.imageSrc}
+				title={`Edit ${imageEditorState.target === 'before' ? 'Before Test' : 'After Test'} Picture`}
+				originalFileName={imageEditorState.fileName}
+				onSave={handleSaveEditedReportImage}
+				onClose={() => {
+					setImageEditorState({
+						isOpen: false,
+						imageSrc: null,
+						fileName: '',
+						target: 'before',
+						fileQueue: []
+					});
+				}}
+			/>
 		</div>
 	);
 }

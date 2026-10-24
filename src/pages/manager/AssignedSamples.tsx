@@ -3,6 +3,7 @@ import { Search, ClipboardList, CheckCircle, XCircle, ArrowLeft, Eye, Upload, Im
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 import CustomSelect from '../../components/CustomSelect';
+import ImageEditorModal from '../../components/ImageEditorModal';
 import toast from 'react-hot-toast';
 
 interface InspectionTask {
@@ -133,6 +134,17 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 	const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 	const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 	const [savedImagePaths, setSavedImagePaths] = useState<string[]>([]);
+	const [imageEditorState, setImageEditorState] = useState<{
+		isOpen: boolean;
+		imageSrc: string | null;
+		fileName: string;
+		fileQueue: File[];
+	}>({
+		isOpen: false,
+		imageSrc: null,
+		fileName: '',
+		fileQueue: []
+	});
 
 	const [statusFilter, setStatusFilter] = useState('All');
 	const [startDate, setStartDate] = useState('');
@@ -301,11 +313,61 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
-		if (!files) return;
-		const newFiles = Array.from(files);
-		const newPreviews = newFiles.map(f => URL.createObjectURL(f));
-		setPendingFiles(prev => [...prev, ...newFiles]);
-		setPreviewUrls(prev => [...prev, ...newPreviews]);
+		if (!files || files.length === 0) return;
+		const fileList = Array.from(files);
+		e.target.value = '';
+
+		const firstFile = fileList[0];
+		const remaining = fileList.slice(1);
+		const reader = new FileReader();
+		reader.onload = () => {
+			setImageEditorState({
+				isOpen: true,
+				imageSrc: reader.result as string,
+				fileName: firstFile.name,
+				fileQueue: remaining
+			});
+		};
+		reader.readAsDataURL(firstFile);
+	};
+
+	const handleSaveEditedImage = (result: { dataUrl: string; file?: File }) => {
+		const finalFile = result.file || (() => {
+			const arr = result.dataUrl.split(',');
+			const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+			const bstr = atob(arr[1]);
+			let n = bstr.length;
+			const u8arr = new Uint8Array(n);
+			while (n--) {
+				u8arr[n] = bstr.charCodeAt(n);
+			}
+			return new File([u8arr], imageEditorState.fileName || 'edited_photo.png', { type: mime });
+		})();
+
+		setPendingFiles(prev => [...prev, finalFile]);
+		setPreviewUrls(prev => [...prev, URL.createObjectURL(finalFile)]);
+
+		if (imageEditorState.fileQueue.length > 0) {
+			const nextFile = imageEditorState.fileQueue[0];
+			const remaining = imageEditorState.fileQueue.slice(1);
+			const reader = new FileReader();
+			reader.onload = () => {
+				setImageEditorState({
+					isOpen: true,
+					imageSrc: reader.result as string,
+					fileName: nextFile.name,
+					fileQueue: remaining
+				});
+			};
+			reader.readAsDataURL(nextFile);
+		} else {
+			setImageEditorState({
+				isOpen: false,
+				imageSrc: null,
+				fileName: '',
+				fileQueue: []
+			});
+		}
 	};
 
 	const removePendingImage = (idxToRemove: number) => {
@@ -1031,6 +1093,21 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 					</div>
 				</div>
 			)}
+			<ImageEditorModal
+				isOpen={imageEditorState.isOpen}
+				imageSrc={imageEditorState.imageSrc}
+				title="Edit Sample Picture Before Upload"
+				originalFileName={imageEditorState.fileName}
+				onSave={handleSaveEditedImage}
+				onClose={() => {
+					setImageEditorState({
+						isOpen: false,
+						imageSrc: null,
+						fileName: '',
+						fileQueue: []
+					});
+				}}
+			/>
 		</div>
 	);
 }
