@@ -726,6 +726,21 @@ export default function AssignedSamples({ tasks, onCompleteInspection }: Assigne
 						})()}
 					</div>
 				</form>
+				<ImageEditorModal
+					isOpen={imageEditorState.isOpen}
+					imageSrc={imageEditorState.imageSrc}
+					title="Edit Sample Picture Before Upload"
+					originalFileName={imageEditorState.fileName}
+					onSave={handleSaveEditedImage}
+					onClose={() => {
+						setImageEditorState({
+							isOpen: false,
+							imageSrc: null,
+							fileName: '',
+							fileQueue: []
+						});
+					}}
+				/>
 			</div>
 		);
 	}

@@ -87,40 +87,57 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 	useEffect(() => {
 		if (!isOpen || !imageSrc) return;
 
+		let isMounted = true;
 		const img = new Image();
-		img.crossOrigin = 'anonymous';
-		img.src = imageSrc;
+		if (!imageSrc.startsWith('data:')) {
+			img.crossOrigin = 'anonymous';
+		}
 		img.onload = () => {
-			const canvas = canvasRef.current;
-			if (!canvas) return;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) return;
+			const initCanvas = () => {
+				if (!isMounted) return;
+				const canvas = canvasRef.current;
+				if (!canvas) {
+					requestAnimationFrame(initCanvas);
+					return;
+				}
+				const ctx = canvas.getContext('2d');
+				if (!ctx) return;
 
-			let w = img.naturalWidth || img.width;
-			let h = img.naturalHeight || img.height;
+				let w = img.naturalWidth || img.width;
+				let h = img.naturalHeight || img.height;
 
-			const MAX_DIM = 4096;
-			if (w > MAX_DIM || h > MAX_DIM) {
-				const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
-				w = Math.round(w * ratio);
-				h = Math.round(h * ratio);
-			}
+				const MAX_DIM = 4096;
+				if (w > MAX_DIM || h > MAX_DIM) {
+					const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+					w = Math.round(w * ratio);
+					h = Math.round(h * ratio);
+				}
 
-			canvas.width = w;
-			canvas.height = h;
+				canvas.width = w;
+				canvas.height = h;
 
-			ctx.clearRect(0, 0, w, h);
-			ctx.drawImage(img, 0, 0, w, h);
+				ctx.clearRect(0, 0, w, h);
+				ctx.drawImage(img, 0, 0, w, h);
 
-			setHistory([canvas.toDataURL('image/png')]);
-			setCropStart(null);
-			setCropEnd(null);
-			setIsCropping(false);
-			setTextItems([]);
-			setSelectedTextId(null);
-			setTextInput('');
-			setShapeStart(null);
-			setShapeCurrent(null);
+				setHistory([canvas.toDataURL('image/png')]);
+				setCropStart(null);
+				setCropEnd(null);
+				setIsCropping(false);
+				setTextItems([]);
+				setSelectedTextId(null);
+				setTextInput('');
+				setShapeStart(null);
+				setShapeCurrent(null);
+			};
+			initCanvas();
+		};
+		img.onerror = (err) => {
+			console.error('Failed to load image in editor:', err);
+		};
+		img.src = imageSrc;
+
+		return () => {
+			isMounted = false;
 		};
 	}, [isOpen, imageSrc]);
 
@@ -552,15 +569,34 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 
 		const dataUrl = canvas.toDataURL('image/png');
 
-		canvas.toBlob((blob) => {
+		const processSave = (blob: Blob | null) => {
 			let file: File | undefined = undefined;
+			const safeName = (originalFileName || 'image.png').replace(/\.[^/.]+$/, '') + '_annotated.png';
 			if (blob) {
-				const safeName = originalFileName.replace(/\.[^/.]+$/, '') + '_annotated.png';
 				file = new File([blob], safeName, { type: 'image/png' });
+			} else {
+				try {
+					const arr = dataUrl.split(',');
+					const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+					const bstr = atob(arr[1]);
+					let n = bstr.length;
+					const u8arr = new Uint8Array(n);
+					while (n--) {
+						u8arr[n] = bstr.charCodeAt(n);
+					}
+					file = new File([u8arr], safeName, { type: mime });
+				} catch (err) {
+					console.error('Error generating fallback file:', err);
+				}
 			}
 			onSave({ dataUrl, file });
-			onClose();
-		}, 'image/png');
+		};
+
+		if (canvas.toBlob) {
+			canvas.toBlob(processSave, 'image/png');
+		} else {
+			processSave(null);
+		}
 	};
 
 	if (!isOpen) return null;
@@ -585,7 +621,6 @@ export const ImageEditorModal: React.FC<ImageEditorModalProps> = ({
 	const modalContent = (
 		<div
 			className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-150 select-none"
-			onClick={onClose}
 		>
 			<div
 				className="bg-white rounded-3xl w-full max-w-5xl max-h-[94vh] shadow-2xl border border-zinc-200 overflow-hidden flex flex-col"

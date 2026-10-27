@@ -1083,6 +1083,22 @@ export default function EngineerTestReports({
 						</div>
 					</div>
 				)}
+				<ImageEditorModal
+					isOpen={imageEditorState.isOpen}
+					imageSrc={imageEditorState.imageSrc}
+					title={`Edit ${imageEditorState.target === 'before' ? 'Before Test' : 'After Test'} Picture`}
+					originalFileName={imageEditorState.fileName}
+					onSave={handleSaveEditedReportImage}
+					onClose={() => {
+						setImageEditorState(prev => ({
+							...prev,
+							isOpen: false,
+							imageSrc: null,
+							fileName: '',
+							fileQueue: []
+						}));
+					}}
+				/>
 			</div>
 		);
 	}
