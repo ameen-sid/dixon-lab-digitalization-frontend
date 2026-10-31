@@ -452,12 +452,12 @@ export default function EngineerAssignedSamples({ tasks, onCompleteInspection }:
 			setPendingFiles([]);
 			setPreviewUrls([]);
 			setSavedImagePaths(serverPaths);
+
+			toast.success(`Sample ${activeSampleIndex + 1} report logged successfully.`);
+			navigate(`${basePath}/assigned-samples/${activePlanId}`);
 		} catch (err) {
 			console.error('Failed to sync sample inspection with database: ', err);
 		}
-
-		toast.success(`Sample ${activeSampleIndex + 1} report logged successfully.`);
-		navigate(`${basePath}/assigned-samples/${activePlanId}`);
 	};
 
 	const handleSubmitFinalInspectionPlan = async () => {
