@@ -222,6 +222,8 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
         equipmentId: ''
     });
 
+    const [platformSearch, setPlatformSearch] = useState('');
+
     // Calculate occupied station-platform pairs across all requests (excluding current plan being edited)
     const occupiedPlatformMap = useMemo(() => {
         const map = new Map<string, string>(); // "stationNo-platformNo" -> Request ID / Plan Name
@@ -378,6 +380,7 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
     const handleOpenPlanForm = async (sampleIndex: number, planToEdit?: any) => {
         if (!selectedReq) return;
         setActiveSampleIndex(sampleIndex);
+        setPlatformSearch('');
 
         if (planToEdit) {
             const initialStart = getLocalTodayStr();
@@ -946,9 +949,20 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                                                         {plan.testType?.name || 'Test Plan'}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs font-bold text-zinc-800 mt-1">
-                                                    Product: {mappedPlan.productType || 'FATL'} | Station: S{mappedPlan.stationNo || 1} {mappedPlan.platformNos?.length > 0 ? `(Platform #${mappedPlan.platformNos.join(', #')})` : ''}
-                                                </p>
+                                                {(() => {
+                                                    const pNo = mappedPlan.platformNos?.[0];
+                                                    const isNablPlan = (mappedPlan.testType?.name || '').toLowerCase().includes('nabl');
+                                                    const globalPlat = isNablPlan
+                                                        ? `NABL S${mappedPlan.stationNo || 1} #${mappedPlan.platformNos?.join(', #') || 'None'}`
+                                                        : (mappedPlan.stationNo && pNo !== undefined
+                                                            ? (Number(pNo) > 10 ? `#${pNo}` : `#${(Number(mappedPlan.stationNo) - 1) * 10 + Number(pNo)} (S${mappedPlan.stationNo})`)
+                                                            : (pNo ? `#${pNo}` : 'None'));
+                                                    return (
+                                                        <p className="text-xs font-bold text-zinc-800 mt-1">
+                                                            Product: {mappedPlan.productType || 'FATL'} | Platform: {globalPlat}
+                                                        </p>
+                                                    );
+                                                })()}
                                                 <p className="text-[10px] text-zinc-500 font-medium">
                                                     Duration: {mappedPlan.numberOfDays || 9} Days ({formatDateToDMY(mappedPlan.startDate)} - {formatDateToDMY(mappedPlan.endDate)})
                                                 </p>
@@ -1140,92 +1154,143 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                                         </select>
                                     </div>
 
-                                    {/* Station Units & Platforms Grid Selection */}
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex items-center justify-between">
+                                    {/* Continuous 1 to 130 Platform Matrix Grid Selection */}
+                                    <div className="flex flex-col gap-2.5">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                                             <label className="text-[10px] text-zinc-500 font-extrabold uppercase tracking-wider">
-                                                Assign Platforms (Select platform from a single Station unit)
+                                                Assign Platform (Channels #1 to #130)
                                             </label>
-                                            <div className="flex items-center gap-3 text-[9px] font-bold text-zinc-400">
-                                                <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-white border border-zinc-300 inline-block"></span>
+                                            {form.platformNos.length > 0 && (
+                                                (() => {
+                                                    const pNo = form.platformNos[0];
+                                                    const displayId = Number(pNo) > 10
+                                                        ? `#${pNo} (Station S${Math.floor((Number(pNo) - 1) / 10) + 1})`
+                                                        : (form.stationNo ? `#${(Number(form.stationNo) - 1) * 10 + Number(pNo)} (Station S${form.stationNo})` : `#${pNo}`);
+                                                    return (
+                                                        <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full w-fit">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                                                            Selected: Platform {displayId}
+                                                        </span>
+                                                    );
+                                                })()
+                                            )}
+                                        </div>
+
+                                        {/* Search & Legend bar for 1-130 platforms */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white border border-zinc-200/80 rounded-xl px-3 py-2 shadow-2xs">
+                                            <div className="flex items-center gap-2 flex-1 max-w-xs">
+                                                <Search className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                                                <input
+                                                    type="text"
+                                                    value={platformSearch}
+                                                    onChange={e => setPlatformSearch(e.target.value)}
+                                                    placeholder="Search platform #1 - #130..."
+                                                    className="w-full text-xs bg-transparent outline-none text-zinc-700 placeholder:text-zinc-400 font-medium"
+                                                />
+                                                {platformSearch && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPlatformSearch('')}
+                                                        className="text-zinc-400 hover:text-zinc-600 text-xs font-bold px-1"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-[10px] font-bold text-zinc-500">
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="w-2 h-2 rounded-full bg-white border border-zinc-300"></span>
                                                     Available
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-[#185adb] inline-block"></span>
+                                                <span className="flex items-center gap-1.5 text-blue-700">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-600"></span>
                                                     Selected
                                                 </span>
-                                                <span className="flex items-center gap-1">
-                                                    <span className="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>
+                                                <span className="flex items-center gap-1.5 text-rose-600">
+                                                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                                                     Occupied
                                                 </span>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar p-3 bg-[#f8fafc] rounded-2xl border border-zinc-150">
-                                            {Array.from({ length: 13 }, (_, stationIdx) => {
-                                                const sNum = stationIdx + 1;
-                                                const isStationActive = form.stationNo === sNum;
+                                        <div className="max-h-[350px] overflow-y-auto p-3 bg-[#f8fafc] rounded-2xl border border-zinc-200/80">
+                                            {(() => {
+                                                const all130 = Array.from({ length: 130 }, (_, i) => {
+                                                    const globalId = i + 1;
+                                                    const sNum = Math.floor(i / 10) + 1;
+                                                    const pNum = (i % 10) + 1;
+                                                    const isSelected = (form.stationNo === sNum && form.platformNos.includes(pNum)) || form.platformNos.includes(globalId);
+                                                    const occupiedByLabel = occupiedPlatformMap.get(`${sNum}-${pNum}`);
+                                                    const isOccupied = Boolean(occupiedByLabel);
+                                                    return { globalId, sNum, pNum, isSelected, occupiedByLabel, isOccupied };
+                                                });
+
+                                                const filtered130 = all130.filter(p => {
+                                                    if (!platformSearch.trim()) return true;
+                                                    const q = platformSearch.trim().toLowerCase();
+                                                    return String(p.globalId).includes(q) ||
+                                                        `p${p.globalId}`.includes(q) ||
+                                                        `s${p.sNum}`.includes(q) ||
+                                                        (p.occupiedByLabel || '').toLowerCase().includes(q);
+                                                });
 
                                                 return (
-                                                    <div key={sNum} className="bg-white border border-[#e4e4e7]/60 rounded-[22px] p-5 shadow-sm">
-                                                        <div className="flex items-center justify-between mb-3.5">
-                                                            <span className="text-xs font-bold text-slate-400 tracking-wider">Station Unit S{sNum}</span>
-                                                            {isStationActive && form.platformNos.length > 0 && (
-                                                                <span className="text-[8px] font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                                                                    Active (Selected: {form.platformNos.join(', ')})
+                                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                                        {filtered130.map(({ globalId, sNum, pNum, isSelected, occupiedByLabel, isOccupied }) => (
+                                                            <button
+                                                                key={globalId}
+                                                                type="button"
+                                                                disabled={isOccupied}
+                                                                onClick={() => {
+                                                                    if (isOccupied) return;
+                                                                    setForm(prev => {
+                                                                        const currentlySelected = (prev.stationNo === sNum && prev.platformNos.includes(pNum)) || prev.platformNos.includes(globalId);
+                                                                        if (currentlySelected) {
+                                                                            return {
+                                                                                ...prev,
+                                                                                stationNo: 1,
+                                                                                platformNos: []
+                                                                            };
+                                                                        }
+                                                                        return {
+                                                                            ...prev,
+                                                                            stationNo: sNum,
+                                                                            platformNos: [pNum]
+                                                                        };
+                                                                    });
+                                                                }}
+                                                                title={
+                                                                    isOccupied
+                                                                        ? `Platform #${globalId} (S${sNum}) — Occupied by: ${occupiedByLabel}`
+                                                                        : `Platform #${globalId} (Station S${sNum}, Slot #${pNum}) — Available`
+                                                                }
+                                                                className={`h-12 rounded-xl transition-all relative flex flex-col items-center justify-center outline-none border cursor-pointer select-none ${
+                                                                    isOccupied
+                                                                        ? 'bg-rose-50 border-rose-200 text-rose-500 cursor-not-allowed opacity-75'
+                                                                        : isSelected
+                                                                            ? 'bg-[#185adb] border-[#185adb] text-white shadow-md shadow-blue-500/25 font-bold scale-[1.02]'
+                                                                            : 'bg-white border-zinc-200 hover:border-blue-400 hover:bg-blue-50/50 text-zinc-800'
+                                                                }`}
+                                                            >
+                                                                <span className={`text-xs font-black tracking-tight leading-none ${isSelected ? 'text-white' : isOccupied ? 'text-rose-700' : 'text-zinc-900'}`}>
+                                                                    {globalId}
                                                                 </span>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="grid grid-cols-5 gap-3">
-                                                            {Array.from({ length: 10 }, (_, platformIdx) => {
-                                                                const pNum = platformIdx + 1;
-                                                                const isSelected = isStationActive && form.platformNos.includes(pNum);
-                                                                const occupiedByLabel = occupiedPlatformMap.get(`${sNum}-${pNum}`);
-                                                                const isOccupied = Boolean(occupiedByLabel);
-
-                                                                return (
-                                                                    <button
-                                                                        key={pNum}
-                                                                        type="button"
-                                                                        disabled={isOccupied}
-                                                                        onClick={() => {
-                                                                            if (isOccupied) return;
-                                                                            setForm(prev => {
-                                                                                if (prev.stationNo !== sNum) {
-                                                                                    return {
-                                                                                        ...prev,
-                                                                                        stationNo: sNum,
-                                                                                        platformNos: [pNum]
-                                                                                    };
-                                                                                }
-                                                                                const current = prev.platformNos;
-                                                                                const updated = current.includes(pNum)
-                                                                                    ? current.filter(n => n !== pNum)
-                                                                                    : [...current, pNum];
-                                                                                return { ...prev, platformNos: updated };
-                                                                            });
-                                                                        }}
-                                                                        title={isOccupied ? `Occupied by: ${occupiedByLabel}` : `Station S${sNum} Platform #${pNum} (Available)`}
-                                                                        className={`h-11 rounded-2xl text-xs font-bold transition-all relative flex items-center justify-center outline-none border-none ${isOccupied
-                                                                            ? 'bg-[#fff1f2] text-[#f87171] cursor-not-allowed opacity-90 border border-rose-200/50'
-                                                                            : isSelected
-                                                                                ? 'bg-[#185adb] text-white shadow-md shadow-blue-500/20 font-bold cursor-pointer'
-                                                                                : 'bg-white border border-[#e4e4e7] text-slate-800 hover:bg-slate-50 cursor-pointer'
-                                                                            }`}
-                                                                    >
-                                                                        <span className="text-xs">{pNum}</span>
-                                                                        {isOccupied && (
-                                                                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#f43f5e] rounded-full border border-white shadow-xs"></span>
-                                                                        )}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
+                                                                <span className={`text-[8px] font-bold leading-none mt-1 ${isSelected ? 'text-blue-100' : isOccupied ? 'text-rose-400' : 'text-zinc-400'}`}>
+                                                                    S{sNum}
+                                                                </span>
+                                                                {isOccupied && (
+                                                                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-rose-500 rounded-full"></span>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                        {filtered130.length === 0 && (
+                                                            <div className="col-span-full py-8 text-center text-xs font-bold text-zinc-400">
+                                                                No platforms match "{platformSearch}"
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
-                                            })}
+                                            })()}
                                         </div>
                                     </div>
 
