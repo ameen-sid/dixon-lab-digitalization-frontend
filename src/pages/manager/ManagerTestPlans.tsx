@@ -370,7 +370,15 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 							platformNosParsed = [];
 						}
 					}
-					if (Number(p.stationNo) === stationNo && platformNosParsed.includes(platformNo)) {
+					const isReserved = platformNosParsed.some(pn => {
+						if (pn > 10) {
+							const s = Math.floor((pn - 1) / 10) + 1;
+							const pl = ((pn - 1) % 10) + 1;
+							return s === stationNo && pl === platformNo;
+						}
+						return Number(p.stationNo) === stationNo && pn === platformNo;
+					});
+					if (isReserved) {
 						return true;
 					}
 				}
@@ -485,8 +493,12 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 				testTypeId: planToEdit.testTypeId,
 				testCategoryId: planToEdit.testCategoryId,
 				productType: planToEdit.productType || 'FATL',
-				stationNo: Number(planToEdit.stationNo) || 1,
-				platformNos: Array.isArray(planToEdit.platformNos) ? planToEdit.platformNos.map(Number) : [],
+				stationNo: (Array.isArray(planToEdit.platformNos) && Number(planToEdit.platformNos[0]) > 10)
+					? (Math.floor((Number(planToEdit.platformNos[0]) - 1) / 10) + 1)
+					: (Number(planToEdit.stationNo) || 1),
+				platformNos: Array.isArray(planToEdit.platformNos)
+					? planToEdit.platformNos.map(Number).filter((n: number) => !isNaN(n)).map((n: number) => n > 10 ? ((n - 1) % 10) + 1 : n)
+					: [],
 				testProtocolId: planToEdit.testProtocolId,
 				referenceStandard: planToEdit.referenceStandard || '',
 				numberOfDays: initialNumDays,
@@ -1963,7 +1975,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 												const globalId = i + 1;
 												const sNum = Math.floor(i / 10) + 1;
 												const pNum = (i % 10) + 1;
-												const isSelected = (form.stationNo === sNum && form.platformNos.includes(pNum)) || form.platformNos.includes(globalId);
+												const isSelected = form.platformNos.some(p => {
+													const num = Number(p);
+													return num > 10 ? num === globalId : (form.stationNo === sNum && num === pNum);
+												});
 												const slot = normalPlatforms.find(
 													(p: any) => Number(p.stationNo) === sNum && Number(p.platformNo) === pNum
 												);
@@ -2001,7 +2016,10 @@ export default function ManagerTestPlans({ requests, selectedRequestId, onUpdate
 															onClick={() => {
 																if (isOccupied) return;
 																setForm(prev => {
-																	const currentlySelected = (prev.stationNo === sNum && prev.platformNos.includes(pNum)) || prev.platformNos.includes(globalId);
+																	const currentlySelected = prev.platformNos.some(p => {
+																		const num = Number(p);
+																		return num > 10 ? num === globalId : (prev.stationNo === sNum && num === pNum);
+																	});
 																	if (currentlySelected) {
 																		return {
 																			...prev,

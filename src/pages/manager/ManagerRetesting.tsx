@@ -256,7 +256,13 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                     }
                     const reqIdStr = req.requestId || `REQ-${req.id}`;
                     for (const pNum of platformNos) {
-                        map.set(`${p.stationNo}-${pNum}`, `${reqIdStr} (${p.testType?.name || 'Occupied'})`);
+                        if (pNum > 10) {
+                            const s = Math.floor((pNum - 1) / 10) + 1;
+                            const pl = ((pNum - 1) % 10) + 1;
+                            map.set(`${s}-${pl}`, `${reqIdStr} (${p.testType?.name || 'Occupied'})`);
+                        } else {
+                            map.set(`${p.stationNo}-${pNum}`, `${reqIdStr} (${p.testType?.name || 'Occupied'})`);
+                        }
                     }
                 }
             }
@@ -415,8 +421,10 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                 testTypeId: tId,
                 testCategoryId: cId,
                 productType: planToEdit.productType || 'FATL',
-                stationNo: Number(planToEdit.stationNo) || 1,
-                platformNos: initialPlatformNos,
+                stationNo: (initialPlatformNos.length > 0 && initialPlatformNos[0] > 10)
+                    ? (Math.floor((initialPlatformNos[0] - 1) / 10) + 1)
+                    : (Number(planToEdit.stationNo) || 1),
+                platformNos: initialPlatformNos.map(n => n > 10 ? ((n - 1) % 10) + 1 : n),
                 testProtocolId: pId,
                 referenceStandard: planToEdit.referenceStandard || '',
                 numberOfDays: initialNumDays,
@@ -1219,7 +1227,10 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                                                     const globalId = i + 1;
                                                     const sNum = Math.floor(i / 10) + 1;
                                                     const pNum = (i % 10) + 1;
-                                                    const isSelected = (form.stationNo === sNum && form.platformNos.includes(pNum)) || form.platformNos.includes(globalId);
+                                                    const isSelected = form.platformNos.some(p => {
+                                                        const num = Number(p);
+                                                        return num > 10 ? num === globalId : (form.stationNo === sNum && num === pNum);
+                                                    });
                                                     const occupiedByLabel = occupiedPlatformMap.get(`${sNum}-${pNum}`);
                                                     const isOccupied = Boolean(occupiedByLabel);
                                                     return { globalId, sNum, pNum, isSelected, occupiedByLabel, isOccupied };
@@ -1244,7 +1255,10 @@ export default function ManagerRetesting({ requests, selectedRequestId, onRefres
                                                                 onClick={() => {
                                                                     if (isOccupied) return;
                                                                     setForm(prev => {
-                                                                        const currentlySelected = (prev.stationNo === sNum && prev.platformNos.includes(pNum)) || prev.platformNos.includes(globalId);
+                                                                        const currentlySelected = prev.platformNos.some(p => {
+                                                                            const num = Number(p);
+                                                                            return num > 10 ? num === globalId : (prev.stationNo === sNum && num === pNum);
+                                                                        });
                                                                         if (currentlySelected) {
                                                                             return {
                                                                                 ...prev,
