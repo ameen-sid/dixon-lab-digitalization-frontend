@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Printer, Clipboard, CheckCircle2, XCircle, Upload, Trash2, Save, X } from 'lucide-react';
+import { ArrowLeft, Printer, Clipboard, CheckCircle2, XCircle, Upload, Trash2, Save, X, Lock } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { getTestRequests, saveSampleInspection } from '../../services/operations/testRequestService';
 import { getTestTypes } from '../../services/operations/testTypeService';
@@ -59,9 +59,7 @@ export default function InspectorChecksheet() {
 	const [plans, setPlans] = useState<{ [key: string]: any }>({});
 
 	const [cellData, setCellData] = useState<{ [key: string]: string }>({});
-
 	const [tempValues, setTempValues] = useState<{ [key: string]: string }>({});
-
 	const [loading, setLoading] = useState(true);
 
 	const [isRecommendationModalOpen, setIsRecommendationModalOpen] = useState(false);
@@ -253,7 +251,7 @@ export default function InspectorChecksheet() {
 					if (Array.isArray(updatedImgs)) {
 						setUploadedPhotos(updatedImgs);
 					}
-				} catch (e) {}
+				} catch (e) { }
 			}
 
 			setInspectorStatus(targetStatus);
@@ -270,6 +268,27 @@ export default function InspectorChecksheet() {
 
 	const productType = (planInfo?.plan?.productType || planInfo?.protocol?.productType || 'SATL').toUpperCase();
 	const columns = productType === 'FATL' ? FATL_COLUMNS : SATL_COLUMNS;
+
+	const isPlanEvaluated = ['PASSED', 'FAILED'].includes((planInfo?.plan?.evaluationStatus || '').toUpperCase());
+
+	const reqStatus = (planInfo?.request?.status || '').toUpperCase();
+	const reqRemarks = planInfo?.request?.remarks || '';
+	const isSubmittedToHead = reqRemarks.includes('Submitted to Head') || reqRemarks.includes('Approved by Head');
+
+	const isRequestFinalized = [
+		'COMPLETED',
+		'HEAD_APPROVED',
+		'APPROVED',
+		'REPORT_RELEASED',
+		'TESTING_PASSED',
+		'TESTING_FAILED',
+		'TESTING_PARTIAL',
+		'FAILED',
+		'REJECTED',
+		'INSPECTION_FAILED'
+	].includes(reqStatus) || isSubmittedToHead;
+
+	const isReadOnly = isPlanEvaluated || isRequestFinalized;
 
 	const getDatesArray = (startStr: string, endStr: string) => {
 		if (!startStr || !endStr) return [];
@@ -359,7 +378,9 @@ export default function InspectorChecksheet() {
 	};
 
 	const handleCellBlur = async (dateStr: string, colId: string, val: string) => {
-		if (!planKey) return;
+
+		if (!planKey || isReadOnly) return;
+
 		const cellKey = `${dateStr}_${colId}`;
 		const upperVal = val.toUpperCase();
 
@@ -412,7 +433,7 @@ export default function InspectorChecksheet() {
 		} else if (e.key === 'ArrowDown') {
 			targetDateIndex = dateIndex + 1;
 		} else {
-			return; 
+			return;
 		}
 
 		e.preventDefault();
@@ -421,7 +442,7 @@ export default function InspectorChecksheet() {
 		while (safety < 20) {
 			safety++;
 			if (targetDateIndex < 0 || targetDateIndex >= datesList.length || targetColIndex < 0 || targetColIndex >= columns.length) {
-				break; 
+				break;
 			}
 
 			const targetId = `cell-${targetDateIndex}-${targetColIndex}`;
@@ -561,33 +582,51 @@ export default function InspectorChecksheet() {
 						<ArrowLeft className="w-4 h-4" />
 						<span>Back to Test Queue</span>
 					</button>
-
 					<div className="flex items-center gap-3">
-						<span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
-							Tip: Cell inputs save to database on blur
-						</span>
-						<button
-							type="button"
-							onClick={() => handleOpenRecommendationModal('PASSED')}
-							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'PASSED'
-									? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
-									: 'bg-emerald-600 hover:bg-emerald-700 text-white'
-								}`}
-						>
-							<CheckCircle2 className="w-4 h-4" />
-							<span>{inspectorStatus === 'PASSED' ? 'Passed (Edit)' : 'Pass Test'}</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => handleOpenRecommendationModal('FAILED')}
-							className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'FAILED'
-									? 'bg-rose-700 text-white ring-2 ring-rose-300'
-									: 'bg-rose-600 hover:bg-rose-700 text-white'
-								}`}
-						>
-							<XCircle className="w-4 h-4" />
-							<span>{inspectorStatus === 'FAILED' ? 'Failed (Edit)' : 'Fail Test'}</span>
-						</button>
+						{isReadOnly ? (
+							<span className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl border ${(planInfo.plan?.evaluationStatus || '').toUpperCase() === 'PASSED' || reqStatus === 'TESTING_PASSED' || reqStatus === 'COMPLETED'
+									? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+									: 'bg-rose-50 text-rose-700 border-rose-200'
+								}`}>
+								<Lock className="w-3.5 h-3.5" />
+								<span>
+									{planInfo.plan?.evaluationStatus
+										? `Evaluated: ${planInfo.plan.evaluationStatus}`
+										: `Request: ${planInfo.request?.status || 'Finalized'}`} (Read-Only)
+								</span>
+							</span>
+						) : (
+							<span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+								Tip: Cell inputs save to database on blur
+							</span>
+						)}
+
+						{!isReadOnly && (
+							<>
+								<button
+									type="button"
+									onClick={() => handleOpenRecommendationModal('PASSED')}
+									className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'PASSED'
+										? 'bg-emerald-700 text-white ring-2 ring-emerald-300'
+										: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+										}`}
+								>
+									<CheckCircle2 className="w-4 h-4" />
+									<span>{inspectorStatus === 'PASSED' ? 'Passed (Edit)' : 'Pass Test'}</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => handleOpenRecommendationModal('FAILED')}
+									className={`flex items-center gap-1.5 text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all cursor-pointer border-none outline-none active:scale-95 ${inspectorStatus === 'FAILED'
+										? 'bg-rose-700 text-white ring-2 ring-rose-300'
+										: 'bg-rose-600 hover:bg-rose-700 text-white'
+										}`}
+								>
+									<XCircle className="w-4 h-4" />
+									<span>{inspectorStatus === 'FAILED' ? 'Failed (Edit)' : 'Fail Test'}</span>
+								</button>
+							</>
+						)}
 
 						<button
 							onClick={triggerPrint}
@@ -688,11 +727,11 @@ export default function InspectorChecksheet() {
 															onChange={(e) => handleCellChange(dateStr, col.id, e.target.value)}
 															onBlur={(e) => handleCellBlur(dateStr, col.id, e.target.value)}
 															onKeyDown={(e) => handleKeyDown(e, dateIndex, colIndex)}
-															disabled={isCalculated}
+															disabled={isCalculated || isReadOnly}
 															autoComplete="off"
-															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${isCalculated
-																	? 'text-zinc-500 font-extrabold cursor-not-allowed'
-																	: 'text-zinc-900 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500'
+															className={`w-full bg-transparent text-center font-bold text-xs border-none outline-none rounded p-1 transition-all ${(isCalculated || isReadOnly)
+																? 'text-zinc-500 font-extrabold cursor-not-allowed'
+																: 'text-zinc-900 hover:bg-slate-100 focus:bg-white focus:ring-1 focus:ring-indigo-500'
 																}`}
 														/>
 													</td>
@@ -712,7 +751,6 @@ export default function InspectorChecksheet() {
 							<span>Approved By: Lab Manager / Quality Head</span>
 						</div>
 					</div>
-
 				</div>
 			</div>
 			{isRecommendationModalOpen && (
@@ -745,8 +783,8 @@ export default function InspectorChecksheet() {
 									type="button"
 									onClick={() => setModalDecision('PASSED')}
 									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${modalDecision === 'PASSED'
-											? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-											: 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+										? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+										: 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
 										}`}
 								>
 									<CheckCircle2 className="w-4 h-4" />
@@ -757,8 +795,8 @@ export default function InspectorChecksheet() {
 									type="button"
 									onClick={() => setModalDecision('FAILED')}
 									className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border cursor-pointer ${modalDecision === 'FAILED'
-											? 'bg-rose-600 text-white border-rose-600 shadow-sm'
-											: 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+										? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+										: 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
 										}`}
 								>
 									<XCircle className="w-4 h-4" />

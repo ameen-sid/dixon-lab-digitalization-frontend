@@ -198,8 +198,10 @@ export default function InspectorDailyChecksheet() {
 		return (
 			item.isReliability &&
 			item.request &&
-			requestStatus !== 'REJECTED' &&
-			requestStatus !== 'PENDING_APPROVAL' &&
+			!['COMPLETED', 'HEAD_APPROVED', 'APPROVED', 'REPORT_RELEASED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'FAILED', 'REJECTED', 'INSPECTION_FAILED', 'PENDING_APPROVAL'].includes(requestStatus) &&
+			!(item.request?.remarks || '').includes('Submitted to Head') &&
+			!(item.request?.remarks || '').includes('Approved by Head') &&
+
 			item.isTodayInRange &&
 			isNotEvaluated &&
 			isParentPlanEvaluatedFailed

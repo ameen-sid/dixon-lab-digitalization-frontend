@@ -155,7 +155,10 @@ export default function InspectorDashboard() {
 		item =>
 			item.isReliability &&
 			item.request &&
-			!(item.plan.evaluationStatus === 'PASSED' || item.plan.evaluationStatus === 'FAILED')
+			!(item.plan?.evaluationStatus === 'PASSED' || item.plan?.evaluationStatus === 'FAILED') &&
+			!['COMPLETED', 'HEAD_APPROVED', 'APPROVED', 'REPORT_RELEASED', 'TESTING_PASSED', 'TESTING_FAILED', 'TESTING_PARTIAL', 'FAILED', 'REJECTED', 'INSPECTION_FAILED', 'PENDING_APPROVAL'].includes((item.request?.status || '').toUpperCase()) &&
+			!(item.request?.remarks || '').includes('Submitted to Head') &&
+			!(item.request?.remarks || '').includes('Approved by Head')
 	);
 
 	
